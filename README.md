@@ -15,7 +15,7 @@ Built at **Monad Blitz Jogja 2026** · [docs/JUDGING.md](docs/JUDGING.md) (rubri
 | **Mainnet** (chain 143) | [`0xA98CeE28C6EB35b6Ee7440b7490e265f23975d61`](https://monadvision.com/address/0xA98CeE28C6EB35b6Ee7440b7490e265f23975d61) · verified on MonadVision + [Monadscan](https://monadscan.com/address/0xA98CeE28C6EB35b6Ee7440b7490e265f23975d61) · deploy tx [`0x34c0b085…a3bb01`](https://monadvision.com/tx/0x34c0b0859000f0a8c99e04d1b5f705626951714bb81faef3d37640c4c2a3bb01) · weekly pool funded 0.5 MON |
 | Source | Same `contracts/src/Kicau.sol` on both networks · 60 Foundry tests · organizer "Kicau Demo Contest" registered on both |
 | Videos | Demo (1:53): [watch / download](https://kicau.xyz/demo/kicau-demo.mp4) · [on X](https://x.com/BangDropID/status/2113904695873798527) · Ad / teaser (0:40): [watch / download](https://kicau.xyz/demo/kicau-teaser.mp4) · [on X](https://x.com/BangDropID/status/2113905544969048464) |
-| Build in public | 12 posts on X by the team, all listed in [Build in public](#build-in-public) below |
+| Build in public | 13 posts on X by the team, all listed in [Build in public](#build-in-public) below |
 
 ## Try it in 1 minute (no install, no wallet)
 
@@ -52,6 +52,7 @@ All posts were made during Monad Blitz Jogja V2 (24 Oct 2026). The @BangDropID t
 | 15:05 | [Demo video](https://x.com/BangDropID/status/2113904695873798527) |
 | 15:08 | [Ad / teaser video](https://x.com/BangDropID/status/2113905544969048464) |
 | 15:42 | [Final hour: My Dashboard, pedigree, mainnet toggle](https://x.com/BangDropID/status/2113914109905539443) |
+| 16:17 | [Submitted + new demo cut (video)](https://x.com/BangDropID/status/2113922889712070912) |
 
 **[@maziazi_](https://x.com/maziazi_)**
 
