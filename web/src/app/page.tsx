@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { bytesToHex, formatEther } from "viem";
 import { writeContractSync } from "viem/actions";
@@ -337,6 +338,9 @@ export default function Home() {
             <button className="btn-ghost" onClick={() => setRegistering(true)}>
               + Register your bird
             </button>
+            <Link href="/taman" className="btn-primary">
+              Kicau Garden →
+            </Link>
           </div>
         </div>
         <ShelterScene

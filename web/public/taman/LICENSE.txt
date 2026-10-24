@@ -1,0 +1,5 @@
+tiny-town.png — "Tiny Town" (1.1) by Kenney (www.kenney.nl)
+Source: https://kenney.nl/assets/tiny-town
+Download: https://kenney.nl/media/pages/assets/tiny-town/a415fbeb49-1735736916/kenney_tiny-town.zip (Tilemap/tilemap_packed.png, 12x11 tiles of 16x16 px)
+License: Creative Commons Zero (CC0) — http://creativecommons.org/publicdomain/zero/1.0/
+Free for personal, educational and commercial use. Credit is appreciated but not required: thanks, Kenney!
