@@ -59,7 +59,7 @@ export default function Lomba() {
         <span className="min-w-0 flex-1 truncate font-display text-xs">Contests</span>
         <span className="max-sm:hidden"><NetworkToggle /></span>{/* ponytail: hidden on phones so the header stays one row */}
         <Link href="/me" className="btn-ghost !px-2 !py-2 !text-[0.6rem]" title="My Dashboard" aria-label="My Dashboard">
-          ▤<span className="hidden sm:inline"> My Dashboard</span>
+          <span className="sm:hidden">Me</span><span className="hidden sm:inline">My Dashboard</span>
         </Link>
         {!k.address ? (
           <button className="btn-primary !px-2 !py-2 !text-[0.6rem]" disabled={k.funding} onClick={NET.faucet ? k.quickPlay : k.connectWallet}>

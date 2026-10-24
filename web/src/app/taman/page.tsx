@@ -251,7 +251,7 @@ export default function Taman() {
         </div>
         <span className="max-sm:hidden"><NetworkToggle /></span>{/* ponytail: hidden on phones so the game HUD stays one row */}
         <Link href="/me" className="btn-ghost !px-2 !py-2 !text-[0.6rem]" title="My Dashboard" aria-label="My Dashboard">
-          ▤<span className="hidden sm:inline"> My Dashboard</span>
+          <span className="sm:hidden">Me</span><span className="hidden sm:inline">My Dashboard</span>
         </Link>
         <button className="btn-ghost !px-2 !py-1" onClick={toggleMusic} aria-label={muted ? "Unmute music" : "Mute music"}>
           {muted ? "🔇" : "🎵"}
