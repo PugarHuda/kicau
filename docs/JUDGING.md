@@ -7,8 +7,8 @@ Peta setiap butir rubrik dari hackathon brief ke bukti nyata di project ini. Sta
 **Link inti (ucapkan saat pitch):**
 - Repo: https://github.com/PugarHuda/kicau
 - Live: https://kicau-theta.vercel.app
-- Kontrak Mainnet (chain 143): `0x5db5296d5fb87ee703badcd2fd73e3f27816c3c9` — [MonadVision](https://monadvision.com/address/0x5db5296d5fb87ee703badcd2fd73e3f27816c3c9)
-- Kontrak Testnet (chain 10143, dipakai app untuk demo): `0x8010e567b6f68dcfD19312644F1c3E6249b43ef7` — [MonadVision](https://testnet.monadvision.com/address/0x8010e567b6f68dcfD19312644F1c3E6249b43ef7) · [Monadscan](https://testnet.monadscan.com/address/0x8010e567b6f68dcfD19312644F1c3E6249b43ef7)
+- Kontrak Mainnet (chain 143): `0xdada618e564edaf7ec0af0a12575bf3c0dc8523b` — [MonadVision](https://monadvision.com/address/0xdada618e564edaf7ec0af0a12575bf3c0dc8523b)
+- Kontrak Testnet (chain 10143, dipakai app untuk demo): `0xD15bF5b95dC29083eBA236057e2DC9dE90092725` — [MonadVision](https://testnet.monadvision.com/address/0xD15bF5b95dC29083eBA236057e2DC9dE90092725) · [Monadscan](https://testnet.monadscan.com/address/0xD15bF5b95dC29083eBA236057e2DC9dE90092725)
 
 ---
 
@@ -47,7 +47,7 @@ Peta setiap butir rubrik dari hackathon brief ke bukti nyata di project ini. Sta
 
 | Butir | Poin | Penilai | Bukti / argumen | Status |
 |---|---|---|---|---|
-| Kontrak di Monad Mainnet | 25 | Panitia | `0x5db5296d5fb87ee703badcd2fd73e3f27816c3c9` di chain 143, dideploy 24 Okt (tx `0xafa4ad0d…df7884`), verified MonadVision + Monadscan · [explorer](https://monadvision.com/address/0x5db5296d5fb87ee703badcd2fd73e3f27816c3c9) | ✅ |
+| Kontrak di Monad Mainnet | 25 | Panitia | `0xdada618e564edaf7ec0af0a12575bf3c0dc8523b` di chain 143, dideploy 24 Okt (tx `0xafa4ad0d…df7884`), verified MonadVision + Monadscan · [explorer](https://monadvision.com/address/0xdada618e564edaf7ec0af0a12575bf3c0dc8523b) | ✅ |
 | Public page di custom domain | 15 | Panitia | Vercel mendukung custom domain; perlu domain | ❌ belum |
 | Product-market fit | ≤20 | Juri | Kicau mania = hobi nasional di Indonesia dengan lomba gantangan mingguan. Kicau memberi versi digital (koleksi, game, lomba skor) + **daftarkan burung asli** dengan silsilah, prestasi, sertifikat yang tersimpan on-chain — menjawab kebutuhan pamer & bukti prestasi | argumen pitch |
 | Revenue potential & strategy | ≤20 | Juri | 70% hasil adopsi ke treasury, biaya register burung, ke depan: entry fee turnamen, sponsor lomba, verifikasi sertifikat oleh panitia lomba (attestation berbayar) | argumen pitch |

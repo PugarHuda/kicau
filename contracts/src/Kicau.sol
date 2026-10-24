@@ -9,7 +9,8 @@ import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 
 /// @title Kicau — bird NFTs that fund conservation and power a flappy game.
 /// @notice Each purchase is split in the same tx between treasury and a conservation wallet.
-///         The contract never holds a balance between calls.
+///         The contract never holds a balance between calls, except contest pools (enter → finalize/cancel)
+///         and `owed` payouts whose push failed. v6 adds on-chain gantangan contests.
 contract Kicau is ERC721Enumerable, Ownable, ReentrancyGuard {
     using Strings for uint256;
 
@@ -93,6 +94,81 @@ contract Kicau is ERC721Enumerable, Ownable, ReentrancyGuard {
     /// @notice Best score per player that came from a seeded, time-validated run.
     mapping(address player => uint256) public bestValidatedByPlayer;
 
+    // ----------------------------------------------------------- contests (v6)
+
+    enum ContestStatus {
+        Open,
+        Judging,
+        Finalized,
+        Cancelled
+    }
+
+    struct Contest {
+        string name;
+        string class_;
+        address host;
+        uint64 entryDeadline;
+        ContestStatus status;
+        uint128 entryFee;
+        uint128 pool;
+        uint256 entryCount;
+        address[] judges;
+    }
+
+    struct JudgeScore {
+        uint8 melody;
+        uint8 volume;
+        uint8 duration;
+        uint8 style;
+        bool scored;
+    }
+
+    uint256 public constant MAX_JUDGES = 5;
+    uint256 public constant MAX_ENTRIES = 32;
+    uint256 public constant MAX_CONTEST_NAME_BYTES = 64;
+    uint256 public constant MAX_CLASS_BYTES = 32;
+    uint8 public constant MAX_ASPECT = 10;
+    /// @notice "No entry" marker for ContestFinalized places when a contest has < 3 entries.
+    uint256 public constant NO_ENTRY = type(uint256).max;
+    /// @dev Gas cap per payout/refund so a hostile receiver cannot grief a whole finalize/cancel.
+    uint256 internal constant PAYOUT_GAS = 50_000;
+
+    Contest[] internal _contests;
+    mapping(uint256 contestId => mapping(address => bool)) public isJudge;
+    mapping(uint256 contestId => uint256[]) internal _entries;
+    mapping(uint256 contestId => mapping(uint256 tokenId => address)) public entrantOf;
+    mapping(uint256 contestId => mapping(uint256 tokenId => uint256)) public entryTotal;
+    mapping(uint256 contestId => mapping(uint256 tokenId => mapping(address judge => JudgeScore))) internal _scores;
+    /// @notice Payouts/refunds whose push failed; claim with withdrawOwed().
+    mapping(address => uint256) public owed;
+
+    // ------------------------------------------------- living profile + Kicau Value (v6)
+
+    /// @notice Last register/update time; drives the freshness decay of valueOf.
+    mapping(uint256 tokenId => uint256) public lastUpdated;
+    mapping(uint256 tokenId => uint256) public profileVersion;
+    /// @notice Block of the latest BirdUpdated log (0 = never updated: read BirdRegistered at registeredAt).
+    mapping(uint256 tokenId => uint256) public updatedAtBlock;
+    /// @notice Contest podium finishes: wins[tokenId][0] = 1st places, [1] = 2nd, [2] = 3rd.
+    mapping(uint256 tokenId => uint256[3]) internal _wins;
+    mapping(uint256 tokenId => uint256) public activeAttestations;
+    mapping(uint256 tokenId => uint256) public bestValidatedByToken;
+
+    uint256 public constant VALUE_UNIT = 0.0001 ether; // price per point
+    uint256 public constant FRESH_DAYS = 7;
+
+    struct ValueBreakdown {
+        uint256 base;
+        uint256 wins; // 250 / 150 / 100 per 1st / 2nd / 3rd
+        uint256 attestations; // 80 each, non-revoked
+        uint256 supporters; // 10 each
+        uint256 support; // milli-MON supported / 10, capped 500
+        uint256 runs; // best validated run * 2, capped 500
+        uint256 freshnessPct; // 100 when updated within 7 days, -5/day after, floor 30
+        uint256 points;
+        uint256 priceWei;
+    }
+
     event BirdBought(address indexed buyer, uint256 indexed tokenId, uint256 indexed speciesId, uint256 conservation);
     event ScoreSubmitted(
         address indexed player, uint256 indexed tokenId, uint256 indexed speciesId, uint256 score, uint8 gameVersion
@@ -102,12 +178,20 @@ contract Kicau is ERC721Enumerable, Ownable, ReentrancyGuard {
         address indexed supporter, uint256 indexed tokenId, address indexed keeper, uint256 amount, uint256 conservation
     );
     event BirdRegistered(address indexed owner, uint256 indexed tokenId, string name, bytes image);
+    event BirdUpdated(address indexed owner, uint256 indexed tokenId, uint256 version, bytes image);
     event SpeciesAdded(uint256 indexed speciesId, string name, uint256 price, uint256 maxSupply);
     event OrganizerSet(address indexed organizer, string name, bool active);
     event Attested(uint256 indexed tokenId, address indexed organizer, string title);
     event AttestationRevoked(uint256 indexed tokenId, address indexed organizer, uint256 index);
     event RunStarted(uint256 indexed runId, address indexed player, uint256 indexed tokenId, uint256 seed);
     event RunSubmitted(uint256 indexed runId, uint256 score);
+    event ContestCreated(uint256 indexed contestId, address indexed host, string name, string class_, uint256 entryFee);
+    event ContestEntered(uint256 indexed contestId, uint256 indexed tokenId, address indexed entrant, uint256 fee);
+    event JudgingStarted(uint256 indexed contestId);
+    event Scored(uint256 indexed contestId, uint256 indexed tokenId, address indexed judge, uint256 total);
+    event ContestFinalized(uint256 indexed contestId, uint256 first, uint256 second, uint256 third, uint256 pool);
+    event ContestCancelled(uint256 indexed contestId);
+    event PayoutOwed(address indexed to, uint256 amount);
 
     error UnknownSpecies();
     error WrongPayment();
@@ -126,6 +210,17 @@ contract Kicau is ERC721Enumerable, Ownable, ReentrancyGuard {
     error NotRunPlayer();
     error RunExpired();
     error ScoreTooFast();
+    error BelowMinSupport();
+    error InvalidContest();
+    error NotHost();
+    error NotJudge();
+    error BadStatus();
+    error EntryClosed();
+    error ContestFull();
+    error AlreadyEntered();
+    error NotEntered();
+    error NotEnoughEntries();
+    error InvalidScore();
 
     constructor(address treasury_, address conservationWallet_, string memory baseURI_) ERC721("Kicau", "KICAU") Ownable(msg.sender) {
         if (treasury_ == address(0) || conservationWallet_ == address(0)) revert ZeroAddress();
@@ -165,6 +260,8 @@ contract Kicau is ERC721Enumerable, Ownable, ReentrancyGuard {
     function supportBird(uint256 tokenId) external payable nonReentrant {
         if (speciesOf[tokenId] != CUSTOM_SPECIES) revert NotCustomBird();
         if (msg.value == 0) revert WrongPayment();
+        // minimum sponsorship = 10% of the bird's current Kicau Value
+        if (msg.value < valueBreakdown(tokenId).priceWei / 10) revert BelowMinSupport();
         address keeper = ownerOf(tokenId);
         uint256 conservation = msg.value * conservationBps / MAX_BPS;
         totalConservation += conservation;
@@ -203,11 +300,24 @@ contract Kicau is ERC721Enumerable, Ownable, ReentrancyGuard {
         speciesOf[tokenId] = CUSTOM_SPECIES;
         customName[tokenId] = name;
         registeredAt[tokenId] = block.number;
+        lastUpdated[tokenId] = block.timestamp;
         _safeMint(msg.sender, tokenId);
 
         uint256 conservation = _split(msg.value);
         emit BirdRegistered(msg.sender, tokenId, name, image);
         emit BirdBought(msg.sender, tokenId, CUSTOM_SPECIES, conservation);
+    }
+
+    /// @notice Keeper publishes a new version of the bird's sprite/profile bytes (same "KC" encoding).
+    ///         Keeps the bird "fresh" for valueOf. Frontends read the BirdUpdated log at updatedAtBlock.
+    function updateBird(uint256 tokenId, bytes calldata image) external {
+        if (speciesOf[tokenId] != CUSTOM_SPECIES) revert NotCustomBird();
+        if (ownerOf(tokenId) != msg.sender) revert NotBirdOwner();
+        if (image.length == 0 || image.length > MAX_IMAGE_BYTES) revert InvalidBird();
+        lastUpdated[tokenId] = block.timestamp;
+        updatedAtBlock[tokenId] = block.number;
+        uint256 version = ++profileVersion[tokenId];
+        emit BirdUpdated(msg.sender, tokenId, version, image);
     }
 
     // -------------------------------------------------------------- score
@@ -249,6 +359,7 @@ contract Kicau is ERC721Enumerable, Ownable, ReentrancyGuard {
         r.active = false;
         activeRunOf[msg.sender] = 0;
         if (score > bestValidatedByPlayer[msg.sender]) bestValidatedByPlayer[msg.sender] = score;
+        if (score > bestValidatedByToken[tokenId]) bestValidatedByToken[tokenId] = score;
         _recordScore(tokenId, score, RUN_GAME_VERSION);
         emit RunSubmitted(runId, score);
     }
@@ -264,6 +375,7 @@ contract Kicau is ERC721Enumerable, Ownable, ReentrancyGuard {
         Attestation[] storage list = attestations[tokenId];
         if (list.length >= MAX_ATTESTATIONS) revert TooManyAttestations();
         list.push(Attestation(msg.sender, uint64(block.timestamp), false, title));
+        activeAttestations[tokenId]++;
         emit Attested(tokenId, msg.sender, title);
     }
 
@@ -274,7 +386,205 @@ contract Kicau is ERC721Enumerable, Ownable, ReentrancyGuard {
         Attestation storage a = list[index];
         if (a.organizer != msg.sender || a.revoked) revert InvalidAttestation();
         a.revoked = true;
+        activeAttestations[tokenId]--;
         emit AttestationRevoked(tokenId, msg.sender, index);
+    }
+
+    // ----------------------------------------------------------- contests
+
+    /// @notice Host a gantangan contest. Permissionless: host = msg.sender.
+    function createContest(
+        string calldata name,
+        string calldata class_,
+        uint256 entryFee,
+        address[] calldata judges,
+        uint64 entryDeadline
+    ) external returns (uint256 contestId) {
+        uint256 nl = bytes(name).length;
+        uint256 cl = bytes(class_).length;
+        uint256 jn = judges.length;
+        if (
+            nl == 0 || nl > MAX_CONTEST_NAME_BYTES || cl == 0 || cl > MAX_CLASS_BYTES || jn == 0 || jn > MAX_JUDGES
+                || entryDeadline <= block.timestamp || entryFee > type(uint128).max
+        ) revert InvalidContest();
+
+        contestId = _contests.length;
+        Contest storage c = _contests.push();
+        c.name = name;
+        c.class_ = class_;
+        c.host = msg.sender;
+        c.entryDeadline = entryDeadline;
+        c.entryFee = uint128(entryFee);
+        for (uint256 i; i < jn; i++) {
+            address j = judges[i];
+            if (j == address(0) || isJudge[contestId][j]) revert InvalidContest();
+            isJudge[contestId][j] = true;
+            c.judges.push(j);
+        }
+        emit ContestCreated(contestId, msg.sender, name, class_, entryFee);
+    }
+
+    /// @notice Enter one of your registered birds, paying exactly the entry fee into the pool.
+    function enter(uint256 contestId, uint256 tokenId) external payable nonReentrant {
+        Contest storage c = _contest(contestId);
+        if (c.status != ContestStatus.Open) revert BadStatus();
+        if (block.timestamp >= c.entryDeadline) revert EntryClosed();
+        if (msg.value != c.entryFee) revert WrongPayment();
+        if (speciesOf[tokenId] != CUSTOM_SPECIES) revert NotCustomBird();
+        if (ownerOf(tokenId) != msg.sender) revert NotBirdOwner();
+        if (entrantOf[contestId][tokenId] != address(0)) revert AlreadyEntered();
+        if (c.entryCount >= MAX_ENTRIES) revert ContestFull();
+
+        entrantOf[contestId][tokenId] = msg.sender;
+        _entries[contestId].push(tokenId);
+        c.entryCount++;
+        c.pool += uint128(msg.value);
+        emit ContestEntered(contestId, tokenId, msg.sender, msg.value);
+    }
+
+    function startJudging(uint256 contestId) external {
+        Contest storage c = _hostOf(contestId);
+        if (c.status != ContestStatus.Open) revert BadStatus();
+        if (c.entryCount < 2) revert NotEnoughEntries();
+        c.status = ContestStatus.Judging;
+        emit JudgingStarted(contestId);
+    }
+
+    /// @notice A judge scores one entry on four aspects (0..10). Re-scoring overwrites until finalized.
+    function score(uint256 contestId, uint256 tokenId, uint8 melody, uint8 volume, uint8 duration, uint8 style)
+        external
+    {
+        Contest storage c = _contest(contestId);
+        if (!isJudge[contestId][msg.sender]) revert NotJudge();
+        if (c.status != ContestStatus.Judging) revert BadStatus();
+        if (entrantOf[contestId][tokenId] == address(0)) revert NotEntered();
+        if (melody > MAX_ASPECT || volume > MAX_ASPECT || duration > MAX_ASPECT || style > MAX_ASPECT) {
+            revert InvalidScore();
+        }
+        JudgeScore storage js = _scores[contestId][tokenId][msg.sender];
+        uint256 total = entryTotal[contestId][tokenId];
+        if (js.scored) total -= uint256(js.melody) + js.volume + js.duration + js.style;
+        total += uint256(melody) + volume + duration + style;
+        entryTotal[contestId][tokenId] = total;
+        _scores[contestId][tokenId][msg.sender] = JudgeScore(melody, volume, duration, style, true);
+        emit Scored(contestId, tokenId, msg.sender, total);
+    }
+
+    /// @notice Rank by total (ties: earlier entry wins) and pay 50/25/15 to the current holders; 10%, rounding
+    ///         dust and unfilled places go to conservation. Active-organizer hosts auto-attest the top 3.
+    function finalize(uint256 contestId) external nonReentrant {
+        Contest storage c = _hostOf(contestId);
+        if (c.status != ContestStatus.Judging) revert BadStatus();
+        c.status = ContestStatus.Finalized;
+
+        uint256[3] memory top = [NO_ENTRY, NO_ENTRY, NO_ENTRY];
+        uint256[3] memory best;
+        uint256[] storage list = _entries[contestId];
+        for (uint256 i; i < list.length; i++) {
+            uint256 t = entryTotal[contestId][list[i]];
+            // strict > keeps the earlier entry ahead on ties
+            for (uint256 k; k < 3; k++) {
+                if (top[k] == NO_ENTRY || t > best[k]) {
+                    for (uint256 m = 2; m > k; m--) {
+                        top[m] = top[m - 1];
+                        best[m] = best[m - 1];
+                    }
+                    top[k] = list[i];
+                    best[k] = t;
+                    break;
+                }
+            }
+        }
+
+        uint256 pool = c.pool;
+        c.pool = 0;
+        uint256[3] memory pct = [uint256(50), 25, 15];
+        uint256 paid;
+        bool attests = organizers[c.host].active;
+        for (uint256 k; k < 3; k++) {
+            if (top[k] == NO_ENTRY) continue;
+            uint256 prize = pool * pct[k] / 100;
+            paid += prize;
+            _wins[top[k]][k]++;
+            _payOrOwe(ownerOf(top[k]), prize);
+            if (attests && attestations[top[k]].length < MAX_ATTESTATIONS) {
+                string memory title = string.concat("Juara ", (k + 1).toString(), unicode" · ", c.name);
+                attestations[top[k]].push(Attestation(c.host, uint64(block.timestamp), false, title));
+                activeAttestations[top[k]]++;
+                emit Attested(top[k], c.host, title);
+            }
+        }
+        uint256 cons = pool - paid;
+        totalConservation += cons;
+        _payOrOwe(conservationWallet, cons);
+        emit ContestFinalized(contestId, top[0], top[1], top[2], pool);
+    }
+
+    /// @notice Host cancels while Open/Judging; every entry fee is refunded to whoever paid it.
+    function cancelContest(uint256 contestId) external nonReentrant {
+        Contest storage c = _hostOf(contestId);
+        if (c.status != ContestStatus.Open && c.status != ContestStatus.Judging) revert BadStatus();
+        c.status = ContestStatus.Cancelled;
+        uint256 fee = c.entryFee;
+        c.pool = 0;
+        uint256[] storage list = _entries[contestId];
+        for (uint256 i; i < list.length; i++) {
+            _payOrOwe(entrantOf[contestId][list[i]], fee);
+        }
+        emit ContestCancelled(contestId);
+    }
+
+    /// @notice Claim a payout/refund whose direct push failed.
+    function withdrawOwed() external nonReentrant {
+        uint256 amount = owed[msg.sender];
+        owed[msg.sender] = 0;
+        _send(msg.sender, amount);
+    }
+
+    function winsOf(uint256 tokenId) external view returns (uint256[3] memory) {
+        return _wins[tokenId];
+    }
+
+    /// @notice Reputation-driven sponsorship value of a registered bird: rises with wins, titles,
+    ///         support and validated runs; decays 5%/day after 7 days without updateBird (floor 30%).
+    function valueBreakdown(uint256 tokenId) public view returns (ValueBreakdown memory v) {
+        if (speciesOf[tokenId] != CUSTOM_SPECIES) revert NotCustomBird();
+        uint256[3] storage w = _wins[tokenId];
+        v.base = 100;
+        v.wins = w[0] * 250 + w[1] * 150 + w[2] * 100;
+        v.attestations = activeAttestations[tokenId] * 80;
+        v.supporters = birdSupporters[tokenId] * 10;
+        v.support = _min(birdSupportOf[tokenId] / 1e15 / 10, 500);
+        v.runs = _min(bestValidatedByToken[tokenId] * 2, 500);
+        uint256 days_ = (block.timestamp - lastUpdated[tokenId]) / 1 days;
+        v.freshnessPct = days_ <= FRESH_DAYS ? 100 : (days_ - FRESH_DAYS) * 5 >= 70 ? 30 : 100 - (days_ - FRESH_DAYS) * 5;
+        v.points = (v.base + v.wins + v.attestations + v.supporters + v.support + v.runs) * v.freshnessPct / 100;
+        v.priceWei = v.points * VALUE_UNIT;
+    }
+
+    function valueOf(uint256 tokenId) external view returns (uint256 points, uint256 priceWei) {
+        ValueBreakdown memory v = valueBreakdown(tokenId);
+        return (v.points, v.priceWei);
+    }
+
+    function contestCount() external view returns (uint256) {
+        return _contests.length;
+    }
+
+    function getContest(uint256 contestId) external view returns (Contest memory) {
+        return _contest(contestId);
+    }
+
+    function entriesOf(uint256 contestId) external view returns (uint256[] memory tokenIds, uint256[] memory totals) {
+        tokenIds = _entries[contestId];
+        totals = new uint256[](tokenIds.length);
+        for (uint256 i; i < tokenIds.length; i++) {
+            totals[i] = entryTotal[contestId][tokenIds[i]];
+        }
+    }
+
+    function judgeScoreOf(uint256 contestId, uint256 tokenId, address judge) external view returns (JudgeScore memory) {
+        return _scores[contestId][tokenId][judge];
     }
 
     // -------------------------------------------------------------- views
@@ -417,6 +727,30 @@ contract Kicau is ERC721Enumerable, Ownable, ReentrancyGuard {
         totalConservation += conservation;
         _send(conservationWallet, conservation);
         _send(treasury, amount - conservation);
+    }
+
+    function _min(uint256 a, uint256 b) internal pure returns (uint256) {
+        return a < b ? a : b;
+    }
+
+    function _contest(uint256 contestId) internal view returns (Contest storage) {
+        if (contestId >= _contests.length) revert InvalidContest();
+        return _contests[contestId];
+    }
+
+    function _hostOf(uint256 contestId) internal view returns (Contest storage c) {
+        c = _contest(contestId);
+        if (c.host != msg.sender) revert NotHost();
+    }
+
+    /// @dev Push with a gas cap; a reverting/gas-hungry receiver is credited to `owed` instead of blocking everyone.
+    function _payOrOwe(address to, uint256 amount) internal {
+        if (amount == 0) return;
+        (bool ok,) = to.call{value: amount, gas: PAYOUT_GAS}("");
+        if (!ok) {
+            owed[to] += amount;
+            emit PayoutOwed(to, amount);
+        }
     }
 
     function _send(address to, uint256 amount) internal {

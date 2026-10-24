@@ -23,6 +23,7 @@ export type KicauWrite =
   | { functionName: "createContest"; args: readonly [string, string, bigint, readonly `0x${string}`[], bigint] }
   | { functionName: "enter"; args: readonly [bigint, bigint]; value: bigint }
   | { functionName: "startJudging" | "finalize" | "cancelContest"; args: readonly [bigint] }
+  | { functionName: "updateBird"; args: readonly [bigint, `0x${string}`] }
   | { functionName: "score"; args: readonly [bigint, bigint, number, number, number, number] };
 
 /** Human messages for the contract's custom errors. */
@@ -44,6 +45,7 @@ const FRIENDLY: Record<string, string> = {
   NotEnoughEntries: "Need at least 2 entries to start judging.",
   InvalidContest: "Invalid contest settings (name 1–64, class 1–32, 1–5 unique judges, future deadline).",
   InvalidScore: "Each aspect must be 0–10.",
+  BelowMinSupport: "Minimum support is 10% of this bird's Kicau Value.",
 };
 
 function errorText(e: unknown) {

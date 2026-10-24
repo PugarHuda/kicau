@@ -444,4 +444,485 @@ contract KicauTest is Test {
         vm.expectRevert(Kicau.WrongPayment.selector);
         kicau.supportBird{value: 0}(id);
     }
+
+    // ------------------------------------------------------------ contests (v6)
+
+    address host = makeAddr("host");
+    address judge1 = makeAddr("judge1");
+    address judge2 = makeAddr("judge2");
+    address dave = makeAddr("dave");
+
+    function _birdOf(address who, string memory name) internal returns (uint256) {
+        vm.deal(who, who.balance + 1 ether);
+        vm.prank(who);
+        return kicau.registerBird{value: 0.005 ether}(name, hex"4b4302");
+    }
+
+    function _judges() internal view returns (address[] memory j) {
+        j = new address[](2);
+        j[0] = judge1;
+        j[1] = judge2;
+    }
+
+    function _contest(uint256 fee) internal returns (uint256) {
+        vm.prank(host);
+        return kicau.createContest("Piala Test", "Murai Batu", fee, _judges(), uint64(block.timestamp + 1 hours));
+    }
+
+    function _enter(uint256 cid, address who, uint256 tokenId, uint256 fee) internal {
+        vm.prank(who);
+        kicau.enter{value: fee}(cid, tokenId);
+    }
+
+    function _score(uint256 cid, address judge, uint256 tokenId, uint8 a, uint8 b, uint8 c, uint8 d) internal {
+        vm.prank(judge);
+        kicau.score(cid, tokenId, a, b, c, d);
+    }
+
+    function test_ContestLifecycleAndPayouts() public {
+        uint256 fee = 1001; // wei, so the 50/25/15/10 split leaves rounding dust
+        uint256 a1 = _birdOf(alice, "A1");
+        uint256 a2 = _birdOf(alice, "A2");
+        uint256 b1 = _birdOf(bob, "B1");
+        uint256 d1 = _birdOf(dave, "D1");
+        uint256 cid = _contest(fee);
+        assertEq(cid, 0);
+        assertEq(kicau.contestCount(), 1);
+
+        _enter(cid, alice, a1, fee);
+        _enter(cid, alice, a2, fee);
+        _enter(cid, bob, b1, fee);
+        _enter(cid, dave, d1, fee);
+        assertEq(address(kicau).balance, 4 * fee);
+
+        vm.prank(host);
+        kicau.startJudging(cid);
+
+        // totals: b1 = 70, a2 = 60, d1 = 50, a1 = 20
+        _score(cid, judge1, b1, 9, 9, 9, 9);
+        _score(cid, judge2, b1, 9, 9, 8, 8);
+        _score(cid, judge1, a2, 8, 8, 7, 7);
+        _score(cid, judge2, a2, 8, 8, 7, 7);
+        _score(cid, judge1, d1, 7, 6, 6, 6);
+        _score(cid, judge2, d1, 7, 6, 6, 6);
+        _score(cid, judge1, a1, 5, 5, 5, 5);
+        // re-score overwrites, total stays consistent
+        vm.expectEmit(true, true, true, true);
+        emit Kicau.Scored(cid, b1, judge2, 70);
+        _score(cid, judge2, b1, 9, 9, 8, 8);
+
+        (uint256[] memory ids, uint256[] memory totals) = kicau.entriesOf(cid);
+        assertEq(ids.length, 4);
+        assertEq(totals[0], 20);
+        assertEq(totals[1], 60);
+        assertEq(totals[2], 70);
+        assertEq(totals[3], 50);
+        Kicau.JudgeScore memory js = kicau.judgeScoreOf(cid, b1, judge2);
+        assertEq(js.duration, 8);
+        assertTrue(js.scored);
+        assertFalse(kicau.judgeScoreOf(cid, a1, judge2).scored);
+
+        // prize follows the NFT: bob hands his winner to dave before finalize
+        vm.prank(bob);
+        kicau.transferFrom(bob, dave, b1);
+
+        uint256 aliceBefore = alice.balance;
+        uint256 daveBefore = dave.balance;
+        uint256 consBefore = conservation.balance;
+        uint256 totalConsBefore = kicau.totalConservation();
+        uint256 pool = 4 * fee; // 4004
+
+        vm.expectEmit(true, false, false, true);
+        emit Kicau.ContestFinalized(cid, b1, a2, d1, pool);
+        vm.prank(host);
+        kicau.finalize(cid);
+
+        // 50% 2002 + 15% 600 to dave, 25% 1001 to alice, rest (401 = 10% + dust) to conservation
+        assertEq(dave.balance - daveBefore, 2002 + 600);
+        assertEq(alice.balance - aliceBefore, 1001);
+        assertEq(conservation.balance - consBefore, 401);
+        assertEq(kicau.totalConservation() - totalConsBefore, 401);
+        assertEq(address(kicau).balance, 0);
+
+        Kicau.Contest memory c = kicau.getContest(cid);
+        assertEq(uint8(c.status), uint8(Kicau.ContestStatus.Finalized));
+        assertEq(c.pool, 0);
+        assertEq(c.entryCount, 4);
+        assertEq(c.judges.length, 2);
+        assertEq(c.host, host);
+        assertEq(kicau.attestationCount(b1), 0); // host is not an organizer
+
+        vm.prank(host);
+        vm.expectRevert(Kicau.BadStatus.selector);
+        kicau.finalize(cid);
+        vm.prank(judge1);
+        vm.expectRevert(Kicau.BadStatus.selector);
+        kicau.score(cid, b1, 1, 1, 1, 1);
+    }
+
+    function test_ContestAutoAttestWhenHostIsOrganizer() public {
+        kicau.setOrganizer(host, "Kicau Demo Contest", true);
+        uint256 a1 = _birdOf(alice, "A1");
+        uint256 b1 = _birdOf(bob, "B1");
+        uint256 cid = _contest(0.01 ether);
+        _enter(cid, alice, a1, 0.01 ether);
+        _enter(cid, bob, b1, 0.01 ether);
+        vm.prank(host);
+        kicau.startJudging(cid);
+        _score(cid, judge1, b1, 10, 10, 10, 10);
+        _score(cid, judge1, a1, 1, 1, 1, 1);
+
+        uint256 consBefore = conservation.balance;
+        uint256 aliceBefore = alice.balance;
+        vm.prank(host);
+        kicau.finalize(cid);
+
+        Kicau.Attestation[] memory ab = kicau.attestationsOf(b1);
+        assertEq(ab.length, 1);
+        assertEq(ab[0].organizer, host);
+        assertEq(ab[0].title, unicode"Juara 1 · Piala Test");
+        assertEq(kicau.attestationsOf(a1)[0].title, unicode"Juara 2 · Piala Test");
+        // only 2 entries: the 15% third-place share goes to conservation too (10% + 15%)
+        assertEq(conservation.balance - consBefore, 0.005 ether);
+        assertEq(alice.balance - aliceBefore, 0.005 ether);
+    }
+
+    function test_ContestTieEarlierEntryWins() public {
+        uint256 a1 = _birdOf(alice, "A1");
+        uint256 b1 = _birdOf(bob, "B1");
+        uint256 d1 = _birdOf(dave, "D1");
+        uint256 cid = _contest(0.01 ether);
+        _enter(cid, bob, b1, 0.01 ether);
+        _enter(cid, alice, a1, 0.01 ether);
+        _enter(cid, dave, d1, 0.01 ether);
+        vm.prank(host);
+        kicau.startJudging(cid);
+        _score(cid, judge1, a1, 5, 5, 5, 5);
+        _score(cid, judge1, b1, 5, 5, 5, 5);
+        _score(cid, judge1, d1, 5, 5, 5, 5);
+        vm.expectEmit(true, false, false, true);
+        emit Kicau.ContestFinalized(cid, b1, a1, d1, 0.03 ether);
+        vm.prank(host);
+        kicau.finalize(cid);
+    }
+
+    function test_RevertScoreGuards() public {
+        uint256 a1 = _birdOf(alice, "A1");
+        uint256 b1 = _birdOf(bob, "B1");
+        uint256 cid = _contest(0);
+        _enter(cid, alice, a1, 0);
+
+        vm.prank(judge1);
+        vm.expectRevert(Kicau.BadStatus.selector);
+        kicau.score(cid, a1, 1, 1, 1, 1);
+
+        _enter(cid, bob, b1, 0);
+        vm.prank(host);
+        kicau.startJudging(cid);
+
+        vm.prank(alice);
+        vm.expectRevert(Kicau.NotJudge.selector);
+        kicau.score(cid, a1, 1, 1, 1, 1);
+        vm.prank(host);
+        vm.expectRevert(Kicau.NotJudge.selector);
+        kicau.score(cid, a1, 1, 1, 1, 1);
+
+        vm.startPrank(judge1);
+        vm.expectRevert(Kicau.InvalidScore.selector);
+        kicau.score(cid, a1, 11, 0, 0, 0);
+        vm.expectRevert(Kicau.InvalidScore.selector);
+        kicau.score(cid, a1, 0, 0, 0, 255);
+        vm.expectRevert(Kicau.NotEntered.selector);
+        kicau.score(cid, 999, 1, 1, 1, 1);
+        kicau.score(cid, a1, 10, 10, 10, 10);
+        vm.stopPrank();
+        assertEq(kicau.entryTotal(cid, a1), 40);
+    }
+
+    function test_RevertEnterGuards() public {
+        uint256 a1 = _birdOf(alice, "A1");
+        vm.prank(alice);
+        uint256 kenari = kicau.buy{value: 0.01 ether}(0);
+        uint256 cid = _contest(0.01 ether);
+
+        vm.startPrank(alice);
+        vm.expectRevert(Kicau.WrongPayment.selector);
+        kicau.enter{value: 0.009 ether}(cid, a1);
+        vm.expectRevert(Kicau.NotCustomBird.selector);
+        kicau.enter{value: 0.01 ether}(cid, kenari);
+        vm.expectRevert(Kicau.InvalidContest.selector);
+        kicau.enter{value: 0.01 ether}(7, a1);
+        kicau.enter{value: 0.01 ether}(cid, a1);
+        vm.expectRevert(Kicau.AlreadyEntered.selector);
+        kicau.enter{value: 0.01 ether}(cid, a1);
+        vm.stopPrank();
+
+        uint256 b1 = _birdOf(bob, "B1");
+        vm.prank(alice);
+        vm.expectRevert(Kicau.NotBirdOwner.selector);
+        kicau.enter{value: 0.01 ether}(cid, b1);
+
+        vm.warp(block.timestamp + 1 hours);
+        vm.prank(bob);
+        vm.expectRevert(Kicau.EntryClosed.selector);
+        kicau.enter{value: 0.01 ether}(cid, b1);
+    }
+
+    function test_RevertCreateContestInvalid() public {
+        uint64 dl = uint64(block.timestamp + 1 hours);
+        vm.expectRevert(Kicau.InvalidContest.selector);
+        kicau.createContest("", "Kenari", 0, _judges(), dl);
+        vm.expectRevert(Kicau.InvalidContest.selector);
+        kicau.createContest("x", "", 0, _judges(), dl);
+        vm.expectRevert(Kicau.InvalidContest.selector);
+        kicau.createContest("x", "Kenari", 0, new address[](0), dl);
+        vm.expectRevert(Kicau.InvalidContest.selector);
+        kicau.createContest("x", "Kenari", 0, new address[](6), dl);
+        vm.expectRevert(Kicau.InvalidContest.selector);
+        kicau.createContest("x", "Kenari", 0, _judges(), uint64(block.timestamp));
+        address[] memory dup = new address[](2);
+        dup[0] = judge1;
+        dup[1] = judge1;
+        vm.expectRevert(Kicau.InvalidContest.selector);
+        kicau.createContest("x", "Kenari", 0, dup, dl);
+        vm.expectRevert(Kicau.InvalidContest.selector);
+        kicau.createContest(string(new bytes(65)), "Kenari", 0, _judges(), dl);
+    }
+
+    function test_RevertHostOnlyAndMinEntries() public {
+        uint256 a1 = _birdOf(alice, "A1");
+        uint256 cid = _contest(0);
+        _enter(cid, alice, a1, 0);
+        vm.prank(alice);
+        vm.expectRevert(Kicau.NotHost.selector);
+        kicau.startJudging(cid);
+        vm.prank(host);
+        vm.expectRevert(Kicau.NotEnoughEntries.selector);
+        kicau.startJudging(cid);
+        vm.prank(host);
+        vm.expectRevert(Kicau.BadStatus.selector);
+        kicau.finalize(cid);
+        vm.prank(alice);
+        vm.expectRevert(Kicau.NotHost.selector);
+        kicau.cancelContest(cid);
+    }
+
+    function test_CancelRefundsEntrants() public {
+        uint256 a1 = _birdOf(alice, "A1");
+        uint256 b1 = _birdOf(bob, "B1");
+        uint256 cid = _contest(0.02 ether);
+        _enter(cid, alice, a1, 0.02 ether);
+        _enter(cid, bob, b1, 0.02 ether);
+        vm.prank(host);
+        kicau.startJudging(cid);
+        uint256 aliceBefore = alice.balance;
+        uint256 bobBefore = bob.balance;
+        vm.prank(host);
+        kicau.cancelContest(cid);
+        assertEq(alice.balance - aliceBefore, 0.02 ether);
+        assertEq(bob.balance - bobBefore, 0.02 ether);
+        assertEq(address(kicau).balance, 0);
+        assertEq(uint8(kicau.getContest(cid).status), uint8(Kicau.ContestStatus.Cancelled));
+        vm.prank(host);
+        vm.expectRevert(Kicau.BadStatus.selector);
+        kicau.cancelContest(cid);
+    }
+
+    function test_MaliciousKeeperCannotReenterOrBlock() public {
+        MaliciousKeeper evil = new MaliciousKeeper(kicau);
+        vm.deal(address(evil), 1 ether);
+        uint256 e1 = evil.register();
+        uint256 a1 = _birdOf(alice, "A1");
+        uint256 cid = _contest(0.01 ether);
+        evil.enter(cid, e1, 0.01 ether);
+        _enter(cid, alice, a1, 0.01 ether);
+        vm.prank(host);
+        kicau.startJudging(cid);
+        _score(cid, judge1, e1, 10, 10, 10, 10);
+
+        uint256 aliceBefore = alice.balance;
+        evil.arm(cid);
+        vm.prank(host);
+        kicau.finalize(cid); // evil's receive re-enters → reverts → its prize is parked in `owed`
+
+        assertEq(alice.balance - aliceBefore, 0.005 ether);
+        assertEq(kicau.owed(address(evil)), 0.01 ether);
+        assertEq(address(kicau).balance, 0.01 ether);
+
+        evil.disarm();
+        uint256 evilBefore = address(evil).balance;
+        evil.withdraw();
+        assertEq(address(evil).balance - evilBefore, 0.01 ether);
+        assertEq(address(kicau).balance, 0);
+    }
+
+    // ----------------------------------------------- living profile + Kicau Value
+
+    function _points(uint256 id) internal view returns (uint256 p) {
+        (p,) = kicau.valueOf(id);
+    }
+
+    function test_ValueBaseAndPrice() public {
+        uint256 id = _birdOf(alice, "A1");
+        (uint256 p, uint256 price) = kicau.valueOf(id);
+        assertEq(p, 100);
+        assertEq(price, 0.01 ether);
+        assertEq(kicau.lastUpdated(id), block.timestamp);
+        vm.prank(alice);
+        uint256 kenari = kicau.buy{value: 0.01 ether}(0);
+        vm.expectRevert(Kicau.NotCustomBird.selector);
+        kicau.valueOf(kenari);
+    }
+
+    function test_ValueRisesWithContestWinAndAttestation() public {
+        kicau.setOrganizer(host, "Kicau Demo Contest", true);
+        uint256 a1 = _birdOf(alice, "A1");
+        uint256 b1 = _birdOf(bob, "B1");
+        uint256 cid = _contest(0.01 ether);
+        _enter(cid, alice, a1, 0.01 ether);
+        _enter(cid, bob, b1, 0.01 ether);
+        vm.prank(host);
+        kicau.startJudging(cid);
+        _score(cid, judge1, b1, 10, 10, 10, 10);
+        vm.prank(host);
+        kicau.finalize(cid);
+        // 1st: base 100 + win 250 + auto-attestation 80; 2nd: 100 + 150 + 80
+        assertEq(_points(b1), 430);
+        assertEq(_points(a1), 330);
+        assertEq(kicau.winsOf(b1)[0], 1);
+        Kicau.ValueBreakdown memory v = kicau.valueBreakdown(b1);
+        assertEq(v.wins, 250);
+        assertEq(v.attestations, 80);
+        assertEq(v.priceWei, 430 * 0.0001 ether);
+
+        // revoking the title removes its 80 points
+        vm.prank(host);
+        kicau.revokeAttestation(b1, 0);
+        assertEq(_points(b1), 350);
+    }
+
+    function test_ValueRisesWithSupportAndRuns() public {
+        uint256 id = _birdOf(alice, "A1");
+        vm.prank(bob);
+        kicau.supportBird{value: 0.1 ether}(id);
+        assertEq(_points(id), 120); // +10 supporter, +100 milli-MON / 10
+
+        vm.prank(alice);
+        (uint256 runId,) = kicau.startRun(id);
+        vm.warp(block.timestamp + 20);
+        vm.prank(alice);
+        kicau.submitRun(runId, 15);
+        assertEq(kicau.bestValidatedByToken(id), 15);
+        assertEq(_points(id), 150); // +30
+    }
+
+    function test_RevertSupportBelowMin() public {
+        uint256 id = _birdOf(alice, "A1"); // value 0.01 MON -> min 0.001
+        vm.prank(bob);
+        vm.expectRevert(Kicau.BelowMinSupport.selector);
+        kicau.supportBird{value: 0.0009 ether}(id);
+        vm.prank(bob);
+        kicau.supportBird{value: 0.001 ether}(id);
+    }
+
+    function test_ValueDecaysAndUpdateRestores() public {
+        uint256 id = _birdOf(alice, "A1");
+        vm.warp(block.timestamp + 7 days);
+        assertEq(_points(id), 100);
+        vm.warp(block.timestamp + 3 days); // 10 days -> 3 days stale -> 85%
+        assertEq(_points(id), 85);
+        vm.warp(block.timestamp + 20 days); // floor 30%
+        assertEq(_points(id), 30);
+        assertEq(kicau.valueBreakdown(id).freshnessPct, 30);
+
+        vm.roll(block.number + 5);
+        vm.expectEmit(true, true, false, true);
+        emit Kicau.BirdUpdated(alice, id, 1, hex"4b4303");
+        vm.prank(alice);
+        kicau.updateBird(id, hex"4b4303");
+        assertEq(_points(id), 100);
+        assertEq(kicau.profileVersion(id), 1);
+        assertEq(kicau.updatedAtBlock(id), block.number);
+        assertEq(kicau.lastUpdated(id), block.timestamp);
+    }
+
+    function test_RevertUpdateBirdGuards() public {
+        uint256 id = _birdOf(alice, "A1");
+        vm.prank(bob);
+        vm.expectRevert(Kicau.NotBirdOwner.selector);
+        kicau.updateBird(id, hex"01");
+        vm.startPrank(alice);
+        vm.expectRevert(Kicau.InvalidBird.selector);
+        kicau.updateBird(id, "");
+        vm.expectRevert(Kicau.InvalidBird.selector);
+        kicau.updateBird(id, new bytes(4097));
+        uint256 kenari = kicau.buy{value: 0.01 ether}(0);
+        vm.expectRevert(Kicau.NotCustomBird.selector);
+        kicau.updateBird(kenari, hex"01");
+        vm.stopPrank();
+    }
+
+    function test_GasBurnerCannotBlockCancel() public {
+        MaliciousKeeper evil = new MaliciousKeeper(kicau);
+        vm.deal(address(evil), 1 ether);
+        uint256 e1 = evil.register();
+        uint256 a1 = _birdOf(alice, "A1");
+        uint256 cid = _contest(0.01 ether);
+        evil.enter(cid, e1, 0.01 ether);
+        _enter(cid, alice, a1, 0.01 ether);
+        evil.burnGas(true);
+        uint256 aliceBefore = alice.balance;
+        vm.prank(host);
+        kicau.cancelContest(cid);
+        assertEq(alice.balance - aliceBefore, 0.01 ether);
+        assertEq(kicau.owed(address(evil)), 0.01 ether);
+    }
+}
+
+/// Holds a bird, enters contests and tries to re-enter Kicau when paid.
+contract MaliciousKeeper {
+    Kicau immutable kicau;
+    uint256 armedContest = type(uint256).max;
+    bool burn;
+
+    constructor(Kicau k) {
+        kicau = k;
+    }
+
+    function register() external returns (uint256) {
+        return kicau.registerBird{value: 0.005 ether}("Evil", hex"4b4302");
+    }
+
+    function enter(uint256 cid, uint256 tokenId, uint256 fee) external {
+        kicau.enter{value: fee}(cid, tokenId);
+    }
+
+    function arm(uint256 cid) external {
+        armedContest = cid;
+    }
+
+    function disarm() external {
+        armedContest = type(uint256).max;
+    }
+
+    function burnGas(bool b) external {
+        burn = b;
+    }
+
+    function withdraw() external {
+        kicau.withdrawOwed();
+    }
+
+    function onERC721Received(address, address, uint256, bytes calldata) external pure returns (bytes4) {
+        return this.onERC721Received.selector;
+    }
+
+    receive() external payable {
+        if (burn) {
+            while (true) {}
+        }
+        if (armedContest != type(uint256).max) {
+            kicau.finalize(armedContest); // reentrancy guard (or NotHost) reverts this
+        }
+    }
 }

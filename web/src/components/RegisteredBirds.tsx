@@ -6,6 +6,7 @@ import { formatEther, parseEther } from "viem";
 import { usePublicClient, useReadContract, useReadContracts } from "wagmi";
 import { kicauAbi } from "@/lib/abi";
 import { CertificateButton } from "@/components/CertificateButton";
+import { KicauValue } from "@/components/lomba/KicauValue";
 import { Modal, short } from "@/components/ui";
 import { EXPLORER, KICAU_ADDRESS } from "@/lib/config";
 import { type CustomBird, fetchRegisteredBirds } from "@/lib/customBirds";
@@ -118,6 +119,7 @@ export function BirdProfileCard({ bird, me, busy = false, onAttest, onSupport }:
       { address: KICAU_ADDRESS, abi: kicauAbi, functionName: "birdSupportOf", args: [bird.tokenId] },
       { address: KICAU_ADDRESS, abi: kicauAbi, functionName: "birdSupporters", args: [bird.tokenId] },
       { address: KICAU_ADDRESS, abi: kicauAbi, functionName: "ownerOf", args: [bird.tokenId] },
+      { address: KICAU_ADDRESS, abi: kicauAbi, functionName: "valueOf", args: [bird.tokenId] },
     ],
     query: { enabled: !!KICAU_ADDRESS },
   });
@@ -135,6 +137,9 @@ export function BirdProfileCard({ bird, me, busy = false, onAttest, onSupport }:
     args: me ? [me] : undefined,
     query: { enabled: !!me && !!onAttest },
   });
+  // supportBird requires >= 10% of the bird's Kicau Value (BelowMinSupport otherwise)
+  const minSupport = raised?.[3].result ? raised[3].result[1] / 10n : 0n;
+  const presets = minSupport > 0n ? [1n, 2n, 5n].map((k) => minSupport * k) : ["0.005", "0.01", "0.05"].map((v) => parseEther(v));
   const [title, setTitle] = useState("");
   const titleBytes = new TextEncoder().encode(title.trim()).length;
   return (
@@ -153,6 +158,7 @@ export function BirdProfileCard({ bird, me, busy = false, onAttest, onSupport }:
         · NFT #{String(bird.tokenId)}
       </p>
       <Badges bird={bird} />
+      <KicauValue tokenId={bird.tokenId} className="mt-2" />
       <dl className="mt-4 space-y-3 text-sm">
         {attestations.length > 0 && (
           <div>
@@ -231,12 +237,15 @@ export function BirdProfileCard({ bird, me, busy = false, onAttest, onSupport }:
           </span>
         </div>
         <div className="flex flex-wrap gap-2">
-          {["0.005", "0.01", "0.05"].map((amt) => (
-            <button key={amt} onClick={() => onSupport?.(bird.tokenId, parseEther(amt))} disabled={busy || !onSupport} className="btn-ghost !py-2">
-              {amt} MON
+          {presets.map((amt) => (
+            <button key={String(amt)} onClick={() => onSupport?.(bird.tokenId, amt)} disabled={busy || !onSupport} className="btn-ghost !py-2">
+              {Number(formatEther(amt)).toFixed(4).replace(/0+$/, "").replace(/\.$/, "")} MON
             </button>
           ))}
         </div>
+        {minSupport > 0n && (
+          <p className="mt-2 text-xs text-muted">Minimum sponsorship = 10% of Kicau Value ({formatEther(minSupport)} MON) — rises as the bird wins.</p>
+        )}
         {!onSupport && <p className="mt-2 text-sm text-clay">Hit ⚡ Quick Play or connect a wallet to support.</p>}
       </div>
       <CertificateButton tokenId={bird.tokenId} />

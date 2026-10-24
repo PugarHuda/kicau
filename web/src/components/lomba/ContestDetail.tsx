@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { formatEther } from "viem";
 import { usePublicClient, useReadContract, useReadContracts } from "wagmi";
+import { KicauValue } from "@/components/lomba/KicauValue";
 import { short } from "@/components/ui";
 import { EXPLORER, KICAU_ADDRESS } from "@/lib/config";
 import { ASPECTS, payouts, rankEntries, STATUS, watchContest } from "@/lib/contestLive";
@@ -257,6 +258,7 @@ export function ContestDetail({ id, k }: { id: number; k: Kicau }) {
                         {r.keeper ? short(r.keeper) : "…"}
                         {r.keeper?.toLowerCase() === me && " (you)"}
                       </span>
+                      <KicauValue tokenId={r.tokenId} className="text-muted" />
                       <span className="mt-1 block h-2 bg-line">
                         <span className="block h-2 bg-leaf transition-[width] duration-300" style={{ width: `${pct}%` }} />
                       </span>

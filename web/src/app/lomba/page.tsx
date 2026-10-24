@@ -6,6 +6,7 @@ import { formatEther } from "viem";
 import { useReadContract, useReadContracts } from "wagmi";
 import { ContestDetail, StatusChip } from "@/components/lomba/ContestDetail";
 import { HostForm } from "@/components/lomba/HostForm";
+import { MyBirds } from "@/components/lomba/MyBirds";
 import { TxLink, short } from "@/components/ui";
 import { KICAU_ADDRESS } from "@/lib/config";
 import { STATUS } from "@/lib/contestLive";
@@ -147,6 +148,7 @@ export default function Lomba() {
             )}
           </section>
           <HostForm k={k} onCreated={open} />
+          <MyBirds k={k} />
         </div>
       )}
     </main>

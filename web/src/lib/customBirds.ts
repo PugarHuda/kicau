@@ -17,7 +17,17 @@ export async function fetchCustomBird(client: PublicClient, address: `0x${string
     toBlock: block,
   });
   if (!log) return null;
-  const decoded = decodeBirdImage(hexToBytes(log.args.image ?? "0x"));
+  // v6: the keeper may have published newer bytes via updateBird; read the latest BirdUpdated log.
+  const upBlock = await client
+    .readContract({ address, abi: kicauAbi, functionName: "updatedAtBlock", args: [tokenId] })
+    .catch(() => 0n);
+  const updates = upBlock
+    ? await client
+        .getContractEvents({ address, abi: kicauAbi, eventName: "BirdUpdated", args: { tokenId }, fromBlock: upBlock, toBlock: upBlock })
+        .catch(() => [])
+    : [];
+  const latestImage = updates.at(-1)?.args.image ?? log.args.image;
+  const decoded = decodeBirdImage(hexToBytes(latestImage ?? "0x"));
   if (!decoded) return null;
   const name = log.args.name ?? "";
   const owner = log.args.owner ?? "0x";

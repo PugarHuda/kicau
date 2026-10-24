@@ -8,8 +8,8 @@ Built at **Monad Blitz Jogja 2026**. Brief and mechanics: [docs/BRIEF.md](docs/B
 |---|---|
 | **Live app** | **https://kicau-theta.vercel.app** · custom domain **https://kicau.xyz** · also https://kicau-monad.vercel.app |
 | Pages | [Home](https://kicau-theta.vercel.app) · [Contests](https://kicau-theta.vercel.app/lomba) · [Kicau Garden](https://kicau-theta.vercel.app/taman) · [Pitch deck](https://kicau-theta.vercel.app/pitch) |
-| **Testnet** (chain 10143, used by the app) | [`0x8010e567b6f68dcfD19312644F1c3E6249b43ef7`](https://testnet.monadvision.com/address/0x8010e567b6f68dcfD19312644F1c3E6249b43ef7) — verified on MonadVision · deploy tx [`0x82eb7adc…7e8280f`](https://testnet.monadvision.com/tx/0x82eb7adc614b3d3d58367a04560e57f843c3fd12b32c0cbec93c2935e7e8280f) |
-| **Mainnet** (chain 143) | [`0x5db5296d5fb87ee703badcd2fd73e3f27816c3c9`](https://monadvision.com/address/0x5db5296d5fb87ee703badcd2fd73e3f27816c3c9) — verified on MonadVision + Monadscan · deploy tx [`0xb8de9ba6…eba9a8`](https://monadvision.com/tx/0xb8de9ba6907c651619c0aa09fe783eb06047da4f84f8f8c28beef6ad1eeba9a8) |
+| **Testnet** (chain 10143, used by the app) | [`0xD15bF5b95dC29083eBA236057e2DC9dE90092725`](https://testnet.monadvision.com/address/0xD15bF5b95dC29083eBA236057e2DC9dE90092725) — verified on MonadVision + Monadscan · deploy tx [`0xc1abd22c…0b96b9b`](https://testnet.monadvision.com/tx/0xc1abd22cc0977c01a9809b9647cd4806a7642ab5531327435f9b62a6f0b96b9b) |
+| **Mainnet** (chain 143) | [`0xdada618e564edaf7ec0af0a12575bf3c0dc8523b`](https://monadvision.com/address/0xdada618e564edaf7ec0af0a12575bf3c0dc8523b) — verified on MonadVision + Monadscan · deploy tx [`0x2a2118c7…cb8c76`](https://monadvision.com/tx/0x2a2118c7b699d747c9263a94b2c3e86671b6e62d2af284750ccd6196d6cb8c76) |
 | Build in public | [X thread](https://x.com/BangDropID/status/2113853488170156259) · [update](https://x.com/BangDropID/status/2113869717429789043) |
 
 ## The problem
@@ -21,7 +21,7 @@ Built at **Monad Blitz Jogja 2026**. Brief and mechanics: [docs/BRIEF.md](docs/B
 1. **🏆 On-chain contests (`/lomba`).** Anyone can host a contest (class, entry fee, 1–5 judges, deadline). Owners enter their registered birds; the fee goes into the prize pool. Judges score each bird on four aspects — melody, volume, duration, style (0–10) — **one tx per score**, and a **live scoreboard updates in ~0.6 s** via Monad's `monadLogs` subscription. `finalize` ranks on-chain and pays 🥇50% · 🥈25% · 🥉15% to the winners' keepers and 10% to conservation in the same tx; if the host is a verified organizer, "Juara 1/2/3" titles are **attested on-chain** to the winning birds. Cancel refunds everyone; failed payouts never block (claim via `withdrawOwed`).
 2. **🪪 Register your real bird (tokenized provenance).** Upload a photo → **AI species identification** (Claude Haiku, escalating to Sonnet when unsure; flags species protected in Indonesia) → colours extracted and redrawn in Kicau's pixel style → `registerBird` mints an ERC-721 record with owner, titles, certificate/ring number, lineage and story. The sprite palette + profile live in the event log (~20 bytes palette + JSON), not storage.
 3. **🏅 Verified titles.** Registered contest organizers `attest` championship titles; the UI separates "verified by <organizer>" from self-declared claims.
-4. **💚 Sponsor a bird.** `supportBird(tokenId)` sends 70% to the bird's current keeper (NFT holder) and 30% to conservation, same tx.
+4. **💚 Sponsor a bird + dynamic Kicau Value.** `supportBird(tokenId)` sends 70% to the bird's current keeper (NFT holder) and 30% to conservation, same tx. Each registered bird has an on-chain **Kicau Value** (`valueOf`/`valueBreakdown`): points rise with contest podiums, organizer-attested titles, supporters and verified runs, and **decay if the owner stops updating the bird** (`updateBird` publishes a new photo/profile version). Minimum sponsorship = 10% of the value.
 5. **🐦 Adopt species NFTs.** Five Indonesian songbirds (Kenari → Jalak Bali) with real singing videos, IUCN status and game stats. `buy()` splits 30% to conservation in the same tx; `support()` sends 100%.
 6. **🎮 Verified Flappy runs.** `startRun` derives a seed from `prevrandao` → pipes are generated deterministically from it → `submitRun` is rejected on-chain if the score is physically impossible for the elapsed time (anti-cheat v1). Leaderboard v2 marks verified runs.
 7. **🌳 Kicau Garden (`/taman`).** A top-down pixel open world (Kenney CC0 tiles): walk your bird NFT, meet shelter birds, community birds and other players' NFTs; adopt/support straight from the card.
@@ -56,7 +56,7 @@ docs/       BRIEF.md · JUDGING.md · INTEGRATIONS.md
 ```bash
 cd contracts
 forge install --no-git foundry-rs/forge-std OpenZeppelin/openzeppelin-contracts@v5.4.0   # if lib/ is empty
-forge test                      # 40 tests incl. fuzz + reentrancy
+forge test                      # 46 tests incl. fuzz + reentrancy
 
 cast wallet import deployer --interactive   # key stored encrypted, never in a file
 BASE_URI=https://<host>/metadata/ forge script script/Deploy.s.sol --rpc-url monad_testnet --account deployer --broadcast
@@ -70,7 +70,7 @@ cast send <KICAU> "setOrganizer(address,string,bool)" <you> "My Contest Org" tru
 cd web
 npm install
 cat > .env.local <<EOF
-NEXT_PUBLIC_KICAU_ADDRESS=0x8010e567b6f68dcfD19312644F1c3E6249b43ef7
+NEXT_PUBLIC_KICAU_ADDRESS=0xD15bF5b95dC29083eBA236057e2DC9dE90092725
 # optional — AI species identification (else Vercel AI Gateway via OIDC on Vercel)
 ANTHROPIC_API_KEY=
 EOF
@@ -84,7 +84,7 @@ After changing the contract: `cd contracts && forge build`, then `cd web && npm 
 | Area | Functions |
 |---|---|
 | Species NFTs | `buy(speciesId)` · `support(speciesId)` · `getAllSpecies()` · `tokensOf(owner)` |
-| Registered birds | `registerBird(name, bytes)` · `supportBird(tokenId)` · `registeredAt` · `birdSupportOf` |
+| Registered birds | `registerBird(name, bytes)` · `updateBird(tokenId, bytes)` · `supportBird(tokenId)` · `valueOf` / `valueBreakdown` · `winsOf` |
 | Attestations | `setOrganizer` (owner) · `attest(tokenId, title)` · `revokeAttestation` · `attestationsOf` |
 | Game runs | `startRun(tokenId)` · `submitRun(runId, score)` · `getLeaderboardV2()` |
 | Contests | `createContest` · `enter` · `startJudging` · `score(contestId, tokenId, melody, volume, duration, style)` · `finalize` · `cancelContest` · `withdrawOwed` · `getContest` · `entriesOf` |
