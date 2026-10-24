@@ -223,7 +223,7 @@ export const KicauTeaser: React.FC<Props> = ({ recordings }) => {
     [4, <Punch key="b" lines={["Songbird contests", "judged on paper.", "Disputed. Poached."]} bg={C.ink} fg={C.sun} />],
     [3, <Punch key="c" lines={["Now on Monad."]} bg={C.sun} fg={C.ink} species={4} />],
     ...TEASER_CLIPS.map((c) => [5, <TeaserClip key={c.id} {...c} has={recordings.includes(c.id)} />] as [number, React.ReactNode]),
-    [3, <Punch key="d" lines={["~0.6 s", "live scoreboard"]} bg={C.paper} fg={C.leaf} />],
+    [3, <Punch key="d" lines={["Every score", "on-chain, live"]} bg={C.paper} fg={C.leaf} />],
     [3, <Punch key="e" lines={["30%", "to conservation"]} bg={C.leaf} fg={C.paper} species={3} />],
     [4, <Punch key="f" lines={["PLAY · PROTECT · PROVE", LINKS.live.replace("https://", "")]} bg={C.cream} fg={C.ink} species={0} />],
   ];

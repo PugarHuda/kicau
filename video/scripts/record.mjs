@@ -1,10 +1,10 @@
 // Playwright recorder: one real, clicked-through recording per scene -> public/recordings/<id>.mp4
 //   node scripts/record.mjs garden                 # one scene
 //   node scripts/record.mjs                        # all scenes in STORYBOARD order
-//   node scripts/record.mjs contest-podium --podium=12 --bird=7 --photo=assets/murai.jpg --base=https://kicau-theta.vercel.app
-// Actors (host/judge/owner/viewer) are persistent browser profiles in video/.profiles/<actor> so their
+//   node scripts/record.mjs proof --podium=12 --photo=assets/murai.jpg --base=https://kicau.xyz
+// Actors (host/entrantN/owner/viewer) are persistent browser profiles in video/.profiles/<actor> so their
 // Quick Play burners (and MON) survive between runs. Only the context passed `record: true` is filmed.
-// Selectors are visible text/roles from the live UI on 24 Oct; re-check after the feature freeze.
+// Selectors are visible text/roles from the live UI on 24 Oct (post-freeze UI).
 import { chromium } from "playwright";
 import { execFileSync } from "node:child_process";
 import { mkdirSync, rmSync, readdirSync } from "node:fs";
@@ -15,7 +15,7 @@ const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const OUT = path.join(ROOT, "public", "recordings");
 const PROFILES = path.join(ROOT, ".profiles");
 const arg = (k, d) => process.argv.find((a) => a.startsWith(`--${k}=`))?.split("=")[1] ?? d;
-const BASE = arg("base", "https://kicau-theta.vercel.app");
+const BASE = arg("base", "https://kicau.xyz");
 const HEADED = process.argv.includes("--headed");
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 mkdirSync(OUT, { recursive: true });
@@ -67,179 +67,222 @@ async function click(page, locator) {
 }
 const scrollTo = (page, sel) => page.locator(sel).first().evaluate((e) => e.scrollIntoView({ behavior: "smooth", block: "start" }));
 
-/** Clicks, then waits for the status banner to show a NEW tx link (real confirmation). */
-async function tx(page, label, act) {
+const TXS = [];
+/** Clicks, then waits for the status banner to show a NEW tx link (real confirmation). Retries on transient RPC errors. */
+async function tx(page, label, act, tries = 3) {
   const banner = page.locator("[role=status]");
-  const before = await banner.locator("a").first().getAttribute("href").catch(() => null);
+  const before = await banner.locator("a[href*='/tx/']").first().getAttribute("href", { timeout: 500 }).catch(() => null);
   await act();
-  for (const t0 = Date.now(); Date.now() - t0 < 60000; await sleep(250)) {
-    const href = await banner.locator("a").first().getAttribute("href").catch(() => null);
-    if (href && href !== before) return console.log(`  tx ${label}: ${href.split("/tx/")[1]} | ${(await banner.innerText()).replace(/\n/g, " ")}`);
+  for (const t0 = Date.now(); Date.now() - t0 < 90000; await sleep(250)) {
+    const href = await banner.locator("a[href*='/tx/']").first().getAttribute("href", { timeout: 500 }).catch(() => null);
+    if (href && href !== before) {
+      const hash = href.split("/tx/")[1];
+      TXS.push(`${label} ${hash}`);
+      console.log(`  tx ${label}: ${hash} | ${(await banner.first().innerText()).replace(/\n/g, " ")}`);
+      await sleep(2500); // space txs
+      return hash;
+    }
+    const err = await banner.locator(".text-clay").first().innerText({ timeout: 300 }).catch(() => "");
+    if (err) {
+      console.warn(`  ! ${label}: ${err.slice(0, 160)}`);
+      await page.locator("[role=status] button[aria-label=Dismiss], [role=status] button[aria-label=Close]").first().click({ timeout: 2000 }).catch(() => {});
+      if (tries > 1) { await sleep(4000); return tx(page, label, act, tries - 1); }
+      throw new Error(`${label}: ${err}`);
+    }
   }
-  throw new Error(`${label}: no confirmation in 60 s`);
+  throw new Error(`${label}: no confirmation in 90 s`);
 }
 
 /** Burner via ⚡ Quick Play (auto-funded by the faucet). No-op if this profile already has one. */
 async function quickPlay(page) {
-  const btn = page.locator("button:has-text('Quick Play')");
-  if (await btn.count()) {
+  const btn = page.locator("button:has-text('Quick Play')").first();
+  await sleep(1500);
+  if (await btn.isVisible().catch(() => false)) {
     await click(page, btn);
-    await page.locator("header span[title^='0x']").waitFor({ timeout: 60000 });
+    await page.locator("button[title='Leave Quick Play'], header span[title^='0x']").first().waitFor({ timeout: 90000 });
+    await sleep(3000); // faucet tx lands
   }
 }
 
-/** Stop filming, trim the page-load lead-in, convert webm -> H.264 mp4. */
-async function save(a, id, leadMs) {
+/** Stop filming, cut [id, startMs, endMs?] segments out of the webm, convert to H.264 mp4. */
+async function save(a, id, leadMs, segs) {
   const webm = await a.page.video().path();
   await a.ctx.close();
-  const mp4 = path.join(OUT, `${id}.mp4`);
-  execFileSync("ffmpeg", ["-y", "-loglevel", "error", "-ss", (leadMs / 1000).toFixed(2), "-i", webm, "-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-pix_fmt", "yuv420p", "-r", "30", "-an", mp4]);
+  for (const [sid, from, to] of segs ?? [[id, leadMs]]) {
+    const mp4 = path.join(OUT, `${sid}.mp4`);
+    execFileSync("ffmpeg", ["-y", "-loglevel", "error", "-ss", (from / 1000).toFixed(2), ...(to ? ["-to", (to / 1000).toFixed(2)] : []), "-i", webm, "-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-pix_fmt", "yuv420p", "-r", "30", "-an", mp4]);
+    const dur = execFileSync("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", mp4]).toString().trim();
+    console.log(`  -> ${path.relative(ROOT, mp4)} (${(+dur).toFixed(1)} s)`);
+  }
   rmSync(a.tmp, { recursive: true, force: true });
-  const dur = execFileSync("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", mp4]).toString().trim();
-  console.log(`  -> ${path.relative(ROOT, mp4)} (${(+dur).toFixed(1)} s)`);
 }
 /** Marks "filming starts now" after setup; returns ms since the context opened (the trim point). */
 const mark = (a) => Date.now() - a.t0;
 
 // ---------------- scene recipes (same order + ids as src/scenes.ts) ----------------
+const typeSlow = async (page, loc, text) => { await click(page, loc); await page.keyboard.type(text, { delay: 60 }); };
+const dialogFile = (page) => page.locator("[role=dialog] input[type=file]").first();
+
 const SCENES = {
-  // Host (= judge) prepares a contest off-camera; the VIEWER context is filmed while the judge scores.
+  // Fresh contest: host (= its judge) + 3 entrant burners off camera; the VIEWER is filmed while the judge scores
+  // (contest-live), then while the host finalizes (contest-podium). Never touches contest #0.
   async "contest-live"() {
     const host = await actor("host");
+    host.page.on("dialog", (d) => d.accept());
     await host.page.goto(`${BASE}/lomba`, { waitUntil: "networkidle" });
     await quickPlay(host.page);
-    const name = `Piala Kicau Jogja ${new Date().toTimeString().slice(0, 5)}`;
+    const name = arg("name", "Piala Murai Blitz Jogja");
     await host.page.fill("input[placeholder='Piala Kicau Jogja']", name);
-    await host.page.fill("input[placeholder='Murai Batu']", "Murai Batu");
-    await host.page.click("button:has-text('+ Add me')"); // host is the judge
+    await host.page.click("button:has-text('+ Add me')");
     await tx(host.page, "createContest", () => host.page.click("button:has-text('Create contest')"));
-    await host.page.locator("h1", { hasText: name }).waitFor({ timeout: 20000 });
+    await host.page.waitForFunction(() => location.hash.length > 1, null, { timeout: 30000 });
     const cid = await host.page.evaluate(() => location.hash.slice(1));
-    for (let i = 0; i < 3; i++) {
-      await tx(host.page, `registerBird${i}`, () => host.page.click("button:has-text('Quick-register')"));
+    console.log(`  fresh contest #${cid}`);
+    for (let i = 1; i <= 3; i++) {
+      const e = await actor(`entrant${i}`);
+      await e.page.goto(`${BASE}/lomba#${cid}`, { waitUntil: "networkidle" });
+      await quickPlay(e.page);
+      await e.page.locator("h2:has-text('Enter your bird')").waitFor({ timeout: 30000 });
       await sleep(2000);
-      await host.page.locator("button:has-text('Enter ·')").waitFor({ timeout: 20000 });
-      await tx(host.page, `enter${i}`, () => host.page.click("button:has-text('Enter ·')"));
-      await sleep(2000);
+      if (!(await e.page.locator("button:has-text('Enter ·')").count()))
+        await tx(e.page, `quickRegister${i}`, () => e.page.click("button:has-text('Quick-register')"));
+      await e.page.locator("button:has-text('Enter ·'):enabled").waitFor({ timeout: 30000 });
+      await tx(e.page, `enter${i}`, () => e.page.click("button:has-text('Enter ·')"));
+      await e.ctx.close();
     }
+    await host.page.reload({ waitUntil: "networkidle" });
+    await host.page.locator("button:has-text('Start judging'):enabled:not(:has-text('needs'))").waitFor({ timeout: 40000 });
     await tx(host.page, "startJudging", () => host.page.click("button:has-text('Start judging')"));
-    await host.page.locator("h2:has-text('Judge panel')").waitFor({ timeout: 20000 });
+    await host.page.locator("h2:has-text('Judge panel')").waitFor({ timeout: 30000 });
 
     const v = await actor("viewer", { record: true });
     await v.page.goto(`${BASE}/lomba#${cid}`, { waitUntil: "networkidle" });
     await v.page.locator("h2:has-text('Live scoreboard')").waitFor({ timeout: 30000 });
+    await sleep(3000);
     const lead = mark(v);
-    await sleep(1500);
+    await sleep(1200);
     await scrollTo(v.page, "h2:has-text('Live scoreboard')");
-    await v.page.mouse.move(1400, 500, { steps: 20 });
+    await v.page.mouse.move(1150, 480, { steps: 25 });
     const cards = host.page.locator("section:has(h2:has-text('Judge panel')) div.border-\\[3px\\]");
-    const vals = [[9, 8, 9, 10], [6, 7, 5, 6], [8, 9, 7, 8]];
+    const vals = [[6, 7, 5, 6], [9, 8, 9, 10], [8, 9, 7, 8]]; // 2nd bird overtakes -> visible re-rank
+    const scoreAt = [];
     for (let c = 0; c < 3; c++) {
       const r = cards.nth(c).locator("input[type=range]");
       for (let k = 0; k < 4; k++) await r.nth(k).fill(String(vals[c][k]));
+      scoreAt.push(mark(v) - lead);
       await tx(host.page, `score${c}`, () => cards.nth(c).locator("button").click());
       await v.page.locator("text=updated in").waitFor({ timeout: 15000 }).catch(() => {});
-      await sleep(3000); // let the viewer's board visibly re-rank
+      await sleep(1500);
     }
+    await sleep(1500);
+    const liveEnd = mark(v);
+    // podium: finalize on the host, the viewer sees Results appear
+    await v.page.evaluate(() => scrollTo({ top: 0, behavior: "smooth" }));
+    await sleep(800);
+    const podStart = mark(v);
+    await tx(host.page, "finalize", () => host.page.click("button:has-text('Finalize & pay out')"));
+    await v.page.locator("h2:has-text('Results')").waitFor({ timeout: 30000 });
+    await sleep(800);
+    await scrollTo(v.page, "h2:has-text('Results')");
     await sleep(2000);
-    await save(v, "contest-live", lead);
-    await host.ctx.close();
-    console.log(`  contest #${cid} left in judging: finalize it LIVE on stage`);
-  },
-
-  // An already-finalized contest: share page with podium, prizes paid, attested titles.
-  async "contest-podium"() {
-    const id = arg("podium", "0");
-    const v = await actor("viewer", { record: true });
-    await v.page.goto(`${BASE}/lomba/${id}`, { waitUntil: "networkidle" });
-    const lead = mark(v);
-    await sleep(2500);
-    await v.page.mouse.move(960, 500, { steps: 30 });
-    await v.page.mouse.wheel(0, 500);
-    await sleep(3500);
-    const link = v.page.locator("a[href*='/tx/']").first();
-    const lb = (await link.count()) && (await link.boundingBox());
-    if (lb) await v.page.mouse.move(lb.x + lb.width / 2, lb.y + lb.height / 2, { steps: 25 });
+    const pay = v.page.locator("section:has(h2:has-text('Results')) a").first();
+    const pb = await pay.boundingBox().catch(() => null);
+    if (pb) await v.page.mouse.move(pb.x + pb.width / 2, pb.y + pb.height / 2, { steps: 25 });
     await sleep(4000);
-    await save(v, "contest-podium", lead);
+    const podEnd = mark(v);
+    console.log(`  score tx sent at (s from live start): ${scoreAt.map((x) => (x / 1000).toFixed(1)).join(", ")}; podium starts ${((podStart - lead) / 1000).toFixed(1)}`);
+    await save(v, "", 0, [["contest-live", lead, liveEnd], ["contest-podium", podStart, podEnd]]);
+    await host.ctx.close();
+    console.log(`  CONTEST_ID=${cid} (finalized)`);
   },
 
-  // Owner uploads a REAL bird photo -> AI species ID -> pixel sprite -> registerBird.
+  // Owner uploads a REAL bird photo -> AI species ID -> pixel sprite -> registerBird (optional fields left empty).
   async register() {
     const o = await actor("owner", { record: true });
     await o.page.goto(BASE, { waitUntil: "networkidle" });
     await quickPlay(o.page);
+    await o.page.evaluate(() => scrollTo(0, 0));
+    await sleep(1000);
     const lead = mark(o);
-    await click(o.page, "button:has-text('Register your real bird')");
-    await o.page.locator("[role=dialog] input[type=file]").setInputFiles(path.resolve(ROOT, arg("photo", "assets/bird.jpg")));
-    await o.page.locator("text=Identifying species with AI…").waitFor({ state: "detached", timeout: 30000 }).catch(() => {});
-    await sleep(2500); // hold on the species verdict + pixel sprite
-    await o.page.locator("[role=dialog] input[placeholder='Si Jambul']").fill("Si Jambul");
-    await tx(o.page, "registerBird", () => click(o.page, o.page.locator("[role=dialog] button", { hasText: /^Register$/ })));
+    await click(o.page, "button:has-text('Register your bird')");
+    await sleep(800);
+    await dialogFile(o.page).setInputFiles(path.resolve(ROOT, arg("photo", "assets/bird.jpg")));
+    await o.page.locator("[role=dialog] >> text=confidence").first().waitFor({ timeout: 60000 }).catch(() => console.warn("  ! no AI species result"));
+    console.log("  species:", (await o.page.locator("[role=dialog] label:has-text('Species')").first().innerText().catch(() => "?")).replace(/\n/g, " | "));
     await sleep(2500);
+    await typeSlow(o.page, o.page.locator("[role=dialog] input[placeholder='Si Jambul']"), "Si Jambul");
+    await sleep(500);
+    await tx(o.page, "registerBird", () => click(o.page, o.page.locator("[role=dialog] button", { hasText: /^Register$/ })));
+    await sleep(1500);
     await save(o, "register", lead);
   },
 
-  // Kicau Value chart + proof timeline that re-checks itself against the contract.
+  // Owner view: species, Kicau Value + USD, value chart, proof timeline that re-checks itself against the contract.
   async "kicau-value"() {
     const o = await actor("owner", { record: true });
-    await o.page.goto(`${BASE}/lomba`, { waitUntil: "networkidle" });
+    await o.page.goto(BASE, { waitUntil: "networkidle" });
+    await o.page.locator("section:has(h2:has-text('My Birds')) button:has-text('Manage')").first().waitFor({ timeout: 60000 });
+    await scrollTo(o.page, "h2:has-text('My Birds')");
+    await sleep(1500);
     const lead = mark(o);
-    await click(o.page, "button:has-text('Proof & dashboard')");
-    await o.page.locator("[role=dialog] >> text=matches contract").waitFor({ timeout: 60000 }).catch(() => {});
-    await o.page.mouse.move(900, 500, { steps: 30 });
+    await click(o.page, o.page.locator("section:has(h2:has-text('My Birds')) button:has-text('Manage')").last());
+    await o.page.locator("[role=dialog] >> text=matches contract").first().waitFor({ timeout: 60000 }).catch(() => console.warn("  ! no 'matches contract'"));
+    await sleep(800);
+    await o.page.mouse.move(960, 520, { steps: 30 });
+    await sleep(2500);
+    for (let i = 0; i < 4; i++) { await o.page.mouse.wheel(0, 180); await sleep(700); }
     await sleep(3000);
-    await o.page.mouse.wheel(0, 400);
-    await sleep(4000);
     await save(o, "kicau-value", lead);
   },
 
-  // Viewer sponsors a community bird (70/30) then adopts a species (30% conservation); LIVE KICAU in frame.
+  // Viewer opens Kenari in the Kicau Garden scene, supports it (100% conservation) and adopts the NFT.
   async "sponsor-adopt"() {
-    const v = await actor("viewer", { record: true });
+    const v = await actor("fan", { record: true });
     await v.page.goto(BASE, { waitUntil: "networkidle" });
     await quickPlay(v.page);
+    await scrollTo(v.page, "h2:has-text('Kicau Garden')");
+    await sleep(2500);
     const lead = mark(v);
-    await click(v.page, v.page.locator("section:has(h2:has-text('Community Birds')) button"));
-    await v.page.locator("[role=dialog] >> text=Support this bird").waitFor();
-    await tx(v.page, "supportBird", () => click(v.page, v.page.locator("[role=dialog] button.btn-ghost", { hasText: "MON" })));
-    await sleep(2000);
-    await v.page.keyboard.press("Escape");
-    await click(v.page, v.page.locator("section:has(h2:has-text('Shelter')) [role=button], section:has(h2:has-text('Shelter')) button"));
-    await tx(v.page, "buy", () => click(v.page, "[role=dialog] button:has-text('Adopt NFT')"));
-    await sleep(3000);
+    await click(v.page, v.page.locator("button[aria-label^='Kenari']"));
+    await v.page.locator("[role=dialog] button:has-text('Adopt NFT')").waitFor();
+    await sleep(1200);
+    await tx(v.page, "support", () => click(v.page, v.page.locator("[role=dialog] button.btn-ghost", { hasText: /MON$/ })));
+    await tx(v.page, "adopt", () => click(v.page, "[role=dialog] button:has-text('Adopt NFT')"));
+    await sleep(1500);
     await save(v, "sponsor-adopt", lead);
   },
 
-  // Seeded run (startRun) -> fly -> Submit verified score -> daily/weekly boards + weekly pool.
+  // Seeded run (startRun) -> fly -> Submit score on-chain (verified) -> Daily / Weekly / All-time boards + weekly pool.
   async flappy() {
-    const v = await actor("viewer", { record: true });
+    const v = await actor("fan", { record: true });
     await v.page.goto(BASE, { waitUntil: "networkidle" });
-    await quickPlay(v.page);
+    const fly = v.page.locator("section:has(h2:has-text('My Birds')) button:has-text('Fly')").first();
+    await fly.waitFor({ timeout: 60000 });
+    await scrollTo(v.page, "h2:has-text('My Birds')");
+    await sleep(1500);
     const lead = mark(v);
-    await click(v.page, "button:has-text('Fly')");
-    await v.page.locator("canvas").first().waitFor({ timeout: 20000 });
+    await tx(v.page, "startRun", () => click(v.page, fly));
+    await v.page.locator("[role=dialog] canvas").first().waitFor({ timeout: 20000 });
+    await sleep(700);
+    const submit = v.page.locator("[role=dialog] button:has-text('Submit score on-chain')");
+    for (let i = 0; i < 60 && !(await submit.count()); i++) { await v.page.keyboard.press("Space"); await sleep(i < 2 ? 250 : 360); }
+    await submit.waitFor({ timeout: 30000 });
+    await sleep(1000);
+    await tx(v.page, "submitRun", () => click(v.page, submit));
     await sleep(800);
-    await v.page.keyboard.press("Space");
-    for (let i = 0; i < 18; i++) { await sleep(330); await v.page.keyboard.press("Space"); }
-    await tx(v.page, "submitRun", async () => {
-      await v.page.locator("button:has-text('Submit verified score')").waitFor({ timeout: 30000 });
-      await click(v.page, "button:has-text('Submit verified score')");
-    });
+    await v.page.keyboard.press("Escape");
     await scrollTo(v.page, "h2:has-text('Leaderboard')");
     await sleep(1500);
-    await click(v.page, "button:has-text('Daily')");
-    await sleep(1500);
-    await click(v.page, "button:has-text('Weekly')");
-    await sleep(2500);
+    for (const t of ["Daily", "Weekly", "All-time"]) { await click(v.page, v.page.locator(`button:text-is('${t}')`)); await sleep(1600); }
+    await sleep(1000);
     await save(v, "flappy", lead);
   },
 
-  // Open world: walk to the shelter yard, bump into a bird, its card opens. Read-only, no tx (dry-run scene).
+  // Open world: walk to the shelter yard, bump into a bird, its card opens. Read-only, no tx.
   async garden() {
     const v = await actor("viewer", { record: true });
     await v.page.goto(`${BASE}/taman`, { waitUntil: "networkidle" });
-    await sleep(3000); // tiles + sprites load (trimmed)
+    await sleep(3000);
     const lead = mark(v);
     const hold = async (k, ms) => { await v.page.keyboard.down(k); await sleep(ms); await v.page.keyboard.up(k); };
     await hold("ArrowLeft", 1800);
@@ -257,21 +300,20 @@ const SCENES = {
     await save(v, "garden", lead);
   },
 
-  // x402 certificate (gasless USDC via Monad facilitator) then the verified mainnet contract.
+  // Shareable server-rendered result page of the finalized contest, then the verified mainnet contract.
   async proof() {
-    const o = await actor("owner", { record: true });
-    await o.page.goto(`${BASE}/lomba`, { waitUntil: "networkidle" });
-    await quickPlay(o.page);
-    const lead = mark(o);
-    const [cert] = await Promise.all([
-      o.ctx.waitForEvent("page", { timeout: 30000 }).catch(() => null),
-      click(o.page, "button:has-text('Certificate')"),
-    ]); // ponytail: burner needs testnet USDC for the $0.01 x402 payment; fund it once before recording
-    if (cert) { await cert.waitForLoadState("networkidle"); await cert.bringToFront(); await sleep(3000); await cert.close(); }
-    else await sleep(3000);
-    await o.page.goto("https://monadvision.com/address/0xdada618e564edaf7ec0af0a12575bf3c0dc8523b?tab=Contract", { waitUntil: "domcontentloaded" });
-    await sleep(3500);
-    await save(o, "proof", lead);
+    const id = arg("podium", "0");
+    const v = await actor("viewer", { record: true });
+    await v.page.goto(`${BASE}/lomba/${id}`, { waitUntil: "networkidle" });
+    await sleep(1000);
+    const lead = mark(v);
+    await v.page.mouse.move(960, 500, { steps: 30 });
+    await sleep(2500);
+    await v.page.mouse.wheel(0, 400);
+    await sleep(2000);
+    await v.page.goto("https://monadvision.com/address/0xdada618e564edaf7ec0af0a12575bf3c0dc8523b?tab=Contract", { waitUntil: "domcontentloaded" });
+    await sleep(4500);
+    await save(v, "proof", lead);
   },
 };
 
@@ -287,4 +329,5 @@ for (const id of ids.length ? ids : Object.keys(SCENES)) {
   }
   for (const c of browsers.splice(0)) await c.close().catch(() => {});
 }
-for (const d of readdirSync(OUT)) if (d.startsWith(".raw-")) rmSync(path.join(OUT, d), { recursive: true, force: true });
+console.log("TXS\n" + TXS.join("\n"));
+// ponytail: each save() removes its own .raw dir; no global sweep (parallel runs share OUT)
