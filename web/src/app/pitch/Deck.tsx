@@ -47,8 +47,11 @@ function Qr({ className = "pd-qr" }: { className?: string }) {
 const DEMO = "/demo/kicau-demo.mp4";
 const POSTER = "/demo/kicau-demo-poster.jpg";
 
+const SPEEDS = [1, 1.5, 2];
+
 function Demo() {
   const [failed, setFailed] = useState(false);
+  const [speed, setSpeed] = useState(1);
   const ref = useRef<HTMLVideoElement>(null);
   useEffect(() => {
     const v = ref.current;
@@ -62,10 +65,29 @@ function Demo() {
       </div>
     );
   return (
-    <div className="pd-video">
-      <video ref={ref} src={DEMO} poster={POSTER} controls preload="metadata" playsInline onError={() => setFailed(true)} />
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={POSTER} alt="Demo video" className="pd-print-only" />
+    <div>
+      <div className="pd-video">
+        <video ref={ref} src={DEMO} poster={POSTER} controls preload="metadata" playsInline onError={() => setFailed(true)} />
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={POSTER} alt="Demo video" className="pd-print-only" />
+      </div>
+      {/* 113 s video vs ~60 s in the pitch slot: 2x shows the whole story */}
+      <div className="pd-speed" role="group" aria-label="Playback speed">
+        {SPEEDS.map((r) => (
+          <button
+            key={r}
+            type="button"
+            aria-pressed={speed === r}
+            className={speed === r ? "on" : ""}
+            onClick={() => {
+              setSpeed(r);
+              if (ref.current) ref.current.playbackRate = r;
+            }}
+          >
+            {r}×
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
@@ -455,6 +477,10 @@ const CSS = `
 .pd-tag-proposed{background:var(--sun);color:var(--ink)}
 .pd-demo{display:grid;gap:12px;grid-template-columns:1fr}
 .pd-video{border:3px solid var(--paper);box-shadow:4px 4px 0 var(--sun);background:#000;aspect-ratio:16/9}
+.pd-speed{display:flex;gap:6px;margin-top:10px}
+.pd-speed button{font:inherit;font-size:13px;padding:3px 10px;border:2px solid var(--paper);background:transparent;color:var(--paper);cursor:pointer}
+.pd-speed button.on{background:var(--sun);color:var(--ink);border-color:var(--sun)}
+@media print{.pd-speed{display:none}}
 .pd-video video,.pd-video img{display:block;width:100%;height:100%;object-fit:contain}
 .pd-ph{display:flex;flex-direction:column;align-items:center;justify-content:center}
 .pd-print-only{display:none!important}
