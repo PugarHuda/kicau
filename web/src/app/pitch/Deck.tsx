@@ -2,15 +2,16 @@
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { birdDataUri } from "@/lib/birds";
-import { KICAU_ADDRESS } from "@/lib/config";
+import { NET } from "@/lib/network";
 import { qrSvgPath } from "./qr";
 
 export type LiveStats = { birds: number; conservation: string; players: number; contests: number };
 
 const LIVE = "https://kicau.xyz";
 const LIVE_SHORT = "kicau.xyz";
+const MAIN_SHORT = "mainnet.kicau.xyz";
 const REPO = "github.com/PugarHuda/kicau";
-const CONTRACT = KICAU_ADDRESS; // testnet (used by the app); follows NEXT_PUBLIC_KICAU_ADDRESS on redeploy
+const TESTNET = "0x947929841Ba8154BB6E9BDeb35137d159c6A0F58"; // chain 10143, verified
 const MAINNET = "0xA98CeE28C6EB35b6Ee7440b7490e265f23975d61"; // chain 143, same source, verified
 const QR = qrSvgPath(LIVE);
 
@@ -43,8 +44,39 @@ function Qr({ className = "pd-qr" }: { className?: string }) {
   );
 }
 
+const DEMO = "/demo/kicau-demo.mp4";
+const POSTER = "/demo/kicau-demo-poster.jpg";
+
+function Demo() {
+  const [failed, setFailed] = useState(false);
+  const ref = useRef<HTMLVideoElement>(null);
+  useEffect(() => {
+    const v = ref.current;
+    if (v && (v.error || v.networkState === HTMLMediaElement.NETWORK_NO_SOURCE)) setFailed(true);
+  }, []);
+  if (failed)
+    return (
+      <div className="pd-card pd-ink pd-video pd-ph">
+        <p className="font-display pd-big pd-sun">▶</p>
+        <p className="font-display pd-h3">Demo video</p>
+      </div>
+    );
+  return (
+    <div className="pd-video">
+      <video ref={ref} src={DEMO} poster={POSTER} controls preload="metadata" playsInline onError={() => setFailed(true)} />
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={POSTER} alt="Demo video" className="pd-print-only" />
+    </div>
+  );
+}
+
+function Tag({ k }: { k: "live" | "flow" | "proposed" }) {
+  return <span className={`font-display pd-tag pd-tag-${k}`}>{k === "flow" ? "ecosystem" : k}</span>;
+}
+
 function slides(wing: boolean, stats: LiveStats | null): { dark?: boolean; body: ReactNode }[] {
   return [
+    // 1 · Hook
     {
       dark: true,
       body: (
@@ -55,9 +87,11 @@ function slides(wing: boolean, stats: LiveStats | null): { dark?: boolean; body:
                 <Bird key={i} id={i} wing={(i % 2 === 0) === wing} size="pd-bird-lg" />
               ))}
             </div>
-            <h1 className="font-display pd-hero">KICAU</h1>
-            <p className="font-display pd-h2 pd-sun">The on-chain record for real-life songbird contests.</p>
-            <p className="pd-p">Judges score on-chain · live scoreboard · instant prizes · verified champions. Built on Monad.</p>
+            <h1 className="font-display pd-h1 pd-hook">This bird isn&apos;t a pet. It&apos;s an unpaid athlete.</h1>
+            <p className="font-display pd-h2 pd-sun">Keep the song, not the cage.</p>
+            <p className="pd-p">
+              <b>KICAU</b> · the on-chain record for real-life songbird contests · built on Monad
+            </p>
             <p className="font-display pd-url pd-sun">{LIVE_SHORT}</p>
             <p className="pd-sm">Monad Blitz Jogja 2026 · {REPO}</p>
           </div>
@@ -65,236 +99,216 @@ function slides(wing: boolean, stats: LiveStats | null): { dark?: boolean; body:
         </div>
       ),
     },
+    // 2 · Market + problem
     {
       body: (
         <>
-          <Kicker>01 · Problem</Kicker>
-          <h2 className="font-display pd-h1">Every week, thousands of contests. Zero trusted records.</h2>
-          <div className="pd-grid pd-g3">
-            <Card title="Paper scores">
-              <b>Gantangan</b> songbird contests run weekly across Indonesia. Scores live on paper; results get disputed.
+          <Kicker>01 · Market + problem</Kicker>
+          <h2 className="font-display pd-h1">A bird&apos;s pedigree sets its value — and paper can be forged.</h2>
+          <div className="pd-grid pd-g3 pd-g3w">
+            <Card title="Big, everyday market">
+              <p className="font-display pd-big pd-bs pd-leaf">Rp 1.7–2 T*</p>
+              songbird economy per year. <b>66–84 M</b> caged birds, ~1/3 of Java households. Weekly <b>gantangan</b> contests in every city.
+              Rp 12.5 B ornamental bird exports in 2025*.
             </Card>
-            <Card title="Unverifiable champions">
-              &quot;Juara 1&quot; titles, rings and pedigree certificates are claims nobody can check.
+            <Card title="Fed by the wild" tone="clay">
+              <p className="font-display pd-big pd-bs">134,515*</p>
+              birds seized 2023–2025*, 70.21% from Sumatra*; 771 seizure cases. 9,219 rescued in 2025*. Bali myna &amp; straw-headed
+              bulbul: <b>Critically Endangered</b>.
             </Card>
-            <Card title="Poaching" tone="clay">
+            <Card title="No trusted record">
               <div className="pd-birdrow pd-left">
                 <Bird id={3} wing={wing} />
                 <Bird id={4} wing={!wing} />
               </div>
-              Demand for champion singers empties forests. Straw-headed bulbul &amp; Bali myna are{" "}
-              <b>Critically Endangered</b>.
+              Scores on paper, titles and pedigree papers nobody can check. A forged pedigree hides a wild-caught bird.
             </Card>
           </div>
+          <p className="pd-xs pd-mt">
+            Sources: Ministry of Trade · Tempo.co · seizures: FLIGHT via Kompas.id, Garda Animalia (2023–2025) · Marshall
+            et al. 2020, Biological Conservation · IUCN Red List · * as reported by cited sources
+          </p>
         </>
       ),
     },
+    // 3 · Solution
     {
       body: (
         <>
           <Kicker>02 · Solution</Kicker>
-          <h2 className="font-display pd-h1">Contests · verified pedigree · play.</h2>
-          <div className="pd-grid pd-g3">
-            <Card title="① Contests on-chain">
-              <p className="font-display pd-big pd-leaf">50/25/15</p>
-              Judges score 4 aspects on-chain. <code>finalize</code> pays keepers + conservation and attests
-              &quot;Juara&quot; titles in the same tx.
+          <h2 className="font-display pd-h1">A verified record that travels with the bird.</h2>
+          <p className="pd-p">
+            On-chain contest results + organizer-attested titles + certificate fingerprints shift value from
+            wild-caught to legally bred birds. <b>30%</b> of adoptions &amp; registrations goes to conservation in the
+            same tx.
+          </p>
+          <div className="pd-grid pd-g2">
+            <Card title="Door A · real bird owners" tone="leafbg">
+              Photo → AI species ID → pixel character + verified record. Enter contests; <b>Kicau Value</b> grows with
+              every result.
             </Card>
-            <Card title="② Verified pedigree">
-              <p className="font-display pd-big pd-leaf">Real bird</p>
-              Photo → AI species ID → pixel sprite. Organizer-attested titles &amp; certificates; self-declared data
-              labelled. <b>Kicau Value</b> rises with results.
-            </Card>
-            <Card title="③ Play">
-              <p className="font-display pd-big pd-leaf">Flappy</p>
-              Verified on-chain runs, Daily/Weekly/All-time boards, weekly prize pool, Kicau Garden open world.
+            <Card title="Door B · everyone">
+              Kicau Garden, adopt a species, verified Flappy runs, daily/weekly leaderboards + weekly prize pool.
             </Card>
           </div>
           <p className="pd-sm pd-mt">Records and collectibles. Never ownership or trade of live animals.</p>
         </>
       ),
     },
+    // 4 · Live demo
     {
+      dark: true,
       body: (
         <>
           <Kicker>03 · Live demo · kicau.xyz/lomba/0</Kicker>
-          <h2 className="font-display pd-h1">Watch a contest close on stage.</h2>
-          <div className="pd-grid pd-g3">
-            <Card title="1 · Contest">Host, class, entry fee, judges. Birds entered by their keepers.</Card>
-            <Card title="2 · Judge scores">Melody, volume, duration, style. One tx each.</Card>
-            <Card title="3 · Live board">Every viewer&apos;s scoreboard updates in under a second.</Card>
-            <Card title="4 · Finalize" tone="sun">
-              Live tx: prizes paid, conservation funded, Juara titles attested.
-            </Card>
-            <Card title="5 · Share">/lomba/&lt;id&gt; result page with an OG image from chain data.</Card>
-            <Card title="6 · Bird record">Wins, attestations, Kicau Value chart, x402 certificate.</Card>
+          <div className="pd-demo">
+            <Demo />
+            <ul className="pd-li pd-list">
+              <li>Judges score at the venue · one tx per score</li>
+              <li>Every viewer&apos;s scoreboard updates in ~1 s (monadLogs)</li>
+              <li>
+                <b>Finalize</b> → instant prizes + &quot;Juara&quot; attested, same tx
+              </li>
+              <li>Then: register a bird, Kicau Value chart, play</li>
+            </ul>
           </div>
+          <p className="font-display pd-h2 pd-sun pd-mt">Live on stage: we finalize contest #0 now.</p>
         </>
       ),
     },
+    // 5 · Why Monad
     {
       dark: true,
       body: (
         <>
           <Kicker>04 · Why Monad · measured today</Kicker>
           <h2 className="font-display pd-h1">One tx per judge score only works here.</h2>
-          <div className="pd-grid pd-g2">
+          <div className="pd-grid pd-g3">
             <div className="pd-card pd-ink">
-              <p className="font-display pd-big pd-sun">~0.6–1 s</p>
+              <p className="font-display pd-big pd-sun">~1 s</p>
               <p className="pd-p">
-                Judge score → every viewer&apos;s scoreboard, via <code>monadLogs</code> (speculative, Proposed state).
+                Judge click → every scoreboard, via <code>monadLogs</code> speculative feed.
               </p>
             </div>
             <div className="pd-card pd-ink">
-              <p className="font-display pd-big pd-sun">~0.5–1 s</p>
+              <p className="font-display pd-big pd-sun">&lt;1.5 s</p>
               <p className="pd-p">
-                <b>⚡ Quick Play</b>: browser burner + <code>eth_sendRawTransactionSync</code>. Receipt in one call, no
-                popups.
+                Tx receipt in one call: <code>eth_sendRawTransactionSync</code>.
               </p>
             </div>
             <div className="pd-card pd-ink">
-              <p className="font-display pd-big pd-sun">Per-slot</p>
-              <p className="pd-p">
-                Hot paths write per-player / per-token / per-(contest, bird, judge) slots: parallel-execution friendly.
-              </p>
-            </div>
-            <div className="pd-card pd-ink">
-              <p className="font-display pd-big pd-sun">21 bytes</p>
-              <p className="pd-p">
-                Sprite palette + pedigree JSON in <b>event logs</b>, read from one block. <b>No indexer.</b>
-              </p>
+              <p className="font-display pd-big pd-sun">1 tx</p>
+              <p className="pd-p">per judge score · per game run · per sponsor. Viable at Monad cost + speed.</p>
             </div>
           </div>
-        </>
-      ),
-    },
-    {
-      body: (
-        <>
-          <Kicker>05 · Architecture</Kicker>
-          <h2 className="font-display pd-h1">No database. No indexer.</h2>
-          <div className="pd-arch">
-            <div className="pd-card pd-paper">
-              <h3 className="font-display pd-h3">Next.js 15 on Vercel</h3>
-              <ul className="pd-p pd-list">
-                <li>wagmi / viem · ⚡ burner</li>
-                <li>contests · Flappy · Garden</li>
-                <li>API: faucet · AI species ID</li>
-                <li>x402 certificate · JSON API</li>
-              </ul>
-            </div>
-            <div className="pd-arrows pd-sm">
-              <span>tx → eth_sendRawTransactionSync →</span>
-              <span>← monadLogs (Proposed) ←</span>
-              <span>← reads + one-block logs ←</span>
-            </div>
-            <div className="pd-card pd-leafbg">
-              <h3 className="font-display pd-h3">Kicau.sol · Monad</h3>
-              <ul className="pd-p pd-list">
-                <li>contests: enter · score · finalize</li>
-                <li>registerBird · attest · valueOf</li>
-                <li>supportBird · buy · support</li>
-                <li>runs · weekly prize pool</li>
-              </ul>
-            </div>
-          </div>
-          <p className="pd-sm pd-mt">
-            External: Chainlink MON/USD · Monad x402 facilitator · Claude Haiku → Sonnet · devnads faucet + verify API
-          </p>
-        </>
-      ),
-    },
-    {
-      body: (
-        <>
-          <Kicker>06 · Proof · built today</Kicker>
-          <h2 className="font-display pd-h1">It works. On chain. Right now.</h2>
-          {stats && (
-            <div className="pd-grid pd-g4">
-              <Card title="Contests">
-                <p className="font-display pd-big pd-leaf">{stats.contests}</p>
-              </Card>
-              <Card title="Birds (NFTs)">
-                <p className="font-display pd-big pd-leaf">{stats.birds}</p>
-              </Card>
-              <Card title="MON to conservation">
-                <p className="font-display pd-big pd-leaf">{stats.conservation}</p>
-              </Card>
-              <Card title="Players">
-                <p className="font-display pd-big pd-leaf">{stats.players}</p>
-              </Card>
-            </div>
-          )}
           <ul className="pd-p pd-checks">
-            {stats && <li>Numbers above read live from the testnet contract when this page rendered</li>}
-            <li>60 Foundry tests (incl. fuzz + reentrancy)</li>
-            <li>Playwright QA with real txs: full contest flow, each tx 0.5–0.9 s</li>
-            <li>Same contract on mainnet, verified on MonadVision + Monadscan</li>
+            <li>x402 certificates via the Monad facilitator</li>
+            <li>Contracts verified on testnet + mainnet · 60 Foundry tests</li>
+            {stats && (
+              <li>
+                Live now ({NET.label}): {stats.contests} contests · {stats.birds} birds · {stats.conservation} MON to
+                conservation
+              </li>
+            )}
           </ul>
+        </>
+      ),
+    },
+    // 6 · Revenue
+    {
+      body: (
+        <>
+          <Kicker>05 · Revenue model · matches Kicau.sol</Kicker>
+          <h2 className="font-display pd-h1">Trust is the product.</h2>
+          <div className="pd-grid pd-g3">
+            <div className="pd-card pd-paper">
+              <h3 className="font-display pd-h3">
+                <Tag k="live" /> on-chain today
+              </h3>
+              <ul className="pd-li pd-list">
+                <li>Bird registration 0.005 MON · 70% treasury / 30% conservation</li>
+                <li>Species adoption · 70% treasury / 30% conservation</li>
+                <li>x402 certificate $0.01 USDC → treasury</li>
+              </ul>
+            </div>
+            <div className="pd-card pd-paper">
+              <h3 className="font-display pd-h3">
+                <Tag k="flow" /> not our revenue
+              </h3>
+              <ul className="pd-li pd-list">
+                <li>Contest entry fees → 50/25/15 to winners&apos; keepers, rest to conservation</li>
+                <li>Sponsorships → 70% keeper / 30% conservation</li>
+                <li>Weekly prize pool (funded via fundRewards)</li>
+              </ul>
+            </div>
+            <div className="pd-card pd-paper">
+              <h3 className="font-display pd-h3">
+                <Tag k="proposed" /> next
+              </h3>
+              <ul className="pd-li pd-list">
+                <li>Contest platform fee · Verified Organizer SaaS for clubs</li>
+                <li>Certificate verification fee · ERC-2981 resale royalty</li>
+                <li>Brand-sponsored prize pools · data API / x402 per call</li>
+                <li>AI species ID per call · Flappy tournament fees</li>
+                <li>Breeder featured listings · game cosmetics</li>
+              </ul>
+            </div>
+          </div>
           <p className="pd-sm pd-mt">
-            testnet <span className="pd-mono">{CONTRACT}</span> · mainnet <span className="pd-mono">{MAINNET}</span>
+            Loop: wins → higher Kicau Value → sponsors &amp; entries → fees &amp; pool → more players.
           </p>
         </>
       ),
     },
+    // 7 · Strategy + risks
     {
       body: (
         <>
-          <Kicker>07 · Business model</Kicker>
-          <h2 className="font-display pd-h1">Trust is the product.</h2>
-          <div className="pd-grid pd-g2">
-            <div className="pd-stack">
-              <Card title="Bird registration · live">0.005 MON per bird record, 70% treasury / 30% conservation.</Card>
-              <Card title="x402 certificate · live">$0.01 USDC per printable pedigree, gasless for the payer.</Card>
-              <Card title="Sponsorships · live">supportBird: 70% to the keeper (not us), 30% to conservation.</Card>
-            </div>
-            <div className="pd-stack">
-              <Card title="Contest platform fee · planned" tone="sun">
-                Today entry fees go up to 90% to winners, the rest to conservation; a host fee comes next.
-              </Card>
-              <Card title="Verified organizers · planned">Paid onboarding for contest organizers who attest titles.</Card>
-              <Card title="Sponsored contests · planned">Feed &amp; cage brands fund prize pools.</Card>
-            </div>
-          </div>
-        </>
-      ),
-    },
-    {
-      body: (
-        <>
-          <Kicker>08 · Shipped today → next</Kicker>
-          <h2 className="font-display pd-h1">Next flights.</h2>
+          <Kicker>06 · Strategy + risks</Kicker>
+          <h2 className="font-display pd-h1">Start in Jogja. Earn trust first.</h2>
           <div className="pd-grid pd-g4">
-            <Card title="Shipped" tone="leafbg">
-              On-chain contests + payouts + auto-attested titles, verified pedigree, Kicau Value, x402 certificate,
-              verified runs + weekly pool. Contract on mainnet.
+            <Card title="0–3 mo" tone="leafbg">
+              Users + 1–2 pilot gantangan clubs in Jogja (Dev Web3 network). Low prices.
             </Card>
-            <Card title="Next">Pilot with a real gantangan organizer; printed QR on result sheets.</Card>
-            <Card title="Then">Conservation partner wallet; app on mainnet.</Card>
-            <Card title="Later">Full replay verification of Flappy runs (today: on-chain time bound).</Card>
+            <Card title="3–6 mo">Contest platform fee + Verified Organizer.</Card>
+            <Card title="6–12 mo">Brand sponsorships, data API, certificate verification.</Card>
+            <Card title="12+ mo">Royalties + tournaments.</Card>
+          </div>
+          <div className="pd-card pd-paper">
+            <h3 className="font-display pd-h3">Risks</h3>
+            <ul className="pd-li pd-list">
+              <li>MON price → convert part of treasury to stablecoins</li>
+              <li>B2B fees need real partners → not counted as early revenue</li>
+              <li>Conservation wallet moves to a partner via setConservationWallet</li>
+            </ul>
           </div>
         </>
       ),
     },
+    // 8 · Closing
     {
       dark: true,
       body: (
         <div className="pd-close">
           <Qr />
           <div>
-            <Kicker>Try it now</Kicker>
+            <Kicker>Keep the song. Not the cage.</Kicker>
             <p className="font-display pd-url pd-sun">{LIVE_SHORT}</p>
-            <ul className="pd-p pd-list">
+            <ul className="pd-li pd-list">
+              <li>mainnet app: {MAIN_SHORT}</li>
               <li>{REPO}</li>
               <li>
-                testnet <span className="pd-mono pd-break">{CONTRACT}</span>
+                testnet <span className="pd-mono pd-break">{TESTNET}</span>
               </li>
               <li>
                 mainnet <span className="pd-mono pd-break">{MAINNET}</span>
               </li>
-              <li>Built by @BangDropID</li>
+              <li>Team: @BangDropID &amp; @maziazi</li>
             </ul>
             <p className="pd-sm pd-mt">Thanks @monad @monad_dev @geeky_kartikey @devweb3jogja</p>
+            <p className="pd-xs">
+              Data: Ministry of Trade · Tempo.co · FLIGHT via Kompas.id · Garda Animalia · Marshall et al. 2020 · IUCN Red List
+            </p>
             <div className="pd-birdrow pd-left pd-mt">
               {[0, 1, 2, 3, 4].map((i) => (
                 <Bird key={i} id={i} wing={(i % 2 === 0) === wing} />
@@ -302,6 +316,46 @@ function slides(wing: boolean, stats: LiveStats | null): { dark?: boolean; body:
             </div>
           </div>
         </div>
+      ),
+    },
+    // Appendix A
+    {
+      body: (
+        <>
+          <Kicker>Appendix A · Blitz rubric checklist</Kicker>
+          <div className="pd-grid pd-g3">
+            <div className="pd-card pd-paper">
+              <h3 className="font-display pd-h3">Basic</h3>
+              <ul className="pd-li pd-checks">
+                <li>Public repo</li>
+                <li>README: live URL + contracts</li>
+                <li>Deployed on testnet during Blitz</li>
+                <li>Hosted · kicau.xyz</li>
+              </ul>
+            </div>
+            <div className="pd-card pd-paper">
+              <h3 className="font-display pd-h3">Advance</h3>
+              <ul className="pd-li pd-checks">
+                <li>All functions working · Playwright QA, real txs ~0.6–1.6 s</li>
+                <li>Live tx on stage · finalize #0</li>
+                <li>Verified on MonadVision + Monadscan</li>
+                <li>Runnable from README · no DB, no indexer</li>
+                <li>Build in public · X thread @BangDropID</li>
+                <li>Demo + ad videos posted today</li>
+              </ul>
+            </div>
+            <div className="pd-card pd-paper">
+              <h3 className="font-display pd-h3">Bonus</h3>
+              <ul className="pd-li pd-checks">
+                <li>Mainnet · {MAINNET.slice(0, 6)}…{MAINNET.slice(-4)}</li>
+                <li>Custom domain · kicau.xyz</li>
+                <li>PMF → slide 2</li>
+                <li>Revenue → slide 6</li>
+                <li>Innovation → slide 5</li>
+              </ul>
+            </div>
+          </div>
+        </>
       ),
     },
   ];
@@ -344,6 +398,7 @@ export function Deck({ stats }: { stats: LiveStats | null }) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if ((e.target as HTMLElement).closest?.("video")) return; // Space/arrows control the video
       if (["ArrowRight", "PageDown", " ", "Enter"].includes(e.key)) go(i + 1);
       else if (["ArrowLeft", "PageUp", "Backspace"].includes(e.key)) go(i - 1);
       else if (e.key === "Home") go(0);
@@ -359,7 +414,7 @@ export function Deck({ stats }: { stats: LiveStats | null }) {
   }, [i, n, go]);
 
   const onClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if ((e.target as HTMLElement).closest("a,button,code,.pd-mono")) return;
+    if ((e.target as HTMLElement).closest("a,button,code,video,.pd-mono")) return;
     const r = e.currentTarget.getBoundingClientRect();
     go(e.clientX - r.left < r.width / 3 ? i - 1 : i + 1);
   };
@@ -431,6 +486,18 @@ const CSS = `
 .pd-p{font-size:1.1rem;line-height:1.35}
 .pd-sm{font-size:.9rem;opacity:.85}
 .pd-big{font-size:1.6rem;margin:4px 0 8px;line-height:1.1!important}
+.pd-xs{font-size:.75rem;opacity:.7}
+.pd-li{font-size:1rem;line-height:1.35}
+.pd-hook{font-size:1.6rem;line-height:1.25!important}
+.pd-tag{display:inline-block;font-size:.6rem;padding:2px 6px;margin-right:6px;text-transform:uppercase;vertical-align:middle}
+.pd-tag-live{background:var(--leaf);color:var(--paper)}
+.pd-tag-flow{background:var(--muted);color:var(--paper)}
+.pd-tag-proposed{background:var(--sun);color:var(--ink)}
+.pd-demo{display:grid;gap:12px;grid-template-columns:1fr}
+.pd-video{border:3px solid var(--paper);box-shadow:4px 4px 0 var(--sun);background:#000;aspect-ratio:16/9}
+.pd-video video,.pd-video img{display:block;width:100%;height:100%;object-fit:contain}
+.pd-ph{display:flex;flex-direction:column;align-items:center;justify-content:center}
+.pd-print-only{display:none!important}
 .pd-sun{color:var(--sun)}
 .pd-leaf{color:var(--leaf)}
 .pd-mt{margin-top:auto}
@@ -483,6 +550,14 @@ code{font-family:ui-monospace,monospace;font-size:.9em;background:rgb(232 163 61
   .pd-p{font-size:2.05cqw}
   .pd-sm{font-size:1.45cqw}
   .pd-big{font-size:3.8cqw}
+  .pd-xs{font-size:1.1cqw}
+  .pd-g3w{grid-template-columns:1.3fr 1.1fr .8fr}
+  .pd-bs{font-size:3cqw}
+  .pd-demo{grid-template-columns:1.9fr 1fr;gap:2.4cqw;align-items:center}
+  .pd-video{border-width:.4cqw;box-shadow:.6cqw .6cqw 0 var(--sun)}
+  .pd-li{font-size:1.6cqw}
+  .pd-hook{font-size:4.6cqw}
+  .pd-tag{font-size:1cqw;padding:.3cqw .6cqw;margin-right:.6cqw}
   .pd-grid,.pd-stack,.pd-arch{gap:2cqw}
   .pd-g2{grid-template-columns:1fr 1fr}
   .pd-g3{grid-template-columns:repeat(3,1fr)}
@@ -526,6 +601,10 @@ code{font-family:ui-monospace,monospace;font-size:.9em;background:rgb(232 163 61
   .pd-title-main{gap:1.6cqw;flex:1}
   .pd-inner{gap:2.2cqw}.pd-kicker{font-size:1.3cqw}.pd-hero{font-size:9cqw}.pd-h1{font-size:3.1cqw}.pd-h2{font-size:2.2cqw}
   .pd-h3{font-size:1.45cqw}.pd-p{font-size:2.05cqw}.pd-sm{font-size:1.45cqw}.pd-big{font-size:3.8cqw}
+  .pd-demo{display:grid;grid-template-columns:1.9fr 1fr;gap:2.4cqw;align-items:center}
+  .pd-video video{display:none!important}.pd-video .pd-print-only{display:block!important}
+  .pd-g3w{grid-template-columns:1.3fr 1.1fr .8fr}.pd-bs{font-size:3cqw}
+  .pd-xs{font-size:1.1cqw}.pd-li{font-size:1.6cqw}.pd-hook{font-size:4.6cqw}.pd-tag{font-size:1cqw}
   .pd-grid,.pd-stack,.pd-arch{gap:2cqw}.pd-card{padding:1.6cqw}.pd-center{min-height:0;height:100%}
   .pd-bird{width:5cqw}.pd-bird-lg{width:8cqw}.pd-bar{font-size:1.2cqw}.pd-num{font-size:1cqw;right:2cqw;top:1.6cqw}
 }

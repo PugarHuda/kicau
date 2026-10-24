@@ -1,14 +1,14 @@
 import { createPublicClient } from "viem";
-import { monadTestnet } from "viem/chains";
+import { NET } from "@/lib/network";
 import { kicauAbi } from "@/lib/abi";
 import { BIRDS, birdDataUri } from "@/lib/birds";
 import { fetchCustomBird } from "@/lib/customBirds";
 import { CERT_LABELS, lineageText } from "@/lib/pixelate";
 import { rpcTransport } from "@/lib/rpc";
 
-const KICAU_ADDRESS = (process.env.NEXT_PUBLIC_KICAU_ADDRESS ?? "") as `0x${string}`;
+const KICAU_ADDRESS = NET.address;
 
-const client = createPublicClient({ chain: monadTestnet, transport: rpcTransport });
+const client = createPublicClient({ chain: NET.chain, transport: rpcTransport });
 
 // tokenURI = <baseURI><speciesId>.json, or <baseURI>c<tokenId>.json for registered birds.
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {

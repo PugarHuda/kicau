@@ -5,11 +5,20 @@ import { formatEther } from "viem";
 import { useReadContract } from "wagmi";
 import { useBirdHistory } from "@/components/BirdProof";
 import { TxLink } from "@/components/ui";
-import { fmtMon, freshnessPct } from "@/lib/birdHistory";
+import { type BirdHistory, fmtMon, freshnessPct } from "@/lib/birdHistory";
 import { fmtUsd, useMonUsd } from "@/lib/price";
 import { kicau, useKicau } from "@/lib/useKicau";
 
 const DAY = 86400;
+
+/** What `me` earned as keeper of one bird: 70% support shares + contest prizes (from its on-chain history). */
+export function keeperEarned(h: BirdHistory | undefined, me: string) {
+  const supportsToMe = h?.events.filter((e) => e.kind === "supported" && e.keeper?.toLowerCase() === me) ?? [];
+  const supportEarned = supportsToMe.reduce((a, e) => a + (e.keeperWei ?? 0n), 0n);
+  const results = h?.events.filter((e) => e.kind === "contest" || e.kind === "cancelled") ?? [];
+  const prizeEarned = results.reduce((a, e) => a + (e.keeper?.toLowerCase() === me ? (e.prizeWei ?? 0n) : 0n), 0n);
+  return { supportsToMe, supportEarned, results, prizeEarned };
+}
 
 /** Owner side of a bird profile: what makes up its value, how to raise it, what it earned, what's claimable. */
 export function OwnerDashboard({ tokenId }: { tokenId: bigint }) {
@@ -25,10 +34,7 @@ export function OwnerDashboard({ tokenId }: { tokenId: bigint }) {
   const me = k.address!.toLowerCase();
   const v = h?.onchain;
   const s = h?.state;
-  const supportsToMe = h?.events.filter((e) => e.kind === "supported" && e.keeper?.toLowerCase() === me) ?? [];
-  const supportEarned = supportsToMe.reduce((a, e) => a + (e.keeperWei ?? 0n), 0n);
-  const results = h?.events.filter((e) => e.kind === "contest" || e.kind === "cancelled") ?? [];
-  const prizeEarned = results.reduce((a, e) => a + (e.keeper?.toLowerCase() === me ? (e.prizeWei ?? 0n) : 0n), 0n);
+  const { supportsToMe, supportEarned, results, prizeEarned } = keeperEarned(h, me);
 
   const tips: string[] = [];
   if (h && v && s) {

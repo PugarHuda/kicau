@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { NET } from "@/lib/network";
 import { ADDRESS, parseId, readContest } from "@/lib/publicData";
 
 // Shareable, server-rendered result page per contest (X / WhatsApp preview via ./opengraph-image.tsx). Live chain reads.
@@ -8,7 +9,7 @@ export const revalidate = 15;
 
 type Props = { params: Promise<{ id: string }> };
 const MEDAL = ["🥇", "🥈", "🥉"];
-const EXPLORER = "https://testnet.monadvision.com";
+const EXPLORER = NET.explorer;
 
 async function load(raw: string) {
   const id = parseId(raw);

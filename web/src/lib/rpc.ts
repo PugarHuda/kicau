@@ -1,8 +1,5 @@
 import { fallback, http } from "viem";
+import { NET } from "./network";
 
-// Public Monad testnet RPCs rate-limit (HTTP 429) under demo load; fall back across providers.
-export const rpcTransport = fallback([
-  http("https://testnet-rpc.monad.xyz"),
-  http("https://monad-testnet.drpc.org"),
-  http("https://rpc.ankr.com/monad_testnet"),
-]);
+// Public Monad RPCs rate-limit (HTTP 429) under demo load; fall back across providers (per network, see lib/network.ts).
+export const rpcTransport = fallback(NET.rpcs.map((u) => http(u)));

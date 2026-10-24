@@ -1,4 +1,5 @@
 import { isAddress } from "viem";
+import { NET } from "@/lib/network";
 
 // ponytail: per-instance in-memory limit (resets on cold start, not shared across instances).
 // Generous on purpose: hackathon venues share one NAT IP. Upgrade to Vercel WAF / KV if abused.
@@ -18,6 +19,7 @@ function limited(ip: string) {
 
 // Proxies the devnads agent faucet (Monad testnet) so the browser burner can fund itself.
 export async function POST(req: Request) {
+  if (!NET.faucet) return Response.json({ error: "No faucet on mainnet" }, { status: 403 });
   const body = await req.json().catch(() => null);
   const address = body && typeof body === "object" ? (body as { address?: unknown }).address : undefined;
   if (typeof address !== "string" || !isAddress(address)) {
@@ -30,7 +32,7 @@ export async function POST(req: Request) {
   const res = await fetch("https://agents.devnads.com/v1/faucet", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ chainId: 10143, address }),
+    body: JSON.stringify({ chainId: NET.chainId, address }),
   });
   const out = await res.json().catch(() => ({}));
   if (!res.ok || !out.txHash) {

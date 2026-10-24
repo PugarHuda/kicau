@@ -9,6 +9,7 @@ import { usePublicClient, useWalletClient } from "wagmi";
 import { short } from "@/components/ui";
 import { loadBurner } from "@/lib/burner";
 import { EXPLORER } from "@/lib/config";
+import { NET } from "@/lib/network";
 import { CERTIFICATE_PRICE_USD, MONAD_TESTNET_USDC, X402_NETWORK } from "@/lib/x402";
 
 type State = { kind: "idle" | "busy" } | { kind: "nofunds"; address: string } | { kind: "error"; msg: string } | { kind: "done"; tx: string; url: string };
@@ -53,7 +54,8 @@ export function CertificateButton({ tokenId }: { tokenId: bigint }) {
         {state.kind === "busy" ? "Paying via x402…" : `📜 Get certificate · $${CERTIFICATE_PRICE_USD} USDC (x402)`}
       </button>
       <p className="mt-1 text-xs text-muted">Printable pedigree certificate. Paid with a gasless USDC signature, settled on Monad by the x402 facilitator.</p>
-      {state.kind === "nofunds" && (
+      {state.kind === "nofunds" && !NET.faucet && <p className="mt-2 text-xs">{short(state.address)} has no USDC on {NET.label}. Send it at least ${CERTIFICATE_PRICE_USD} USDC, then retry.</p>}
+      {state.kind === "nofunds" && NET.faucet && (
         <p className="mt-2 text-xs">
           {short(state.address)} has no test USDC. Get 1 USDC (Monad Testnet) at{" "}
           <a className="underline" href="https://faucet.circle.com" target="_blank" rel="noreferrer">

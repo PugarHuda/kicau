@@ -13,6 +13,8 @@ import { BirdCard, Modal, TxLink, short, type Species } from "@/components/ui";
 import { BIRDS, birdDataUri } from "@/lib/birds";
 import { chirp } from "@/lib/chirp";
 import { KICAU_ADDRESS } from "@/lib/config";
+import { NET } from "@/lib/network";
+import { NetworkToggle } from "@/components/NetworkToggle";
 import { CUSTOM_SPECIES, type CustomBird, fetchCustomBird, fetchRegisteredBirds, isTestEntity } from "@/lib/customBirds";
 import { GAME_VERSION_CANVAS, GAME_VERSION_RUN, type GameOver, type GameStart } from "@/lib/game";
 import { useMusic } from "@/lib/music";
@@ -211,10 +213,10 @@ export default function Taman() {
 
   const notReady = !ready && (
     <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-clay">
-      <button className="btn-primary !px-2 !py-2 !text-[0.6rem]" disabled={k.funding} onClick={k.quickPlay}>
-        {k.funding ? "Setting up…" : "⚡ Quick Play"}
+      <button className="btn-primary !px-2 !py-2 !text-[0.6rem]" disabled={k.funding} onClick={NET.faucet ? k.quickPlay : k.connectWallet}>
+        {NET.faucet ? (k.funding ? "Setting up…" : "⚡ Quick Play") : "Connect wallet"}
       </button>
-      to adopt or support with a free testnet wallet.
+      {NET.faucet ? "to adopt or support with a free testnet wallet." : "to adopt or support."}
     </div>
   );
 
@@ -247,6 +249,10 @@ export default function Taman() {
             <span className="truncate text-sm font-semibold">{player.label}</span>
           )}
         </div>
+        <span className="max-sm:hidden"><NetworkToggle /></span>{/* ponytail: hidden on phones so the game HUD stays one row */}
+        <Link href="/me" className="btn-ghost !px-2 !py-2 !text-[0.6rem]" title="My Dashboard" aria-label="My Dashboard">
+          ▤<span className="hidden sm:inline"> My Dashboard</span>
+        </Link>
         <button className="btn-ghost !px-2 !py-1" onClick={toggleMusic} aria-label={muted ? "Unmute music" : "Mute music"}>
           {muted ? "🔇" : "🎵"}
         </button>
@@ -260,8 +266,8 @@ export default function Taman() {
           </button>
         )}
         {!address ? (
-          <button className="btn-primary !px-2 !py-2 !text-[0.6rem]" disabled={k.funding} onClick={k.quickPlay}>
-            {k.funding ? "Setting up…" : "⚡ Quick Play"}
+          <button className="btn-primary !px-2 !py-2 !text-[0.6rem]" disabled={k.funding} onClick={NET.faucet ? k.quickPlay : k.connectWallet}>
+            {NET.faucet ? (k.funding ? "Setting up…" : "⚡ Quick Play") : "Connect wallet"}
           </button>
         ) : (
           !guest && (

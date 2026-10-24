@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { createPublicClient, formatEther } from "viem";
-import { monadTestnet } from "viem/chains";
+import { NET } from "@/lib/network";
 import { kicauAbi } from "@/lib/abi";
 import { rpcTransport } from "@/lib/rpc";
 import { Deck, type LiveStats } from "./Deck";
@@ -13,11 +13,11 @@ export const metadata: Metadata = {
 // Re-read chain numbers at most once a minute.
 export const revalidate = 60;
 
-const ADDRESS = (process.env.NEXT_PUBLIC_KICAU_ADDRESS ?? "") as `0x${string}`; // same env as the app (no hardcoded fallback: redeploys)
+const ADDRESS = NET.address; // same env as the app (no hardcoded fallback: redeploys)
 
 async function readStats(): Promise<LiveStats | null> {
   if (!ADDRESS) return null;
-  const client = createPublicClient({ chain: monadTestnet, transport: rpcTransport });
+  const client = createPublicClient({ chain: NET.chain, transport: rpcTransport });
   const base = { address: ADDRESS, abi: kicauAbi } as const;
   const read = Promise.all([
     client.readContract({ ...base, functionName: "totalSupply" }),

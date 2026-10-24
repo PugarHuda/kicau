@@ -23,7 +23,8 @@ import {
   usePublicClient,
   useWriteContractSync,
 } from "wagmi";
-import { monadTestnet } from "wagmi/chains";
+import { NET } from "@/lib/network";
+import { NetworkToggle } from "@/components/NetworkToggle";
 import { FlappyGame } from "@/components/FlappyGame";
 import { ChainStats } from "@/components/home/ChainStats";
 import { FeaturedContest, WatchLiveLink } from "@/components/home/FeaturedContest";
@@ -86,7 +87,7 @@ export default function Home() {
   const { connect, connectors, isPending: connecting } = useConnect();
   const { disconnect } = useDisconnect();
   const { switchChain } = useSwitchChain();
-  const wrongChain = isConnected && chainId !== monadTestnet.id;
+  const wrongChain = isConnected && chainId !== NET.chainId;
 
   // Quick Play: local burner signs in-browser → eth_sendRawTransactionSync, no wallet popup.
   const [burner, setBurner] = useState<BurnerClient | null>(null);
@@ -307,8 +308,12 @@ export default function Home() {
         <div className="flex items-center gap-2">
           <BirdArt id={0} className="h-9 w-auto" />
           <span className="font-display text-2xl font-extrabold tracking-tight">Kicau</span>
+          <NetworkToggle />
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <Link href="/me" className={`btn-ghost ${CHIP}`} title="My Dashboard" aria-label="My Dashboard">
+            ▤<span className="hidden sm:inline"> My Dashboard</span>
+          </Link>
           {burner ? (
             <>
               <span className="text-sm text-muted tabular-nums">{bal} MON</span>
@@ -321,9 +326,11 @@ export default function Home() {
             </>
           ) : !isConnected ? (
             <>
+              {NET.faucet && (
               <button className={`btn-primary ${CHIP}`} disabled={funding} onClick={quickPlay}>
                 {funding ? "Setting up…" : "⚡ Quick Play"}
               </button>
+              )}
               <button className={`btn-ghost ${CHIP}`} disabled={connecting} onClick={() =>
                   connect(
                     { connector: connectors[0] },
@@ -338,8 +345,8 @@ export default function Home() {
               </button>
             </>
           ) : wrongChain ? (
-            <button className="btn-primary bg-clay" onClick={() => switchChain({ chainId: monadTestnet.id })}>
-              Switch to Monad Testnet
+            <button className="btn-primary bg-clay" onClick={() => switchChain({ chainId: NET.chainId })}>
+              Switch to {NET.chain.name}
             </button>
           ) : (
             <button className="btn-ghost" onClick={() => disconnect()} title="Disconnect">

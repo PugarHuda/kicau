@@ -1,14 +1,14 @@
 // Server-side reads behind the public JSON API, share pages and OG images. Live chain data, no cache layer.
 import { createPublicClient, formatEther } from "viem";
-import { monadTestnet } from "viem/chains";
+import { NET } from "./network";
 import { kicauAbi } from "./abi";
 import { STATUS, payouts, rankEntries } from "./contestLive";
 import { CUSTOM_SPECIES, fetchCustomBird } from "./customBirds";
 import { rpcTransport } from "./rpc";
 
-export const ADDRESS = (process.env.NEXT_PUBLIC_KICAU_ADDRESS ?? "") as `0x${string}`;
-export const SITE = "https://kicau.xyz";
-export const client = createPublicClient({ chain: monadTestnet, transport: rpcTransport });
+export const ADDRESS = NET.address;
+export const SITE = NET.site;
+export const client = createPublicClient({ chain: NET.chain, transport: rpcTransport });
 const base = { address: ADDRESS, abi: kicauAbi } as const;
 
 export const parseId = (raw: string) => (/^\d{1,10}$/.test(raw) ? BigInt(raw) : null);
@@ -94,9 +94,9 @@ export async function readBird(id: bigint) {
 }
 
 export const proof = (path: string) => ({
-  chainId: monadTestnet.id,
+  chainId: NET.chainId,
   contract: ADDRESS,
-  explorer: `https://testnet.monadvision.com/address/${ADDRESS}`,
+  explorer: `${NET.explorer}/address/${ADDRESS}`,
   readAt: new Date().toISOString(),
   page: `${SITE}${path}`,
 });

@@ -1,11 +1,12 @@
 import { createWalletClient, http, type Hex } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
-import { monadTestnet } from "viem/chains";
+import { NET } from "./network";
 
 // ponytail: testnet-only burner kept in localStorage. Anyone with access to this browser can use it; never fund it with real MON.
 const KEY = "kicau:burner";
 
 export function loadBurner() {
+  if (!NET.faucet) return null; // mainnet: no burner, real wallets only
   try {
     const pk = localStorage.getItem(KEY) as Hex | null;
     return pk ? makeClient(pk) : null;
@@ -33,7 +34,7 @@ export function forgetBurner() {
 function makeClient(pk: Hex) {
   // official RPC: supports eth_sendRawTransactionSync. It 429s under shared-IP load (venue NAT), so back off longer than
   // viem's default (3 tries, ~2 s) before showing "HTTP request failed": 5 tries, 0.4→6.4 s, honours Retry-After.
-  return createWalletClient({ account: privateKeyToAccount(pk), chain: monadTestnet, transport: http(undefined, { retryCount: 5, retryDelay: 200 }) });
+  return createWalletClient({ account: privateKeyToAccount(pk), chain: NET.chain, transport: http(undefined, { retryCount: 5, retryDelay: 200 }) });
 }
 
 export type BurnerClient = ReturnType<typeof makeClient>;

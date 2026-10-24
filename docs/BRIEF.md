@@ -65,6 +65,21 @@ Prinsip desain:
 3. **Demo live (~2 m):** `/lomba/0` → skor juri muncul live → **`finalize` di panggung** → hadiah + gelar ter-attest → halaman hasil + profil burung.
 4. Kenapa Monad + bisnis + roadmap (20 s). Deck: https://kicau.xyz/pitch.
 
+## 6b. Revenue & strategi
+
+- **LIVE (on-chain):** registrasi burung 0.005 MON (70% treasury / 30% konservasi) · adopsi spesies `buy()` (70/30) · sertifikat x402 $0.01 USDC → treasury.
+- **Ecosystem flows (bukan pendapatan):** entry fee lomba → 50/25/15 ke keeper pemenang + sisa ke konservasi · `supportBird` 70% keeper / 30% konservasi · weekly pool via `fundRewards`.
+- **PROPOSED:** fee platform lomba · Verified Organizer (SaaS klub gantangan) · fee verifikasi sertifikat · royalti ERC-2981 · prize pool sponsor brand · data API / x402 per call · AI species ID per call · fee turnamen Flappy · featured listing breeder · kosmetik game.
+- **Fase:** 0–3 bln user + 1–2 klub pilot Jogja → 3–6 bln fee platform + Verified Organizer → 6–12 bln sponsor, data API, verifikasi sertifikat → 12+ bln royalti + turnamen.
+- **Risiko:** harga MON → sebagian treasury ke stablecoin; fee B2B butuh partner nyata (tidak dihitung revenue awal); wallet konservasi ke partner via `setConservationWallet`.
+
+## 6c. Sumber data (slide Market + Problem)
+
+- Ekonomi burung kicau Rp 1.7–2 T/thn, ekspor burung hias Rp 12.5 M (2025): Kementerian Perdagangan, Tempo.co (as reported).
+- 66–84 juta burung dalam sangkar, ~1/3 rumah tangga Jawa: Marshall et al. 2020, *Biological Conservation*.
+- Penyitaan 2023–2025 (134,515 burung, 70.21% dari Sumatra; 9,219 diselamatkan 2025): data FLIGHT (Protection Indonesia's Birds) via Kompas.id — https://www.kompas.id/artikel/jalan-panjang-menyelamatkan-populasi-burung-liar-sumatera (as reported, paywall). Garda Animalia (data FLIGHT yang sama) — https://gardaanimalia.com/silent-forest-ancaman-kepunahan-satwa-di-balik-perdagangan-liar-burung — terkonfirmasi: 771 kasus penyitaan, 161,992 satwa hidup disita, 86.32% (~139 rb) burung liar, 96.20% di antaranya burung kicau.
+- Status Critically Endangered jalak bali & cucak rawa: IUCN Red List.
+
 ## 7. Risiko & mitigasi
 
 | Risiko | Mitigasi |

@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { BaseError, ContractFunctionRevertedError, HttpRequestError, parseEventLogs, type TransactionReceipt } from "viem";
 import { writeContractSync } from "viem/actions";
 import { useAccount, useConnect, useDisconnect, usePublicClient, useSwitchChain, useWriteContractSync } from "wagmi";
-import { monadTestnet } from "wagmi/chains";
+import { NET } from "./network";
 import { kicauAbi } from "./abi";
 import { type BurnerClient, createBurner, forgetBurner, fundBurner, loadBurner } from "./burner";
 import { KICAU_ADDRESS } from "./config";
@@ -26,6 +26,7 @@ export type KicauWrite =
   | { functionName: "updateBird"; args: readonly [bigint, `0x${string}`] }
   | { functionName: "withdrawOwed"; args: readonly [] }
   | { functionName: "revokeAttestation"; args: readonly [bigint, bigint] }
+  | { functionName: "claimWeeklyReward"; args: readonly [bigint] }
   | { functionName: "withdrawOwed"; args: readonly [] }
   | { functionName: "score"; args: readonly [bigint, bigint, number, number, number, number] };
 
@@ -88,7 +89,7 @@ export function useKicau() {
   const { connect, connectors, isPending: connecting } = useConnect();
   const { disconnect } = useDisconnect();
   const { switchChain } = useSwitchChain();
-  const wrongChain = isConnected && chainId !== monadTestnet.id;
+  const wrongChain = isConnected && chainId !== NET.chainId;
 
   const [burner, setBurner] = useState<BurnerClient | null>(null);
   const [funding, setFunding] = useState(false);
@@ -178,7 +179,7 @@ export function useKicau() {
     );
   }
 
-  const switchToMonad = useCallback(() => switchChain({ chainId: monadTestnet.id }), [switchChain]);
+  const switchToMonad = useCallback(() => switchChain({ chainId: NET.chainId }), [switchChain]);
 
   return {
     // identity

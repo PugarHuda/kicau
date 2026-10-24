@@ -9,6 +9,8 @@ import { HostForm } from "@/components/lomba/HostForm";
 import { MyBirds } from "@/components/lomba/MyBirds";
 import { TxLink, short } from "@/components/ui";
 import { KICAU_ADDRESS } from "@/lib/config";
+import { NET } from "@/lib/network";
+import { NetworkToggle } from "@/components/NetworkToggle";
 import { isTestEntity } from "@/lib/customBirds";
 import { STATUS } from "@/lib/contestLive";
 import { type Kicau, kicau, useKicau } from "@/lib/useKicau";
@@ -55,9 +57,13 @@ export default function Lomba() {
           </button>
         )}
         <span className="min-w-0 flex-1 truncate font-display text-xs">Contests</span>
+        <span className="max-sm:hidden"><NetworkToggle /></span>{/* ponytail: hidden on phones so the header stays one row */}
+        <Link href="/me" className="btn-ghost !px-2 !py-2 !text-[0.6rem]" title="My Dashboard" aria-label="My Dashboard">
+          ▤<span className="hidden sm:inline"> My Dashboard</span>
+        </Link>
         {!k.address ? (
-          <button className="btn-primary !px-2 !py-2 !text-[0.6rem]" disabled={k.funding} onClick={k.quickPlay}>
-            {k.funding ? "Setting up…" : "⚡ Quick Play"}
+          <button className="btn-primary !px-2 !py-2 !text-[0.6rem]" disabled={k.funding} onClick={NET.faucet ? k.quickPlay : k.connectWallet}>
+            {NET.faucet ? (k.funding ? "Setting up…" : "⚡ Quick Play") : "Connect wallet"}
           </button>
         ) : (
           <span className="text-xs text-muted" title={k.address}>
@@ -65,7 +71,7 @@ export default function Lomba() {
             {short(k.address)}
           </span>
         )}
-        {!k.address && (
+        {!k.address && NET.faucet && (
           <button className="btn-ghost !px-2 !py-2 !text-[0.6rem]" disabled={k.connecting} onClick={k.connectWallet}>
             Wallet
           </button>
@@ -92,7 +98,7 @@ export default function Lomba() {
       <OwedBanner k={k} />
       {k.wrongChain && !k.burner && (
         <button className="btn-ghost mb-4" onClick={k.switchToMonad}>
-          Switch to Monad testnet
+          Switch to {NET.label}
         </button>
       )}
 

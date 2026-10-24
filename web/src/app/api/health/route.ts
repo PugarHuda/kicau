@@ -2,7 +2,8 @@
 // each testnet RPC (head + latency), the `monadLogs` WebSocket subscription, the Kicau contract, the Chainlink MON/USD
 // feed on mainnet, and the x402 facilitator. Every probe has its own timeout, so one dead dependency never hangs the rest.
 import { createPublicClient, http, parseAbi } from "viem";
-import { monad, monadTestnet } from "viem/chains";
+import { monad } from "viem/chains";
+import { NET } from "@/lib/network";
 import { kicauAbi } from "@/lib/abi";
 import { WS_URL } from "@/lib/live";
 import { ADDRESS, client } from "@/lib/publicData";
@@ -11,7 +12,7 @@ import { X402_FACILITATOR, X402_NETWORK } from "@/lib/x402";
 export const dynamic = "force-dynamic";
 export const maxDuration = 15;
 
-const RPCS = ["https://testnet-rpc.monad.xyz", "https://monad-testnet.drpc.org", "https://rpc.ankr.com/monad_testnet"]; // = lib/rpc.ts
+const RPCS = NET.rpcs; // = lib/rpc.ts
 const FEED = "0xBcD78f76005B7515837af6b50c7C52BCf73822fb" as const; // = lib/price.ts MON_USD_FEED (that file is client-only)
 const feedAbi = parseAbi(["function latestRoundData() view returns (uint80, int256, uint256, uint256, uint80)"]);
 const mainnet = createPublicClient({ chain: monad, transport: http("https://rpc.monad.xyz") });
@@ -67,7 +68,7 @@ export async function GET() {
     Promise.all(
       RPCS.map(async (url) => ({
         url,
-        ...(await probe(async () => ({ head: Number(await createPublicClient({ chain: monadTestnet, transport: http(url, { retryCount: 0 }) }).getBlockNumber()) }))),
+        ...(await probe(async () => ({ head: Number(await createPublicClient({ chain: NET.chain, transport: http(url, { retryCount: 0 }) }).getBlockNumber()) }))),
       })),
     ),
     probe(async () => ({ url: WS_URL, method: "monadLogs", ...(await monadLogs()) })),
@@ -78,7 +79,7 @@ export async function GET() {
         client.readContract({ ...c, functionName: "currentWeek" }),
         client.readContract({ ...c, functionName: "totalConservation" }),
       ]);
-      return { address: ADDRESS, chainId: monadTestnet.id, totalSupply: Number(supply), contests: Number(contests), currentWeek: Number(week), totalConservationWei: String(conservation) };
+      return { address: ADDRESS, chainId: NET.chainId, totalSupply: Number(supply), contests: Number(contests), currentWeek: Number(week), totalConservationWei: String(conservation) };
     }),
     probe(async () => {
       const [, answer, , updatedAt] = await mainnet.readContract({ address: FEED, abi: feedAbi, functionName: "latestRoundData" });

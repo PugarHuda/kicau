@@ -9,13 +9,17 @@ import { fmtUsd, useMonUsd } from "@/lib/price";
 
 /** Shared react-query hook: one scan per bird, reused by BirdProof and OwnerDashboard. */
 export function useBirdHistory(tokenId: bigint) {
-  const client = usePublicClient();
-  return useQuery({
+  return useQuery(birdHistoryQuery(usePublicClient(), tokenId));
+}
+
+/** Query options behind useBirdHistory (same cache key), for useQueries over several birds. */
+export function birdHistoryQuery(client: ReturnType<typeof usePublicClient>, tokenId: bigint) {
+  return {
     queryKey: ["birdHistory", KICAU_ADDRESS, String(tokenId)],
     enabled: !!client && !!KICAU_ADDRESS,
     staleTime: 20_000,
     queryFn: () => fetchBirdHistory(client!, tokenId),
-  });
+  };
 }
 
 const ICON: Record<string, string> = { registered: "🐣", updated: "✎", supported: "♥", attested: "🏅", revoked: "✕", run: "✈", contest: "🏆", cancelled: "∅" };
@@ -94,7 +98,7 @@ export function BirdProof({ tokenId }: { tokenId: bigint }) {
 }
 
 /** Pixel step chart, one step per sample (events + decay days + now), ▲/▼ at events. No chart lib. */
-function ValueChart({ h }: { h: BirdHistory }) {
+export function ValueChart({ h }: { h: BirdHistory }) {
   const pts: ValuePoint[] = h.timeline;
   const W = 320;
   const H = 72;

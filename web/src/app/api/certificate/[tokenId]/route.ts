@@ -3,7 +3,7 @@ import { decodePaymentSignatureHeader, encodePaymentRequiredHeader, encodePaymen
 import type { PaymentRequirements, ResourceInfo } from "@x402/core/types";
 import { ExactEvmScheme } from "@x402/evm/exact/server";
 import { createPublicClient } from "viem";
-import { monadTestnet } from "viem/chains";
+import { NET } from "@/lib/network";
 import { kicauAbi } from "@/lib/abi";
 import { fetchCustomBird, type CustomBird } from "@/lib/customBirds";
 import { lineageText } from "@/lib/pixelate";
@@ -11,8 +11,8 @@ import { rpcTransport } from "@/lib/rpc";
 import { qrSvgPath } from "@/app/pitch/qr";
 import { CERTIFICATE_PRICE_USD, MONAD_TESTNET_USDC, X402_FACILITATOR, X402_NETWORK } from "@/lib/x402";
 
-const KICAU_ADDRESS = (process.env.NEXT_PUBLIC_KICAU_ADDRESS ?? "") as `0x${string}`;
-const client = createPublicClient({ chain: monadTestnet, transport: rpcTransport });
+const KICAU_ADDRESS = NET.address;
+const client = createPublicClient({ chain: NET.chain, transport: rpcTransport });
 
 const server = new x402ResourceServer(new HTTPFacilitatorClient({ url: X402_FACILITATOR })).register(
   X402_NETWORK,
@@ -134,15 +134,15 @@ function certificateSvg(bird: CustomBird, block: bigint, tx: string, payer: stri
 <rect x="36" y="36" width="1028" height="708" fill="none" stroke="#8a6a3c" stroke-width="1"/>
 <text x="550" y="110" text-anchor="middle" style="font-size:20px;letter-spacing:8px;fill:#8a6a3c">KICAU · ON-CHAIN PEDIGREE</text>
 <text x="550" y="180" text-anchor="middle" style="font-size:54px;font-weight:700">${esc(bird.name)}</text>
-<text x="550" y="220" text-anchor="middle" class="m">Registered bird NFT #${bird.tokenId} · minted in Monad testnet block ${block}</text>
+<text x="550" y="220" text-anchor="middle" class="m">Registered bird NFT #${bird.tokenId} · minted in ${NET.label} block ${block}</text>
 <rect x="90" y="290" width="290" height="250" fill="#fffaf0" stroke="#d9c7a3"/>
 <image href="${esc(bird.image)}" x="105" y="305" width="260" height="220" preserveAspectRatio="xMidYMid meet" style="image-rendering:pixelated"/>
 ${body}
 <line x1="90" y1="610" x2="1010" y2="610" stroke="#d9c7a3"/>
-<text x="90" y="638" class="m">Contract ${KICAU_ADDRESS} (chain 10143) · data from the BirdRegistered event, self-declared by the keeper</text>
+<text x="90" y="638" class="m">Contract ${KICAU_ADDRESS} (chain ${NET.chainId}) · data from the BirdRegistered event, self-declared by the keeper</text>
 <text x="90" y="660" class="m">Issued ${issued} · paid ${CERTIFICATE_PRICE_USD} USDC via x402 (Monad facilitator) by ${esc(payer)}</text>
 <text x="90" y="682" class="m">Settlement tx ${esc(tx)}</text>
-<text x="90" y="704" class="m">Verify: https://testnet.monadvision.com/tx/${esc(tx)}</text>
+<text x="90" y="704" class="m">Verify: ${NET.explorer}/tx/${esc(tx)}</text>
 <svg x="944" y="52" width="104" height="104" viewBox="0 0 ${qr.size} ${qr.size}" shape-rendering="crispEdges"><rect width="${qr.size}" height="${qr.size}" fill="#fffaf0"/><path d="${qr.d}" fill="#2b2118"/></svg>
 <text x="996" y="172" text-anchor="middle" class="m">scan: live record</text>
 </svg>`;

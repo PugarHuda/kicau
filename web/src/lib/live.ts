@@ -7,12 +7,12 @@
 // - Abandoned proposals get no event: a Finalized head at the same height with another blockId supersedes them.
 // Fallbacks: plain `eth_subscribe logs` (if monadLogs is rejected), then HTTP polling.
 import { createPublicClient, decodeEventLog, formatEther, toEventSelector, type Hex } from "viem";
-import { monadTestnet } from "viem/chains";
+import { NET } from "./network";
 import { kicauAbi } from "./abi";
 import { BIRDS } from "./birds";
 import { rpcTransport } from "./rpc";
 
-export const WS_URL = "wss://testnet-rpc.monad.xyz";
+export const WS_URL = NET.ws;
 // RunSubmitted is left out on purpose: submitRun also emits ScoreSubmitted (gameVersion 3), shown as "verified score".
 const EVENTS = [
   "BirdBought", "Supported", "ScoreSubmitted", "BirdRegistered", "Attested", "BirdSupported",
@@ -115,7 +115,7 @@ export function startLive(
   onChange: (items: LiveItem[], mode: Mode) => void,
   limit = 12,
 ): () => void {
-  const client = createPublicClient({ chain: monadTestnet, transport: rpcTransport }); // same 429 fallback set as the app
+  const client = createPublicClient({ chain: NET.chain, transport: rpcTransport }); // same 429 fallback set as the app
   const items = new Map<string, LiveItem>();
   let mode: Mode = "connecting";
   let ws: WebSocket | null = null;

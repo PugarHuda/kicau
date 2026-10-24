@@ -1,17 +1,17 @@
 import { createConfig } from "wagmi";
-import { monadTestnet } from "wagmi/chains";
+import { NET } from "./network";
 import { injected } from "wagmi/connectors";
 import { rpcTransport } from "./rpc";
 
-export const KICAU_ADDRESS = (process.env.NEXT_PUBLIC_KICAU_ADDRESS ?? "") as `0x${string}`;
+export const KICAU_ADDRESS = NET.address;
 /** Kicau deploy block = log scan start (no Kicau log exists before it). Current: deploy tx 0x2d3980a3…5efb69d (testnet 0x9479…0F58). Override per redeploy. */
-export const KICAU_DEPLOY_BLOCK = BigInt(process.env.NEXT_PUBLIC_KICAU_DEPLOY_BLOCK || "73741359");
-export const EXPLORER = "https://testnet.monadvision.com";
+export const KICAU_DEPLOY_BLOCK = NET.deployBlock;
+export const EXPLORER = NET.explorer;
 
 export const config = createConfig({
-  chains: [monadTestnet],
+  chains: [NET.chain],
   connectors: [injected()],
-  transports: { [monadTestnet.id]: rpcTransport },
+  transports: { [NET.chainId]: rpcTransport } as Record<typeof NET.chainId, typeof rpcTransport>, // only the active network is ever used
   ssr: true,
 });
 
