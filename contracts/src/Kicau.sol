@@ -79,6 +79,9 @@ contract Kicau is ERC721Enumerable, Ownable, ReentrancyGuard {
     mapping(uint256 tokenId => string) public customName;
     /// @notice Total donated per species through support() (100% goes to conservation).
     mapping(uint256 speciesId => uint256) public supportOf;
+    /// @notice Fan support received by a registered bird (keeper share + conservation share).
+    mapping(uint256 tokenId => uint256) public birdSupportOf;
+    mapping(uint256 tokenId => uint256) public birdSupporters;
     string public baseURI;
 
     mapping(address org => Organizer) public organizers;
@@ -95,6 +98,9 @@ contract Kicau is ERC721Enumerable, Ownable, ReentrancyGuard {
         address indexed player, uint256 indexed tokenId, uint256 indexed speciesId, uint256 score, uint8 gameVersion
     );
     event Supported(address indexed supporter, uint256 indexed speciesId, uint256 amount);
+    event BirdSupported(
+        address indexed supporter, uint256 indexed tokenId, address indexed keeper, uint256 amount, uint256 conservation
+    );
     event BirdRegistered(address indexed owner, uint256 indexed tokenId, string name, bytes image);
     event SpeciesAdded(uint256 indexed speciesId, string name, uint256 price, uint256 maxSupply);
     event OrganizerSet(address indexed organizer, string name, bool active);
@@ -154,6 +160,21 @@ contract Kicau is ERC721Enumerable, Ownable, ReentrancyGuard {
     // ------------------------------------------------------------ support
 
     /// @notice Donate for a species without adopting. The full amount goes to the conservation wallet.
+    /// @notice Sponsor a registered real bird: the keeper (current NFT holder) gets the treasury share,
+    ///         conservation gets `conservationBps`, in the same tx. Patronage, not a sale of the animal.
+    function supportBird(uint256 tokenId) external payable nonReentrant {
+        if (speciesOf[tokenId] != CUSTOM_SPECIES) revert NotCustomBird();
+        if (msg.value == 0) revert WrongPayment();
+        address keeper = ownerOf(tokenId);
+        uint256 conservation = msg.value * conservationBps / MAX_BPS;
+        totalConservation += conservation;
+        birdSupportOf[tokenId] += msg.value;
+        birdSupporters[tokenId]++;
+        _send(conservationWallet, conservation);
+        _send(keeper, msg.value - conservation);
+        emit BirdSupported(msg.sender, tokenId, keeper, msg.value, conservation);
+    }
+
     function support(uint256 speciesId) external payable nonReentrant {
         if (speciesId >= _species.length) revert UnknownSpecies();
         if (msg.value == 0) revert WrongPayment();

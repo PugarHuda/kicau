@@ -408,4 +408,40 @@ contract KicauTest is Test {
             assertEq(kicau.bestValidatedByPlayer(alice), score);
         }
     }
+
+    function test_SupportBirdPaysKeeperAndConservation() public {
+        vm.prank(alice);
+        uint256 id = kicau.registerBird{value: 0.005 ether}("Si Jambul", hex"4b4301");
+        uint256 aliceBefore = alice.balance;
+        uint256 consBefore = conservation.balance;
+
+        vm.prank(bob);
+        kicau.supportBird{value: 0.1 ether}(id);
+
+        assertEq(alice.balance - aliceBefore, 0.07 ether);
+        assertEq(conservation.balance - consBefore, 0.03 ether);
+        assertEq(kicau.birdSupportOf(id), 0.1 ether);
+        assertEq(kicau.birdSupporters(id), 1);
+        assertEq(address(kicau).balance, 0);
+
+        // keeper share follows the NFT: transfer, then support again
+        vm.prank(alice);
+        kicau.transferFrom(alice, bob, id);
+        uint256 bobBefore = bob.balance;
+        vm.deal(address(this), 1 ether);
+        kicau.supportBird{value: 0.01 ether}(id);
+        assertEq(bob.balance - bobBefore, 0.007 ether);
+    }
+
+    function test_RevertSupportBirdInvalid() public {
+        vm.prank(alice);
+        uint256 kenari = kicau.buy{value: 0.01 ether}(0);
+        vm.expectRevert(Kicau.NotCustomBird.selector);
+        kicau.supportBird{value: 0.01 ether}(kenari);
+
+        vm.prank(alice);
+        uint256 id = kicau.registerBird{value: 0.005 ether}("x", hex"01");
+        vm.expectRevert(Kicau.WrongPayment.selector);
+        kicau.supportBird{value: 0}(id);
+    }
 }
