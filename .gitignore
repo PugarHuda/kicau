@@ -7,3 +7,5 @@ cache/
 broadcast/
 .vercel/
 .claude/skills/
+contracts/lib/
+contracts/out/

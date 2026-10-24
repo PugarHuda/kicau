@@ -1,0 +1,43 @@
+@import "tailwindcss";
+
+:root {
+  --cream: #f6f1e4;
+  --paper: #fffdf7;
+  --ink: #1e2a1f;
+  --muted: #5b6a5c;
+  --leaf: #2f6b3a;
+  --leaf-dark: #24552e;
+  --sun: #e8a33d;
+  --clay: #b5532a;
+  --line: #e2dccb;
+}
+
+@theme inline {
+  --color-cream: var(--cream);
+  --color-paper: var(--paper);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-leaf: var(--leaf);
+  --color-leaf-dark: var(--leaf-dark);
+  --color-sun: var(--sun);
+  --color-clay: var(--clay);
+  --color-line: var(--line);
+  --font-sans: var(--font-geist-sans);
+  --font-display: var(--font-display);
+}
+
+body {
+  background: var(--cream);
+  color: var(--ink);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+}
+
+@utility btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 font-semibold transition active:scale-[0.97] disabled:opacity-50 disabled:pointer-events-none;
+}
+@utility btn-primary {
+  @apply btn bg-leaf text-paper hover:bg-leaf-dark;
+}
+@utility btn-ghost {
+  @apply btn border border-line bg-paper hover:border-ink;
+}
