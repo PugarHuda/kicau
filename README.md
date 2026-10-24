@@ -1,56 +1,67 @@
 # Kicau
 
-**Keep the song, not the cage.** GameFi + ReFi with a real-world provenance layer — on-chain pedigree and organizer-attested championship records for real songbirds. Adopt Indonesian songbirds as NFTs, fly them in a Flappy-style pixel game, and every adoption funds bird conservation. All on-chain on Monad.
+**Keep the song, not the cage.** On-chain songbird contests (*gantangan*) with transparent judging, instant prizes and verifiable champions — plus a pixel game and open world where your bird NFT lives. GameFi + ReFi with a real-world provenance layer, built on Monad.
 
 Built at **Monad Blitz Jogja 2026**. Brief and mechanics: [docs/BRIEF.md](docs/BRIEF.md) · Judging rubric mapping: [docs/JUDGING.md](docs/JUDGING.md) · Monad integrations: [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md).
 
 | | |
 |---|---|
-| Network | **Monad Testnet** (chain 10143) |
-| Contract | [`0x7b0A5E9D4A8b1bf2829478e72f62283C6939C816`](https://testnet.monadvision.com/address/0x7b0A5E9D4A8b1bf2829478e72f62283C6939C816) (verified on MonadVision + Monadscan) |
-| Live app | **https://kicau-theta.vercel.app** (also https://kicau-monad.vercel.app) · [Kicau Garden](https://kicau-theta.vercel.app/taman) · [Pitch deck](https://kicau-theta.vercel.app/pitch) |
-| **Mainnet** (chain 143) | [`0x5e44304B5FB65A12DDc600b2c09227aEebc739f7`](https://monadvision.com/address/0x5e44304B5FB65A12DDc600b2c09227aEebc739f7) (verified on MonadVision + Monadscan) · deploy tx [`0xafa4ad0d…df7884`](https://monadvision.com/tx/0xafa4ad0df5de306da309f023fa4f4e84561de861d55e44a53e6c63e44bdf7884) |
-| Deploy tx | [`0xbc190b63…4a794`](https://testnet.monadvision.com/tx/0xbc190b63991354d67859ec17f26601755e00a66e59c2404f7af76a62be44a794) |
+| **Live app** | **https://kicau-theta.vercel.app** · custom domain **https://kicau.xyz** · also https://kicau-monad.vercel.app |
+| Pages | [Home](https://kicau-theta.vercel.app) · [Contests](https://kicau-theta.vercel.app/lomba) · [Kicau Garden](https://kicau-theta.vercel.app/taman) · [Pitch deck](https://kicau-theta.vercel.app/pitch) |
+| **Testnet** (chain 10143, used by the app) | [`0x8010e567b6f68dcfD19312644F1c3E6249b43ef7`](https://testnet.monadvision.com/address/0x8010e567b6f68dcfD19312644F1c3E6249b43ef7) — verified on MonadVision · deploy tx [`0x82eb7adc…7e8280f`](https://testnet.monadvision.com/tx/0x82eb7adc614b3d3d58367a04560e57f843c3fd12b32c0cbec93c2935e7e8280f) |
+| **Mainnet** (chain 143) | [`0x5db5296d5fb87ee703badcd2fd73e3f27816c3c9`](https://monadvision.com/address/0x5db5296d5fb87ee703badcd2fd73e3f27816c3c9) — verified on MonadVision + Monadscan · deploy tx [`0xb8de9ba6…eba9a8`](https://monadvision.com/tx/0xb8de9ba6907c651619c0aa09fe783eb06047da4f84f8f8c28beef6ad1eeba9a8) |
+| Build in public | [X thread](https://x.com/BangDropID/status/2113853488170156259) · [update](https://x.com/BangDropID/status/2113869717429789043) |
 
-## What it does
+## The problem
 
-1. **Shelter.** Five songbird species (Kenari → Jalak Bali). Tap one to open its card: illustration, song, description, IUCN status, and game stats.
-2. **Adopt (mint NFT).** `buy(speciesId)` mints an ERC-721 and splits the payment in the same tx: 30% to the conservation fund, 70% to the treasury. The contract never holds a balance.
-3. **Play.** A Flappy game on HTML5 Canvas. Its physics follow the species stats stored on-chain (gravity, flap power, hitbox).
-4. **On-chain scores.** `submitScore()` is sent via `eth_sendRawTransactionSync` (wagmi `useWriteContractSync`), so the receipt comes straight back and the leaderboard updates instantly.
-5. **⚡ Quick Play.** No MetaMask needed: the browser creates a local burner wallet, funds it automatically from the testnet faucet (`/api/faucet` → devnads agent faucet), then signs every tx in-browser and sends it with `eth_sendRawTransactionSync`. No popups, and the receipt returns in a single call. Confirmation time is shown in the UI.
-6. **Transparency.** Total conservation funds are read directly from the contract (`totalConservation()`).
+*Kicau mania* is a nationwide Indonesian hobby with weekly songbird contests (*gantangan*). Judging is on paper, results are disputed, champion titles and pedigrees are unverifiable — and demand for champion singers fuels poaching (Straw-headed bulbul and Bali myna are Critically Endangered).
+
+## What Kicau does
+
+1. **🏆 On-chain contests (`/lomba`).** Anyone can host a contest (class, entry fee, 1–5 judges, deadline). Owners enter their registered birds; the fee goes into the prize pool. Judges score each bird on four aspects — melody, volume, duration, style (0–10) — **one tx per score**, and a **live scoreboard updates in ~0.6 s** via Monad's `monadLogs` subscription. `finalize` ranks on-chain and pays 🥇50% · 🥈25% · 🥉15% to the winners' keepers and 10% to conservation in the same tx; if the host is a verified organizer, "Juara 1/2/3" titles are **attested on-chain** to the winning birds. Cancel refunds everyone; failed payouts never block (claim via `withdrawOwed`).
+2. **🪪 Register your real bird (tokenized provenance).** Upload a photo → **AI species identification** (Claude Haiku, escalating to Sonnet when unsure; flags species protected in Indonesia) → colours extracted and redrawn in Kicau's pixel style → `registerBird` mints an ERC-721 record with owner, titles, certificate/ring number, lineage and story. The sprite palette + profile live in the event log (~20 bytes palette + JSON), not storage.
+3. **🏅 Verified titles.** Registered contest organizers `attest` championship titles; the UI separates "verified by <organizer>" from self-declared claims.
+4. **💚 Sponsor a bird.** `supportBird(tokenId)` sends 70% to the bird's current keeper (NFT holder) and 30% to conservation, same tx.
+5. **🐦 Adopt species NFTs.** Five Indonesian songbirds (Kenari → Jalak Bali) with real singing videos, IUCN status and game stats. `buy()` splits 30% to conservation in the same tx; `support()` sends 100%.
+6. **🎮 Verified Flappy runs.** `startRun` derives a seed from `prevrandao` → pipes are generated deterministically from it → `submitRun` is rejected on-chain if the score is physically impossible for the elapsed time (anti-cheat v1). Leaderboard v2 marks verified runs.
+7. **🌳 Kicau Garden (`/taman`).** A top-down pixel open world (Kenney CC0 tiles): walk your bird NFT, meet shelter birds, community birds and other players' NFTs; adopt/support straight from the card.
+8. **💳 x402 pedigree certificate.** `/api/certificate/<id>` returns HTTP 402; paying $0.01 USDC (settled by Monad's x402 facilitator, gasless for the payer) returns a printable certificate.
+9. **📈 Chainlink MON/USD**, **🎵 8-bit gamelan chiptune** (WebAudio, no assets), English pixel-art UI, mobile-friendly.
 
 ## Why Monad
 
-- 600 ms finality + `eth_sendRawTransactionSync`: submitting a score after every game feels like a normal game.
-- Per-player / per-token storage with no contended global counter, so it plays well with parallel execution.
-- Cheap gas makes micro-actions (one score per game) sensible.
-- Quick Play uses a local account, so it genuinely uses `eth_sendRawTransactionSync`. Wallet extensions (MetaMask) are still supported, via `eth_sendTransaction` + receipt polling.
+- **`monadLogs` (speculative, Proposed state):** live contest scoreboard and LIVE KICAU feed show each tx Proposed → Voted → Finalized in **~540–600 ms** (~2× faster than `eth_subscribe logs`).
+- **`eth_sendRawTransactionSync`:** ⚡ Quick Play burner signs in-browser; one RPC call returns the receipt (~0.6–0.9 s) — judges' scores and game runs feel like Web2.
+- **Parallel-execution-friendly storage:** per-player / per-token / per-(contest, entry, judge) slots, no contended global counters.
+- **Cheap blockspace:** one tx per judge score, per game run, per support — micro-actions are viable.
+- Tooling: MONSKILLS, devnads faucet API, devnads multi-explorer verification API, Monad x402 facilitator, viem `monadTestnet`.
 
 ## Structure
 
 ```
-contracts/   Foundry: src/Kicau.sol, test/Kicau.t.sol, script/Deploy.s.sol
-web/         Next.js 15 + wagmi v3 + viem + Tailwind v4 (frontend, game, metadata route)
-docs/        BRIEF.md (concept, mechanics, game interface for Unity)
+contracts/  Foundry — src/Kicau.sol (ERC-721 Enumerable + species, register, attest, runs, contests, support), test/Kicau.t.sol, script/Deploy.s.sol
+web/        Next.js 15 · wagmi v3 · viem · Tailwind v4
+  src/app/            /  /lomba  /taman  /pitch  · api/faucet · api/identify · api/certificate/[tokenId] · metadata/[id]
+  src/components/     game (Flappy), lomba (contests), taman (open world), RegisterBird, RegisteredBirds, LiveFeed …
+  src/lib/            useKicau (burner/wallet/send), live + contestLive (monadLogs), pixelate (palette encoding), music, chirp …
+docs/       BRIEF.md · JUDGING.md · INTEGRATIONS.md
 ```
 
 ## Running
 
-**Prerequisites:** Node 20+ and [Foundry](https://getfoundry.sh). A browser wallet (MetaMask/Rabby) with testnet MON from [faucet.monad.xyz](https://faucet.monad.xyz).
+**Prerequisites:** Node 22+ and [Foundry](https://getfoundry.sh). No wallet needed thanks to ⚡ Quick Play (burner auto-funded from the testnet faucet); MetaMask/Rabby also work.
 
 ### 1. Contract
 
 ```bash
 cd contracts
 forge install --no-git foundry-rs/forge-std OpenZeppelin/openzeppelin-contracts@v5.4.0   # if lib/ is empty
-forge test
+forge test                      # 40 tests incl. fuzz + reentrancy
 
-# deploy: key stored encrypted, never in a file
-cast wallet import deployer --interactive
-forge script script/Deploy.s.sol --rpc-url monad_testnet --account deployer --broadcast
-# optional env: TREASURY, CONSERVATION (default: deployer), BASE_URI (https://<host>/metadata/)
+cast wallet import deployer --interactive   # key stored encrypted, never in a file
+BASE_URI=https://<host>/metadata/ forge script script/Deploy.s.sol --rpc-url monad_testnet --account deployer --broadcast
+# optional env: TREASURY, CONSERVATION (default: deployer)
+cast send <KICAU> "setOrganizer(address,string,bool)" <you> "My Contest Org" true --account deployer --rpc-url monad_testnet
 ```
 
 ### 2. Frontend
@@ -58,35 +69,33 @@ forge script script/Deploy.s.sol --rpc-url monad_testnet --account deployer --br
 ```bash
 cd web
 npm install
-echo NEXT_PUBLIC_KICAU_ADDRESS=0xYourContractAddress > .env.local
+cat > .env.local <<EOF
+NEXT_PUBLIC_KICAU_ADDRESS=0x8010e567b6f68dcfD19312644F1c3E6249b43ef7
+# optional — AI species identification (else Vercel AI Gateway via OIDC on Vercel)
+ANTHROPIC_API_KEY=
+EOF
 npm run dev        # http://localhost:3000
 ```
 
 After changing the contract: `cd contracts && forge build`, then `cd web && npm run abi`.
 
-### 3. NFT metadata
-
-`tokenURI` = `<baseURI><speciesId>.json`, served by the `web/src/app/metadata/[id]` route. Once the web app is live, call:
-
-```bash
-cast send <KICAU> "setBaseURI(string)" "https://<host>/metadata/" --account deployer --rpc-url monad_testnet
-```
-
 ## Contract at a glance
 
-| Function | Description |
+| Area | Functions |
 |---|---|
-| `buy(speciesId)` payable | Pay exactly `price`, mint the NFT, split to conservation + treasury |
-| `submitScore(tokenId, score, gameVersion)` | Token owner only. Stores best per token & per player |
-| `getAllSpecies()` | Name, price, supply, game stats |
-| `tokensOf(owner)` / `getLeaderboard()` | Read by the frontend without an indexer |
-| `totalConservation()` | Total wei sent to the conservation fund so far |
+| Species NFTs | `buy(speciesId)` · `support(speciesId)` · `getAllSpecies()` · `tokensOf(owner)` |
+| Registered birds | `registerBird(name, bytes)` · `supportBird(tokenId)` · `registeredAt` · `birdSupportOf` |
+| Attestations | `setOrganizer` (owner) · `attest(tokenId, title)` · `revokeAttestation` · `attestationsOf` |
+| Game runs | `startRun(tokenId)` · `submitRun(runId, score)` · `getLeaderboardV2()` |
+| Contests | `createContest` · `enter` · `startJudging` · `score(contestId, tokenId, melody, volume, duration, style)` · `finalize` · `cancelContest` · `withdrawOwed` · `getContest` · `entriesOf` |
+| Transparency | `totalConservation()` · events for every action |
 
-## Known limitations
+## Honest notes
 
-- Scores are submitted from the client. Roadmap: server-signed replays, or seed+input verification.
-- Bird songs are still synthesized (WebAudio). Roadmap: xeno-canto recordings (CC, with attribution).
-- IUCN status is shown for education. Please verify at iucnredlist.org.
+- The conservation wallet is currently the team's deployer wallet; it will point to a conservation partner via `setConservationWallet`.
+- Self-declared pedigree data is labelled as such; only organizer attestations are "verified".
+- Anti-cheat v1 is a time bound on-chain; full replay verification of the seeded run is roadmap.
+- IUCN statuses are shown for education — verify at iucnredlist.org. Kicau records digital collectibles and provenance; it never supports trading wild-caught birds.
 
 ## License
 
