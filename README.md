@@ -2,7 +2,7 @@
 
 **Pelihara kicaunya, bukan sangkarnya.** Adopsi burung kicau Nusantara sebagai NFT, terbangkan di game Flappy, dan setiap adopsi langsung mendanai konservasi burung. Semuanya on-chain di Monad.
 
-Built at **Monad Blitz Jogja 2026**. Brief lengkap dan mekanisme: [docs/BRIEF.md](docs/BRIEF.md).
+Built at **Monad Blitz Jogja 2026**. Brief dan mekanisme: [docs/BRIEF.md](docs/BRIEF.md) · Pemetaan rubrik juri: [docs/JUDGING.md](docs/JUDGING.md).
 
 | | |
 |---|---|
