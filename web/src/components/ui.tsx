@@ -61,7 +61,7 @@ export function Modal({ onClose, children }: { onClose: () => void; children: Re
   }, [onClose]);
   return (
     <div
-      className="fixed inset-0 z-50 grid place-items-center bg-ink/50 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-[1000] grid place-items-center bg-ink/50 p-4 backdrop-blur-sm"
       onClick={onClose}
       role="dialog"
       aria-modal="true"

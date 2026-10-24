@@ -17,6 +17,7 @@ import {
 } from "wagmi";
 import { monadTestnet } from "wagmi/chains";
 import { FlappyGame } from "@/components/FlappyGame";
+import { LiveFeed } from "@/components/LiveFeed";
 import { RegisterBird } from "@/components/RegisterBird";
 import { Badges, RegisteredBirds } from "@/components/RegisteredBirds";
 import { ShelterScene } from "@/components/ShelterScene";
@@ -236,7 +237,16 @@ export default function Home() {
               <button className="btn-primary" disabled={funding} onClick={quickPlay}>
                 {funding ? "Menyiapkan…" : "⚡ Quick Play"}
               </button>
-              <button className="btn-ghost" disabled={connecting} onClick={() => connect({ connector: connectors[0] })}>
+              <button className="btn-ghost" disabled={connecting} onClick={() =>
+                  connect(
+                    { connector: connectors[0] },
+                    {
+                      onError: (e) =>
+                        setError(e.message.startsWith("Provider not found") ? "Wallet tidak terdeteksi. Pasang MetaMask, atau pakai ⚡ Quick Play." : e.message),
+                    },
+                  )
+                }
+              >
                 {connecting ? "Menghubungkan…" : "Connect wallet"}
               </button>
             </>
@@ -273,6 +283,8 @@ export default function Home() {
           <div className="text-sm text-paper/70">Dikirim otomatis di tiap transaksi, kontrak tidak menahan saldo.</div>
         </div>
       </section>
+
+      <LiveFeed />
 
       {!enabled && (
         <p className="mb-6 rounded-2xl border border-clay/40 bg-clay/10 p-4 text-sm">
