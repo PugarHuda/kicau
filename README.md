@@ -50,7 +50,7 @@ Built at **Monad Blitz Jogja 2026** · [docs/JUDGING.md](docs/JUDGING.md) (rubri
 ## Structure
 
 ```
-contracts/  Foundry: src/Kicau.sol, test/Kicau.t.sol (57 tests), script/Deploy.s.sol
+contracts/  Foundry: src/Kicau.sol, test/Kicau.t.sol (60 tests), script/Deploy.s.sol
 web/        Next.js 15 · wagmi · viem · Tailwind v4
   src/app/        /  /lomba  /lomba/[id]  /taman  /pitch · api/{faucet,identify,certificate/[tokenId],contest/[id],bird/[id]} · metadata/[id]
   src/components/ game, lomba, taman, home, RegisterBird, RegisteredBirds, OwnerDashboard, Leaderboards, LiveFeed …

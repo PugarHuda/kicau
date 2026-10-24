@@ -18,7 +18,7 @@ Peta setiap butir rubrik ke bukti nyata. Status per 24 Okt 2026, ~14:30 WIB.
 |---|---|---|---|
 | Public GitHub repo | 25 | `PugarHuda/kicau`, dibuat 24 Okt; monorepo `contracts/` + `web/` + `docs/` | ✅ |
 | Proper README | 25 | [README.md](../README.md): deskripsi 1 kalimat, live URL, alamat testnet + mainnet, deploy tx, fitur, langkah run, tabel API kontrak, catatan jujur | ✅ |
-| Kontrak di Monad Testnet | 25 | `0x9479…0F58`, deploy tx [`0x2d3980a3…5efb69d`](https://testnet.monadvision.com/tx/0x2d3980a35125711b90e1d3b6972c8991ce6bb22fc21d89975d4dae1a15efb69d) (blok 73741359), 24 Okt. Source final `contracts/src/Kicau.sol`, 57 test Foundry | ✅ |
+| Kontrak di Monad Testnet | 25 | `0x9479…0F58`, deploy tx [`0x2d3980a3…5efb69d`](https://testnet.monadvision.com/tx/0x2d3980a35125711b90e1d3b6972c8991ce6bb22fc21d89975d4dae1a15efb69d) (blok 73741359), 24 Okt. Source final `contracts/src/Kicau.sol`, 60 test Foundry | ✅ |
 | Project publicly hosted | 25 | Vercel, https://kicau.xyz + https://kicau-theta.vercel.app | ✅ |
 
 ## 2. Advance — Does it work (100)
@@ -28,7 +28,7 @@ Peta setiap butir rubrik ke bukti nyata. Status per 24 Okt 2026, ~14:30 WIB.
 | Semua fungsi yang diumumkan jalan | 25 | QA Playwright final terhadap kontrak testnet live, dengan tx asli: register burung (foto) → `createContest` → `enter` ×2 → `startJudging` → skor juri → `finalize` (tx [`0x60b2c83d…a07a5bd`](https://testnet.monadvision.com/tx/0x60b2c83de51483e165a4a413e8f87a67560ccc05fbdf0007b18314feda07a5bd)), `updateBird`, adopt, support, `supportBird` (preset minimum), `startRun`/`submitRun`, faucet Quick Play. Tiap tx 536–913 ms; scoreboard penonton ter-update 782–1012 ms setelah skor juri. 40/40 cek mobile (375/360 px) + keyboard lolos. Kegagalan saat QA = 429 rate limit RPC publik testnet & bug selector di skrip test, lolos saat diulang. x402: settlement nyata di [INTEGRATIONS.md](INTEGRATIONS.md) | ✅ |
 | Live transaction on chain saat demo | 25 | Rencana: di panggung **`finalize` lomba #0** di `/lomba/0` → hadiah 50/25/15% + konservasi dibayar di tx yang sama, gelar "Juara" ter-attest, item muncul di LIVE KICAU (Proposed → Finalized). Cadangan: skor juri / ⚡ adopt | ✅ (siapkan wallet host terisi) |
 | Kontrak verified di explorer | 25 | Testnet + mainnet: verified di MonadVision + Monadscan (API verifikasi devnads) | ✅ |
-| Bisa di-run orang lain dari README | 25 | Tanpa database/indexer. `npm install` → `.env.local` (`NEXT_PUBLIC_KICAU_ADDRESS`, `NEXT_PUBLIC_KICAU_DEPLOY_BLOCK`, opsional `ANTHROPIC_API_KEY`) → `npm run dev`. Kontrak: `forge test` (57 test, termasuk fuzz + reentrancy) + script deploy dengan keystore | ✅ |
+| Bisa di-run orang lain dari README | 25 | Tanpa database/indexer. `npm install` → `.env.local` (`NEXT_PUBLIC_KICAU_ADDRESS`, `NEXT_PUBLIC_KICAU_DEPLOY_BLOCK`, opsional `ANTHROPIC_API_KEY`) → `npm run dev`. Kontrak: `forge test` (60 test, termasuk fuzz + reentrancy) + script deploy dengan keystore | ✅ |
 
 ## 3. Advance — Did anyone see it / Build in public (100)
 
