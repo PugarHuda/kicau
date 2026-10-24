@@ -7,7 +7,7 @@ import { CUSTOM_SPECIES, fetchCustomBird } from "./customBirds";
 import { rpcTransport } from "./rpc";
 
 export const ADDRESS = (process.env.NEXT_PUBLIC_KICAU_ADDRESS ?? "") as `0x${string}`;
-export const SITE = "https://kicau-theta.vercel.app";
+export const SITE = "https://kicau.xyz";
 export const client = createPublicClient({ chain: monadTestnet, transport: rpcTransport });
 const base = { address: ADDRESS, abi: kicauAbi } as const;
 

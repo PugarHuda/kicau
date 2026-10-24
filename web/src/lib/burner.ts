@@ -31,7 +31,9 @@ export function forgetBurner() {
 }
 
 function makeClient(pk: Hex) {
-  return createWalletClient({ account: privateKeyToAccount(pk), chain: monadTestnet, transport: http() }); // official RPC: supports eth_sendRawTransactionSync
+  // official RPC: supports eth_sendRawTransactionSync. It 429s under shared-IP load (venue NAT), so back off longer than
+  // viem's default (3 tries, ~2 s) before showing "HTTP request failed": 5 tries, 0.4→6.4 s, honours Retry-After.
+  return createWalletClient({ account: privateKeyToAccount(pk), chain: monadTestnet, transport: http(undefined, { retryCount: 5, retryDelay: 200 }) });
 }
 
 export type BurnerClient = ReturnType<typeof makeClient>;

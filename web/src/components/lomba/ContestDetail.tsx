@@ -407,7 +407,16 @@ export function ContestDetail({ id, k }: { id: number; k: Kicau }) {
               </button>
             )}
             {status === "Judging" && (
-              <button className="btn-primary" disabled={busy} onClick={() => k.send({ functionName: "finalize", args: [cid] })}>
+              <button
+                className="btn-primary"
+                disabled={busy}
+                onClick={() => {
+                  // unscored entries still rank (0 pts) and can take a paid place, so make the host confirm
+                  const unscored = ids.filter((_, i) => !judges.some((_, j) => scoreOf(i, j)?.scored)).length;
+                  if (unscored && !confirm(`${unscored} ${unscored > 1 ? "entries have" : "entry has"} no score yet and will rank with 0 pts. Finalize anyway?`)) return;
+                  k.send({ functionName: "finalize", args: [cid] });
+                }}
+              >
                 Finalize & pay out
               </button>
             )}
@@ -443,7 +452,7 @@ function BirdImg({ bird, className }: { bird?: CustomBird | null; className: str
 
 /** Links to the server-rendered result page (/lomba/<id>), which carries a live OG image for X / WhatsApp previews. */
 function ShareLinks({ id, name }: { id: number; name: string }) {
-  const url = `${typeof location === "undefined" ? "https://kicau-theta.vercel.app" : location.origin}/lomba/${id}`;
+  const url = `${typeof location === "undefined" ? "https://kicau.xyz" : location.origin}/lomba/${id}`;
   const text = `${name}: every judge score on-chain on Monad`;
   return (
     <span className="ml-auto flex gap-2 text-xs">

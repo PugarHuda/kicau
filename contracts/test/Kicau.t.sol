@@ -926,3 +926,237 @@ contract MaliciousKeeper {
         }
     }
 }
+
+/// Player contract whose receive() reverts, to exercise the owed fallback of claimWeeklyReward.
+contract RejectingPlayer {
+    Kicau k;
+    uint256 public tokenId;
+    uint256 public runId;
+
+    constructor(Kicau k_) payable {
+        k = k_;
+        tokenId = k.buy{value: 0.01 ether}(0);
+    }
+
+    function start() external {
+        (runId,) = k.startRun(tokenId);
+    }
+
+    function submit(uint256 s) external {
+        k.submitRun(runId, s);
+    }
+
+    function claim(uint256 w) external {
+        k.claimWeeklyReward(w);
+    }
+
+    function withdraw() external {
+        k.withdrawOwed();
+    }
+
+    function onERC721Received(address, address, uint256, bytes calldata) external pure returns (bytes4) {
+        return this.onERC721Received.selector;
+    }
+
+    receive() external payable {
+        if (msg.sender == address(k)) revert("no");
+    }
+}
+
+contract KicauWeeklyTest is Test {
+    Kicau kicau;
+    address alice = makeAddr("alice");
+    address bob = makeAddr("bob");
+    uint256 aliceBird;
+    uint256 bobBird;
+    uint256 constant MONDAY = 1792972800; // 2026-10-26 00:00 UTC
+
+    function setUp() public {
+        kicau = new Kicau(makeAddr("treasury"), makeAddr("conservation"), "");
+        vm.deal(alice, 10 ether);
+        vm.deal(bob, 10 ether);
+        vm.prank(alice);
+        aliceBird = kicau.buy{value: 0.01 ether}(0);
+        vm.prank(bob);
+        bobBird = kicau.buy{value: 0.01 ether}(0);
+        vm.warp(MONDAY + 12 hours);
+    }
+
+    function _play(address who, uint256 tokenId, uint256 s) internal {
+        vm.prank(who);
+        (uint256 runId,) = kicau.startRun(tokenId);
+        vm.warp(block.timestamp + s);
+        vm.prank(who);
+        kicau.submitRun(runId, s);
+    }
+
+    function test_MondayAlignment() public {
+        uint256 w = kicau.currentWeek();
+        assertEq(kicau.weekStart(w), MONDAY);
+        assertEq(kicau.currentDay(), MONDAY / 1 days);
+        vm.warp(MONDAY - 1); // Sunday 23:59:59 belongs to the previous week
+        assertEq(kicau.currentWeek(), w - 1);
+        vm.warp(MONDAY + 7 days - 1);
+        assertEq(kicau.currentWeek(), w);
+        vm.warp(MONDAY + 7 days);
+        assertEq(kicau.currentWeek(), w + 1);
+    }
+
+    function test_OnlyValidatedRunsCount() public {
+        vm.prank(alice);
+        kicau.submitScore(aliceBird, 500, 1); // legacy: all-time only
+        (address[] memory p,) = kicau.getDailyLeaderboard(kicau.currentDay());
+        assertEq(p.length, 0);
+        (p,) = kicau.getWeeklyLeaderboard(kicau.currentWeek());
+        assertEq(p.length, 0);
+        (address leader,) = kicau.weeklyLeader(kicau.currentWeek());
+        assertEq(leader, address(0));
+    }
+
+    function test_KeepsMaxAndListsPlayersOnce() public {
+        uint256 d = kicau.currentDay();
+        uint256 w = kicau.currentWeek();
+        _play(alice, aliceBird, 5);
+        _play(alice, aliceBird, 3);
+        _play(bob, bobBird, 4);
+        (address[] memory p, uint256[] memory s) = kicau.getDailyLeaderboard(d);
+        assertEq(p.length, 2);
+        assertEq(p[0], alice);
+        assertEq(s[0], 5);
+        assertEq(p[1], bob);
+        assertEq(s[1], 4);
+        (p, s) = kicau.getWeeklyLeaderboard(w);
+        assertEq(p.length, 2);
+        assertEq(s[0], 5);
+        assertEq(kicau.weeklyBest(w, bob), 4);
+        (address leader, uint256 top) = kicau.weeklyLeader(w);
+        assertEq(leader, alice);
+        assertEq(top, 5);
+    }
+
+    function test_ZeroScoreRunNotListed() public {
+        _play(alice, aliceBird, 0);
+        (address[] memory p,) = kicau.getDailyLeaderboard(kicau.currentDay());
+        assertEq(p.length, 0);
+    }
+
+    function test_LeaderTieFirstKeeps() public {
+        _play(alice, aliceBird, 4);
+        _play(bob, bobBird, 4);
+        (address leader,) = kicau.weeklyLeader(kicau.currentWeek());
+        assertEq(leader, alice);
+        _play(bob, bobBird, 5);
+        (leader,) = kicau.weeklyLeader(kicau.currentWeek());
+        assertEq(leader, bob);
+    }
+
+    function test_DayAndWeekRollover() public {
+        uint256 d = kicau.currentDay();
+        uint256 w = kicau.currentWeek();
+        _play(alice, aliceBird, 5);
+        vm.warp(MONDAY + 1 days + 1 hours); // Tuesday, same week
+        _play(bob, bobBird, 3);
+        (address[] memory p,) = kicau.getDailyLeaderboard(d + 1);
+        assertEq(p.length, 1);
+        assertEq(p[0], bob);
+        (p,) = kicau.getWeeklyLeaderboard(w);
+        assertEq(p.length, 2);
+        vm.warp(MONDAY + 7 days + 1 hours); // next Monday
+        assertEq(kicau.currentWeek(), w + 1);
+        _play(bob, bobBird, 2);
+        (p,) = kicau.getWeeklyLeaderboard(w + 1);
+        assertEq(p.length, 1);
+        (address leader, uint256 top) = kicau.weeklyLeader(w + 1);
+        assertEq(leader, bob);
+        assertEq(top, 2);
+        (leader,) = kicau.weeklyLeader(w);
+        assertEq(leader, alice);
+    }
+
+    function test_FundAndClaimHappyPath() public {
+        uint256 w = kicau.currentWeek();
+        vm.prank(bob);
+        vm.expectEmit(true, true, false, true);
+        emit Kicau.RewardsFunded(w, bob, 0.1 ether);
+        kicau.fundRewards{value: 0.1 ether}(0); // 0 = current week
+        vm.prank(bob);
+        kicau.fundRewards{value: 0.05 ether}(w + 1); // future week ok
+        assertEq(kicau.weeklyPool(w), 0.1 ether);
+        assertEq(kicau.weeklyPool(w + 1), 0.05 ether);
+
+        _play(alice, aliceBird, 5);
+        _play(bob, bobBird, 3);
+
+        vm.prank(alice);
+        vm.expectRevert(Kicau.WeekNotEnded.selector);
+        kicau.claimWeeklyReward(w);
+
+        vm.warp(MONDAY + 7 days);
+        vm.prank(bob);
+        vm.expectRevert(Kicau.NotWinner.selector);
+        kicau.claimWeeklyReward(w);
+
+        uint256 before = alice.balance;
+        vm.prank(alice);
+        vm.expectEmit(true, true, false, true);
+        emit Kicau.WeeklyRewardClaimed(w, alice, 0.1 ether);
+        kicau.claimWeeklyReward(w);
+        assertEq(alice.balance - before, 0.1 ether);
+        assertTrue(kicau.weeklyClaimed(w));
+        assertEq(address(kicau).balance, 0.05 ether);
+
+        vm.prank(alice);
+        vm.expectRevert(Kicau.AlreadyClaimed.selector);
+        kicau.claimWeeklyReward(w);
+    }
+
+    function test_RevertFundGuards() public {
+        uint256 w = kicau.currentWeek();
+        vm.prank(bob);
+        vm.expectRevert(Kicau.InvalidWeek.selector);
+        kicau.fundRewards{value: 1}(w - 1);
+        vm.prank(bob);
+        vm.expectRevert(Kicau.WrongPayment.selector);
+        kicau.fundRewards(w);
+    }
+
+    function test_RolloverWhenNoPlayers() public {
+        uint256 w = kicau.currentWeek();
+        vm.prank(bob);
+        kicau.fundRewards{value: 0.1 ether}(w);
+        vm.expectRevert(Kicau.WeekNotEnded.selector);
+        kicau.rolloverWeeklyPool(w);
+
+        vm.warp(MONDAY + 14 days + 1); // two weeks later
+        vm.expectEmit(true, true, false, true);
+        emit Kicau.WeeklyPoolRolledOver(w, w + 2, 0.1 ether);
+        kicau.rolloverWeeklyPool(w);
+        assertEq(kicau.weeklyPool(w), 0);
+        assertEq(kicau.weeklyPool(w + 2), 0.1 ether);
+    }
+
+    function test_RevertRolloverWithPlayers() public {
+        uint256 w = kicau.currentWeek();
+        _play(alice, aliceBird, 2);
+        vm.warp(MONDAY + 7 days);
+        vm.expectRevert(Kicau.HasPlayers.selector);
+        kicau.rolloverWeeklyPool(w);
+    }
+
+    function test_FailedClaimTransferBecomesOwed() public {
+        RejectingPlayer rp = new RejectingPlayer{value: 0.01 ether}(kicau);
+        uint256 w = kicau.currentWeek();
+        vm.prank(bob);
+        kicau.fundRewards{value: 0.1 ether}(w);
+        rp.start();
+        vm.warp(block.timestamp + 5);
+        rp.submit(5);
+        vm.warp(MONDAY + 7 days);
+        rp.claim(w);
+        assertTrue(kicau.weeklyClaimed(w));
+        assertEq(kicau.owed(address(rp)), 0.1 ether);
+        vm.expectRevert(Kicau.TransferFailed.selector);
+        rp.withdraw(); // still rejects; funds stay owed
+        assertEq(kicau.owed(address(rp)), 0.1 ether);
+    }
+}

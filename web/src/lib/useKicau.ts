@@ -2,7 +2,7 @@
 
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useState } from "react";
-import { BaseError, ContractFunctionRevertedError, parseEventLogs, type TransactionReceipt } from "viem";
+import { BaseError, ContractFunctionRevertedError, HttpRequestError, parseEventLogs, type TransactionReceipt } from "viem";
 import { writeContractSync } from "viem/actions";
 import { useAccount, useConnect, useDisconnect, usePublicClient, useSwitchChain, useWriteContractSync } from "wagmi";
 import { monadTestnet } from "wagmi/chains";
@@ -62,6 +62,22 @@ function errorText(e: unknown) {
 }
 
 /**
+ * viem never retries eth_sendRawTransactionSync, and the official RPC 429s under shared-IP load (venue NAT).
+ * A 429'd request was rejected before processing, so resending (fresh fill + nonce) is safe.
+ */
+export async function retry429<T>(fn: () => Promise<T>, tries = 4): Promise<T> {
+  for (let i = 0; ; i++) {
+    try {
+      return await fn();
+    } catch (e) {
+      const http = e instanceof BaseError ? e.walk((x) => x instanceof HttpRequestError) : null;
+      if (!(http instanceof HttpRequestError) || http.status !== 429 || i >= tries) throw e;
+      await new Promise((r) => setTimeout(r, 400 * 2 ** i)); // 0.4, 0.8, 1.6, 3.2 s
+    }
+  }
+}
+
+/**
  * Wallet + Quick Play burner + writes, shared by every page.
  * Burner: signs in-browser → eth_sendRawTransactionSync (receipt in one call). Wallet: wagmi send + wait.
  */
@@ -94,7 +110,7 @@ export function useKicau() {
       let receipt: TransactionReceipt;
       if (burner) {
         setBurnerBusy(true);
-        receipt = await writeContractSync(burner, { ...kicau, ...req } as unknown as Parameters<typeof writeContractSync>[1]);
+        receipt = await retry429(() => writeContractSync(burner, { ...kicau, ...req } as unknown as Parameters<typeof writeContractSync>[1]));
       } else {
         receipt = await writeContractSyncAsync({ ...kicau, ...req } as unknown as Parameters<typeof writeContractSyncAsync>[0]);
       }

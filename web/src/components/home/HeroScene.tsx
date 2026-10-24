@@ -89,7 +89,7 @@ export function HeroScene() {
       {/* gantangan: two bamboo poles, a crossbar, numbered cages */}
       <svg
         viewBox="0 0 200 150"
-        className="absolute bottom-11 right-0 w-full max-w-[640px] lg:right-[2%] lg:w-[52%] lg:max-w-[720px]"
+        className="absolute bottom-11 right-0 w-full max-w-[640px] lg:right-[2%] lg:w-[52%] lg:max-w-[720px] 2xl:right-[calc(50%-40rem)] 2xl:max-w-[620px]"
         shapeRendering="crispEdges"
       >
         {[6, 190].map((x) => (

@@ -6,18 +6,18 @@ import { useMemo, useState } from "react";
 import { formatEther } from "viem";
 import { usePublicClient, useReadContract, useReadContracts } from "wagmi";
 import { FlappyGame } from "@/components/FlappyGame";
+import { type Other, OtherCard } from "@/components/taman/OtherCard";
 import { BirdProfileCard } from "@/components/RegisteredBirds";
 import { type PlayerBird, TamanWorld, type WorldBird } from "@/components/taman/TamanWorld";
-import { BirdArt, BirdCard, Modal, TxLink, short, type Species } from "@/components/ui";
+import { BirdCard, Modal, TxLink, short, type Species } from "@/components/ui";
 import { BIRDS, birdDataUri } from "@/lib/birds";
 import { chirp } from "@/lib/chirp";
-import { EXPLORER, KICAU_ADDRESS } from "@/lib/config";
+import { KICAU_ADDRESS } from "@/lib/config";
 import { CUSTOM_SPECIES, type CustomBird, fetchCustomBird, fetchRegisteredBirds } from "@/lib/customBirds";
 import { GAME_VERSION_CANVAS, GAME_VERSION_RUN, type GameOver, type GameStart } from "@/lib/game";
 import { useMusic } from "@/lib/music";
 import { kicau, useKicau } from "@/lib/useKicau";
 
-type Other = { tokenId: number; owner: `0x${string}`; species: number };
 type Open = { kind: "shelter"; id: number } | { kind: "registered"; bird: CustomBird } | { kind: "other"; nft: Other };
 
 const enabled = Boolean(KICAU_ADDRESS);
@@ -292,7 +292,11 @@ export default function Taman() {
             </div>
           )}
           {(k.error || k.lastTx) && (
-            <div className="pointer-events-auto flex max-w-md flex-wrap items-center gap-2 border-[3px] border-ink bg-paper px-3 py-2 text-sm">
+            // while a card/game modal is open, float above it at the bottom (like the home toast) so the result is visible
+            <div
+              className={`pointer-events-auto flex max-w-md flex-wrap items-center gap-2 border-[3px] border-ink bg-paper px-3 py-2 text-sm ${open || game ? "fixed inset-x-4 bottom-4 z-[1100] mx-auto" : ""}`}
+              role="status"
+            >
               {k.error ? (
                 <span className="line-clamp-3 text-clay">{k.error}</span>
               ) : (
@@ -367,39 +371,5 @@ export default function Taman() {
         </Modal>
       )}
     </main>
-  );
-}
-
-function OtherCard({ nft }: { nft: Other }) {
-  const { data: best } = useReadContract({ ...kicau, functionName: "bestByToken", args: [BigInt(nft.tokenId)] });
-  const { data: verified } = useReadContract({ ...kicau, functionName: "bestValidatedByPlayer", args: [nft.owner] });
-  return (
-    <div>
-      <div className="mb-4 grid place-items-center bg-cream py-6">
-        <BirdArt id={nft.species} className="h-32 w-auto" />
-      </div>
-      <h2 className="mb-1 font-display text-2xl">
-        {BIRDS[nft.species]?.name ?? "Bird"} <span className="text-muted">#{nft.tokenId}</span>
-      </h2>
-      <p className="mb-3 text-sm text-muted">
-        Owned by{" "}
-        <a href={`${EXPLORER}/address/${nft.owner}`} target="_blank" rel="noreferrer" className="font-mono underline">
-          {short(nft.owner)}
-        </a>
-      </p>
-      <div className="grid grid-cols-2 gap-2">
-        <div className="border-[3px] border-ink p-3">
-          <div className="font-display text-xs">Best score</div>
-          <div className="font-display text-2xl tabular-nums">{best !== undefined ? String(best) : "…"}</div>
-        </div>
-        <div className="border-[3px] border-ink p-3">
-          <div className="font-display text-xs">Owner&apos;s verified best</div>
-          <div className="font-display text-2xl tabular-nums">
-            {verified !== undefined ? String(verified) : "…"}
-            {!!verified && <span className="ml-1 align-middle text-xs text-leaf">✔ verified</span>}
-          </div>
-        </div>
-      </div>
-    </div>
   );
 }

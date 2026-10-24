@@ -7,8 +7,8 @@ import { qrSvgPath } from "./qr";
 
 export type LiveStats = { birds: number; conservation: string; players: number };
 
-const LIVE = "https://kicau-theta.vercel.app";
-const LIVE_SHORT = "kicau-theta.vercel.app";
+const LIVE = "https://kicau.xyz";
+const LIVE_SHORT = "kicau.xyz";
 const REPO = "github.com/PugarHuda/kicau";
 const CONTRACT = KICAU_ADDRESS; // testnet (used by the app); follows NEXT_PUBLIC_KICAU_ADDRESS on redeploy
 const MAINNET = "0xdada618e564edaf7ec0af0a12575bf3c0dc8523b"; // chain 143

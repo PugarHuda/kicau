@@ -21,6 +21,8 @@ const ICON: Record<LiveItem["kind"], string> = {
   ContestFinalized: "🥇",
   ContestCancelled: "↩️",
   PayoutOwed: "⏳",
+  RewardsFunded: "💰",
+  WeeklyRewardClaimed: "👑",
 };
 
 const BADGE: Record<Status, string> = {

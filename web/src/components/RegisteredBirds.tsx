@@ -11,7 +11,7 @@ import { OwnerDashboard } from "@/components/OwnerDashboard";
 import { KicauValue } from "@/components/lomba/KicauValue";
 import { Modal, short } from "@/components/ui";
 import { EXPLORER, KICAU_ADDRESS } from "@/lib/config";
-import { type CustomBird, fetchRegisteredBirds } from "@/lib/customBirds";
+import { type CustomBird, fetchCommunityBirds } from "@/lib/customBirds";
 
 type AttestFn = (tokenId: bigint, title: string) => Promise<boolean>;
 type SupportFn = (tokenId: bigint, amount: bigint) => Promise<boolean>;
@@ -19,26 +19,24 @@ type Actions = { me?: `0x${string}`; busy?: boolean; onAttest?: AttestFn; onSupp
 
 /** Community birds: real birds registered by their owners, with pedigree & story read from chain. */
 export function RegisteredBirds({ me, busy = false, onAttest, onSupport }: Actions) {
-  const client = usePublicClient();
   const [open, setOpen] = useState<CustomBird | null>(null);
-  const { data: birds, isLoading } = useQuery({
-    queryKey: ["registeredBirds", KICAU_ADDRESS],
-    enabled: !!client && !!KICAU_ADDRESS,
-    refetchInterval: 15_000,
-    queryFn: () => fetchRegisteredBirds(client!, KICAU_ADDRESS),
-  });
+  const [all, setAll] = useState(false);
+  const { data: birds, isLoading } = useCommunityBirds();
 
   return (
     <section className="mt-12">
       <h2 className="mb-1 font-display text-3xl font-bold">Community Birds</h2>
-      <p className="mb-5 text-muted">Real songbirds from the community, complete with titles and pedigree. All recorded on-chain.</p>
+      <p className="mb-5 text-muted">
+        Real songbirds from the community, complete with titles and pedigree. All recorded on-chain.{" "}
+        <span className="text-xs">Sorted by Kicau Value.</span>
+      </p>
       {isLoading ? (
         <p className="text-muted">Loading from chain…</p>
       ) : !birds?.length ? (
         <p className="text-muted">None yet. Be the first via “+ Register your bird”.</p>
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {birds.map((b) => (
+          {(all ? birds : birds.slice(0, 6)).map((b) => (
             <button
               key={String(b.tokenId)}
               onClick={() => setOpen(b)}
@@ -63,6 +61,11 @@ export function RegisteredBirds({ me, busy = false, onAttest, onSupport }: Actio
           ))}
         </div>
       )}
+      {!!birds && birds.length > 6 && (
+        <button className="btn-ghost mt-4 !py-2" onClick={() => setAll(!all)}>
+          {all ? "Show less" : `Show all (${birds.length})`}
+        </button>
+      )}
 
       {open && (
         <Modal onClose={() => setOpen(null)}>
@@ -71,6 +74,17 @@ export function RegisteredBirds({ me, busy = false, onAttest, onSupport }: Actio
       )}
     </section>
   );
+}
+
+/** Curated registered birds (shared cache with the Kicau Garden scene). */
+export function useCommunityBirds() {
+  const client = usePublicClient();
+  return useQuery({
+    queryKey: ["registeredBirds", KICAU_ADDRESS, "curated"],
+    enabled: !!client && !!KICAU_ADDRESS,
+    refetchInterval: 15_000,
+    queryFn: () => fetchCommunityBirds(client!, KICAU_ADDRESS),
+  });
 }
 
 export function NftChip({ id }: { id: bigint | number }) {

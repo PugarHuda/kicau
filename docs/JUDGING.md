@@ -7,8 +7,8 @@ Peta setiap butir rubrik dari hackathon brief ke bukti nyata di project ini. Sta
 **Link inti (ucapkan saat pitch):**
 - Repo: https://github.com/PugarHuda/kicau
 - Live: https://kicau.xyz (custom domain) · https://kicau-theta.vercel.app
-- Kontrak Mainnet (chain 143): `0xdada618e564edaf7ec0af0a12575bf3c0dc8523b` — [MonadVision](https://monadvision.com/address/0xdada618e564edaf7ec0af0a12575bf3c0dc8523b)
-- Kontrak Testnet (chain 10143, dipakai app untuk demo): `0xD15bF5b95dC29083eBA236057e2DC9dE90092725` — [MonadVision](https://testnet.monadvision.com/address/0xD15bF5b95dC29083eBA236057e2DC9dE90092725) · [Monadscan](https://testnet.monadscan.com/address/0xD15bF5b95dC29083eBA236057e2DC9dE90092725)
+- Kontrak Mainnet (chain 143): `0xA98CeE28C6EB35b6Ee7440b7490e265f23975d61` — [MonadVision](https://monadvision.com/address/0xA98CeE28C6EB35b6Ee7440b7490e265f23975d61)
+- Kontrak Testnet (chain 10143, dipakai app untuk demo): `0x947929841Ba8154BB6E9BDeb35137d159c6A0F58` — [MonadVision](https://testnet.monadvision.com/address/0x947929841Ba8154BB6E9BDeb35137d159c6A0F58) · [Monadscan](https://testnet.monadscan.com/address/0x947929841Ba8154BB6E9BDeb35137d159c6A0F58)
 
 ---
 
@@ -20,7 +20,7 @@ Peta setiap butir rubrik dari hackathon brief ke bukti nyata di project ini. Sta
 |---|---|---|---|---|
 | Public GitHub repo | 25 | Repo publik, baru, dibuat saat Blitz | `PugarHuda/kicau`, commit pertama 24 Okt pagi; monorepo (`contracts/`, `web/`, `docs/`) sesuai anjuran panitia | ✅ |
 | Proper README | 25 | Nama, deskripsi 1 kalimat, cara setup, live URL, alamat kontrak, network | `README.md`: tabel network/kontrak/live/deploy tx, langkah `forge test` → deploy → `npm run dev`, ringkasan fungsi kontrak | ✅ |
-| Kontrak di Monad Testnet | 25 | Deploy di testnet/mainnet **selama Blitz** | `Kicau` final `0xD15bF5b95dC29083eBA236057e2DC9dE90092725` dideploy 24 Okt (tx `0xc1abd22c…0b96b9b`); versi v1–v5 juga dideploy hari yang sama | ✅ |
+| Kontrak di Monad Testnet | 25 | Deploy di testnet/mainnet **selama Blitz** | `Kicau` final `0x947929841Ba8154BB6E9BDeb35137d159c6A0F58` dideploy 24 Okt (tx `0x2d3980a3…5efb69d`); versi v1–v5 juga dideploy hari yang sama | ✅ |
 | Project publicly hosted | 25 | Host apa pun, tanpa custom domain pun boleh | Vercel, auto-deploy dari GitHub (`web/`) | ✅ |
 
 ## 2. Advance — Does it work (100)
@@ -47,7 +47,7 @@ Peta setiap butir rubrik dari hackathon brief ke bukti nyata di project ini. Sta
 
 | Butir | Poin | Penilai | Bukti / argumen | Status |
 |---|---|---|---|---|
-| Kontrak di Monad Mainnet | 25 | Panitia | `0xdada618e564edaf7ec0af0a12575bf3c0dc8523b` di chain 143, dideploy 24 Okt (tx `0x2a2118c7…cb8c76`), verified MonadVision + Monadscan · [explorer](https://monadvision.com/address/0xdada618e564edaf7ec0af0a12575bf3c0dc8523b) | ✅ |
+| Kontrak di Monad Mainnet | 25 | Panitia | `0xA98CeE28C6EB35b6Ee7440b7490e265f23975d61` di chain 143, dideploy 24 Okt (tx `0x34c0b085…a3bb01`), verified MonadVision + Monadscan · [explorer](https://monadvision.com/address/0xA98CeE28C6EB35b6Ee7440b7490e265f23975d61) | ✅ |
 | Public page di custom domain | 15 | Panitia | **https://kicau.xyz** (dibeli via Vercel 24 Okt, terpasang sebagai production domain + redirect www) | ✅ |
 | Product-market fit | ≤20 | Juri | Kicau mania = hobi nasional di Indonesia dengan lomba gantangan mingguan. Kicau memberi versi digital (koleksi, game, lomba skor) + **daftarkan burung asli** dengan silsilah, prestasi, sertifikat yang tersimpan on-chain — menjawab kebutuhan pamer & bukti prestasi | argumen pitch |
 | Revenue potential & strategy | ≤20 | Juri | 70% hasil adopsi ke treasury, biaya register burung, sertifikat x402 $0.01 USDC per dokumen (live). Entry fee lomba sudah live tapi 90% ke pemenang + 10% konservasi (bukan pendapatan treasury). Ke depan: sponsor lomba, attestation berbayar | argumen pitch |

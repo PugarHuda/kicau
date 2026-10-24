@@ -16,7 +16,7 @@ export const WS_URL = "wss://testnet-rpc.monad.xyz";
 const EVENTS = [
   "BirdBought", "Supported", "ScoreSubmitted", "BirdRegistered", "Attested", "BirdSupported",
   "BirdUpdated", "AttestationRevoked", "ContestCreated", "ContestEntered", "JudgingStarted", "Scored",
-  "ContestFinalized", "ContestCancelled", "PayoutOwed",
+  "ContestFinalized", "ContestCancelled", "PayoutOwed", "RewardsFunded", "WeeklyRewardClaimed",
 ] as const;
 type Kind = (typeof EVENTS)[number];
 const TOPICS = kicauAbi
@@ -99,6 +99,10 @@ export function describe(topics: Hex[], data: Hex): { kind: Kind; label: string;
         return { kind: ev.eventName, actor: ZERO, label: `contest #${ev.args.contestId} cancelled · refunded` };
       case "PayoutOwed":
         return { kind: ev.eventName, actor: ev.args.to, label: `payout ${formatEther(ev.args.amount)} MON held to claim` };
+      case "RewardsFunded":
+        return { kind: ev.eventName, actor: ev.args.funder, label: `funded weekly prize +${formatEther(ev.args.amount)} MON · week ${ev.args.week}` };
+      case "WeeklyRewardClaimed":
+        return { kind: ev.eventName, actor: ev.args.winner, label: `claimed weekly prize ${formatEther(ev.args.amount)} MON · week ${ev.args.week}` };
     }
   } catch {}
   return null;

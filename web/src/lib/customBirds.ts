@@ -57,3 +57,38 @@ export async function fetchRegisteredBirds(client: PublicClient, address: `0x${s
   const birds = await Promise.all(custom.map((id) => fetchCustomBird(client, address, id).catch(() => null)));
   return birds.filter((b): b is CustomBird => !!b);
 }
+
+/** A registered bird is worth showing publicly if its card has real content (the owner name alone doesn't count). */
+export function hasProfile(b: CustomBird, attestations = 0) {
+  const p = b.profile;
+  const str = (v: unknown) => typeof v === "string" && v.trim().length > 0;
+  return attestations > 0 || str(p.story) || (Array.isArray(p.titles) && p.titles.length > 0) || str(p.species) || str(p.latin) || str(p.certificate) || str(p.lineage);
+}
+
+/** Display curation for the home page: no empty profiles, no same-owner duplicate names (newest kept), sorted by Kicau Value. */
+export async function fetchCommunityBirds(client: PublicClient, address: `0x${string}`) {
+  const birds = await fetchRegisteredBirds(client, address, 24); // newest first
+  const res = await client.multicall({
+    contracts: birds.flatMap((b) => [
+      { address, abi: kicauAbi, functionName: "valueOf", args: [b.tokenId] } as const,
+      { address, abi: kicauAbi, functionName: "attestationsOf", args: [b.tokenId] } as const,
+    ]),
+    allowFailure: true,
+  });
+  const seen = new Set<string>();
+  return birds
+    .map((b, i) => {
+      const value = (res[i * 2].result as readonly [bigint, bigint] | undefined)?.[1] ?? 0n;
+      const att = (res[i * 2 + 1].result as readonly { revoked: boolean }[] | undefined)?.filter((a) => !a.revoked).length ?? 0;
+      return { bird: b, value, att };
+    })
+    .filter(({ bird, att }) => hasProfile(bird, att))
+    .filter(({ bird }) => {
+      const k = `${bird.owner.toLowerCase()}:${bird.name.trim().toLowerCase()}`;
+      if (seen.has(k)) return false; // newest of each owner+name already kept
+      seen.add(k);
+      return true;
+    })
+    .sort((a, b) => (b.value > a.value ? 1 : b.value < a.value ? -1 : 0))
+    .map(({ bird }) => bird);
+}

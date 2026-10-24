@@ -169,6 +169,28 @@ contract Kicau is ERC721Enumerable, Ownable, ReentrancyGuard {
         uint256 priceWei;
     }
 
+    // ------------------------------------------- daily/weekly boards + weekly reward (v7)
+
+    struct Leader {
+        address player;
+        uint256 score;
+    }
+
+    /// @notice Only validated runs (submitRun) with score > 0 count. Days are UTC; weeks start Monday 00:00 UTC.
+    mapping(uint256 day => mapping(address => uint256)) public dailyBest;
+    mapping(uint256 week => mapping(address => uint256)) public weeklyBest;
+    mapping(uint256 day => address[]) internal _dayPlayers;
+    mapping(uint256 week => address[]) internal _weekPlayers;
+    /// @notice Highest validated score of the week; ties keep whoever reached it first.
+    mapping(uint256 week => Leader) public weeklyLeader;
+    /// @notice Prize for the week's leader. Kept after claim for history; weeklyClaimed guards payout.
+    mapping(uint256 week => uint256) public weeklyPool;
+    mapping(uint256 week => bool) public weeklyClaimed;
+
+    event RewardsFunded(uint256 indexed week, address indexed funder, uint256 amount);
+    event WeeklyRewardClaimed(uint256 indexed week, address indexed winner, uint256 amount);
+    event WeeklyPoolRolledOver(uint256 indexed from, uint256 indexed to, uint256 amount);
+
     event BirdBought(address indexed buyer, uint256 indexed tokenId, uint256 indexed speciesId, uint256 conservation);
     event ScoreSubmitted(
         address indexed player, uint256 indexed tokenId, uint256 indexed speciesId, uint256 score, uint8 gameVersion
@@ -221,6 +243,11 @@ contract Kicau is ERC721Enumerable, Ownable, ReentrancyGuard {
     error NotEntered();
     error NotEnoughEntries();
     error InvalidScore();
+    error InvalidWeek();
+    error WeekNotEnded();
+    error NotWinner();
+    error AlreadyClaimed();
+    error HasPlayers();
 
     constructor(address treasury_, address conservationWallet_, string memory baseURI_) ERC721("Kicau", "KICAU") Ownable(msg.sender) {
         if (treasury_ == address(0) || conservationWallet_ == address(0)) revert ZeroAddress();
@@ -361,7 +388,64 @@ contract Kicau is ERC721Enumerable, Ownable, ReentrancyGuard {
         if (score > bestValidatedByPlayer[msg.sender]) bestValidatedByPlayer[msg.sender] = score;
         if (score > bestValidatedByToken[tokenId]) bestValidatedByToken[tokenId] = score;
         _recordScore(tokenId, score, RUN_GAME_VERSION);
+        if (score != 0) _recordPeriods(score);
         emit RunSubmitted(runId, score);
+    }
+
+    // ------------------------------------------------- periods + weekly reward
+
+    function currentDay() public view returns (uint256) {
+        return block.timestamp / 1 days;
+    }
+
+    /// @notice Unix epoch day 0 was a Thursday; +3 days aligns week boundaries to Monday 00:00 UTC.
+    function currentWeek() public view returns (uint256) {
+        return (block.timestamp + 3 days) / 1 weeks;
+    }
+
+    /// @notice Unix timestamp of the week's Monday 00:00 UTC (week 0 is not representable).
+    function weekStart(uint256 week) public pure returns (uint256) {
+        return week * 1 weeks - 3 days;
+    }
+
+    /// @notice Add MON to a week's prize pool (week 0 = current). Past weeks are closed.
+    function fundRewards(uint256 week) external payable {
+        uint256 cw = currentWeek();
+        if (week == 0) week = cw;
+        if (week < cw) revert InvalidWeek();
+        if (msg.value == 0) revert WrongPayment();
+        weeklyPool[week] += msg.value;
+        emit RewardsFunded(week, msg.sender, msg.value);
+    }
+
+    /// @notice The ended week's leader takes its pool; a failed push is credited to `owed`.
+    function claimWeeklyReward(uint256 week) external nonReentrant {
+        if (week >= currentWeek()) revert WeekNotEnded();
+        if (weeklyLeader[week].player != msg.sender) revert NotWinner();
+        if (weeklyClaimed[week]) revert AlreadyClaimed();
+        weeklyClaimed[week] = true;
+        uint256 amount = weeklyPool[week];
+        _payOrOwe(msg.sender, amount);
+        emit WeeklyRewardClaimed(week, msg.sender, amount);
+    }
+
+    /// @notice An ended week with no players hands its pool to the current week. Anyone can call.
+    function rolloverWeeklyPool(uint256 week) external {
+        uint256 cw = currentWeek();
+        if (week >= cw) revert WeekNotEnded();
+        if (weeklyLeader[week].player != address(0)) revert HasPlayers();
+        uint256 amount = weeklyPool[week];
+        weeklyPool[week] = 0;
+        weeklyPool[cw] += amount;
+        emit WeeklyPoolRolledOver(week, cw, amount);
+    }
+
+    function getDailyLeaderboard(uint256 day) external view returns (address[] memory, uint256[] memory) {
+        return _board(_dayPlayers[day], dailyBest[day]);
+    }
+
+    function getWeeklyLeaderboard(uint256 week) external view returns (address[] memory, uint256[] memory) {
+        return _board(_weekPlayers[week], weeklyBest[week]);
     }
 
     // ------------------------------------------------------- attestations
@@ -719,6 +803,31 @@ contract Kicau is ERC721Enumerable, Ownable, ReentrancyGuard {
         if (score > bestByToken[tokenId]) bestByToken[tokenId] = score;
         if (score > bestByPlayer[msg.sender]) bestByPlayer[msg.sender] = score;
         emit ScoreSubmitted(msg.sender, tokenId, speciesOf[tokenId], score, gameVersion);
+    }
+
+    function _recordPeriods(uint256 score) internal {
+        uint256 d = currentDay();
+        uint256 w = currentWeek();
+        uint256 prev = dailyBest[d][msg.sender];
+        if (prev == 0) _dayPlayers[d].push(msg.sender);
+        if (score > prev) dailyBest[d][msg.sender] = score;
+        prev = weeklyBest[w][msg.sender];
+        if (prev == 0) _weekPlayers[w].push(msg.sender);
+        if (score > prev) weeklyBest[w][msg.sender] = score;
+        if (score > weeklyLeader[w].score) weeklyLeader[w] = Leader(msg.sender, score);
+    }
+
+    /// @dev ponytail: unbounded per-period read; fine while a day/week has hundreds of players.
+    function _board(address[] storage list, mapping(address => uint256) storage best)
+        internal
+        view
+        returns (address[] memory players, uint256[] memory scores)
+    {
+        players = list;
+        scores = new uint256[](players.length);
+        for (uint256 i; i < players.length; i++) {
+            scores[i] = best[players[i]];
+        }
     }
 
     /// @dev Pass-through split; rounding dust goes to treasury. Returns the conservation share.

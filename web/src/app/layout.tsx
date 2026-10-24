@@ -14,7 +14,7 @@ const description =
   "Live gantangan judging on Monad: every score on-chain, instant prizes, verified champion pedigrees, dynamic Kicau Value — plus a pixel game and open world. Keep the song, not the cage.";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://kicau-theta.vercel.app"),
+  metadataBase: new URL("https://kicau.xyz"),
   title,
   description,
   openGraph: { title, description, siteName: "Kicau", type: "website" },

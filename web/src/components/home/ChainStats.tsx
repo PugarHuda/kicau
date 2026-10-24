@@ -10,7 +10,7 @@ import { fmtUsd, useMonUsd } from "@/lib/price";
 
 const kicau = { address: KICAU_ADDRESS, abi: kicauAbi } as const;
 
-/** Venue-style LED scoreboard: every number is a live contract read, "—" until it lands. */
+/** Venue-style LED scoreboard: live contract reads ("—" until they land), plus Monad's documented finality. */
 export function ChainStats() {
   const enabled = Boolean(KICAU_ADDRESS);
   const client = usePublicClient();
@@ -47,7 +47,8 @@ export function ChainStats() {
       unit: "MON",
       note: mon !== undefined && monUsd ? `${fmtUsd(mon, monUsd)} · Chainlink MON/USD` : "forwarded with every tx",
     },
-    { label: "Finality", value: "800", unit: "ms", note: "400 ms blocks · per Monad docs" },
+    // spec value, not measured: Monad docs list 400 ms blocks and 800 ms finality
+    { label: "Finality · spec", value: "~0.8", unit: "s", note: "Monad docs value, not a live read" },
   ];
 
   return (

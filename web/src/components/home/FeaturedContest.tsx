@@ -34,12 +34,12 @@ export function FeaturedContest() {
 
   return (
     <section className="band band-leaf py-14 text-paper">
-      <div className="grid gap-8 lg:grid-cols-[1fr_1.15fr] lg:items-center">
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_1.15fr] lg:items-center">
         <div>
           <p className="eyebrow eyebrow-light mb-3">Featured contest</p>
           {c ? (
             <>
-              <h2 className="mb-3 font-display text-3xl">{c.name}</h2>
+              <h2 className="mb-3 break-words font-display text-3xl">{c.name}</h2>
               <div className="mb-5 flex flex-wrap items-center gap-2 text-sm">
                 <span className={`px-2 py-1 font-display text-[0.55rem] uppercase ${STATUS_STYLE[c.status] ?? ""}`}>
                   {c.status === "Judging" && <span className="mr-1 inline-block h-2 w-2 animate-pulse bg-paper align-middle" />}

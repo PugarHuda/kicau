@@ -2,7 +2,7 @@
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   BaseError,
   ContractFunctionRevertedError,
@@ -29,21 +29,25 @@ import { ChainStats } from "@/components/home/ChainStats";
 import { FeaturedContest, WatchLiveLink } from "@/components/home/FeaturedContest";
 import { HeroScene } from "@/components/home/HeroScene";
 import { HowItWorks } from "@/components/home/HowItWorks";
+import { Leaderboards } from "@/components/Leaderboards";
 import { LiveFeed } from "@/components/LiveFeed";
 import { RegisterBird } from "@/components/RegisterBird";
-import { Badges, BirdProfileCard, NftChip, RegisteredBirds } from "@/components/RegisteredBirds";
-import { ShelterScene } from "@/components/ShelterScene";
+import { Badges, BirdProfileCard, NftChip, RegisteredBirds, useCommunityBirds } from "@/components/RegisteredBirds";
+import { MAX_SCENE_BIRDS, type SceneBird, ShelterScene } from "@/components/ShelterScene";
+import { type Other, OtherCard, useOtherNfts } from "@/components/taman/OtherCard";
 import { BirdArt, BirdCard, Modal, TxLink, short, type Species } from "@/components/ui";
 import { kicauAbi } from "@/lib/abi";
 import { BIRDS } from "@/lib/birds";
 import { type BurnerClient, createBurner, forgetBurner, fundBurner, loadBurner } from "@/lib/burner";
 import { KICAU_ADDRESS } from "@/lib/config";
-import { CUSTOM_SPECIES, fetchCustomBird } from "@/lib/customBirds";
+import { CUSTOM_SPECIES, type CustomBird, fetchCustomBird } from "@/lib/customBirds";
 import { GAME_VERSION_CANVAS, GAME_VERSION_RUN, type GameOver, type GameStart } from "@/lib/game";
 import { useMusic } from "@/lib/music";
+import { retry429 } from "@/lib/useKicau";
 
 const kicau = { address: KICAU_ADDRESS, abi: kicauAbi } as const;
 const GUEST_TOKEN = -1;
+const CHIP = "max-sm:!px-2.5 max-sm:!py-2 max-sm:!text-[0.6rem]"; // compact buttons on phones
 
 const REVERT_MSG: Record<string, string> = {
   ScoreTooFast: "Score rejected: a run can't score faster than 1 point per second. Play again for a fair run.",
@@ -58,6 +62,11 @@ const REVERT_MSG: Record<string, string> = {
   SoldOut: "Sold out.",
   WrongPayment: "Wrong payment amount. Reload the page and try again.",
   InvalidBird: "Name must be 1–32 bytes and the bird data at most 4096 bytes.",
+  InvalidWeek: "That week has already ended. Fund the current week instead.",
+  WeekNotEnded: "This week isn't over yet. Claim after Monday 00:00 UTC.",
+  NotWinner: "Only the week's top verified scorer can claim this prize.",
+  AlreadyClaimed: "This week's prize was already claimed.",
+  HasPlayers: "This week had players, so its winner claims the pool (no rollover).",
 };
 
 /** Contract reverts and common RPC failures → one readable line. */
@@ -102,6 +111,9 @@ export default function Home() {
   const [openSpecies, setOpenSpecies] = useState<number | null>(null);
   const [registering, setRegistering] = useState(false);
   const [managing, setManaging] = useState<number | null>(null); // tokenId of the owner-view profile modal
+  const [gardenOpen, setGardenOpen] = useState<{ kind: "registered"; bird: CustomBird } | { kind: "player"; nft: Other } | null>(null);
+  const { data: community } = useCommunityBirds();
+  const otherNfts = useOtherNfts(address);
   const publicClient = usePublicClient();
   const [game, setGame] = useState<GameStart | null>(null);
   const [result, setResult] = useState<GameOver | null>(null);
@@ -111,7 +123,6 @@ export default function Home() {
   const enabled = Boolean(KICAU_ADDRESS);
   const { data: speciesRaw } = useReadContract({ ...kicau, functionName: "getAllSpecies", query: { enabled } });
   const species = (speciesRaw ?? []) as readonly Species[];
-  const { data: board } = useReadContract({ ...kicau, functionName: "getLeaderboardV2", query: { enabled } });
   const { data: registerFee } = useReadContract({ ...kicau, functionName: "registerFee", query: { enabled } });
   const { data: supportedRaw } = useReadContract({
     ...kicau,
@@ -154,14 +165,6 @@ export default function Home() {
     custom: b.species === CUSTOM_SPECIES ? (customBirds?.[b.tokenId] ?? null) : undefined,
   }));
 
-  const leaderboard = useMemo(() => {
-    if (!board) return [];
-    const [players, scores, validated] = board;
-    return players
-      .map((p, i) => ({ player: p, score: Number(scores[i]), verified: Number(validated[i]) }))
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 10);
-  }, [board]);
 
   // ---- writes. Burner: eth_sendRawTransactionSync (receipt in one call). Wallet: send + wait.
   type Write =
@@ -171,7 +174,10 @@ export default function Home() {
     | { functionName: "attest"; args: readonly [bigint, string] }
     | { functionName: "supportBird"; args: readonly [bigint]; value: bigint }
     | { functionName: "registerBird"; args: readonly [string, `0x${string}`]; value: bigint }
-    | { functionName: "support"; args: readonly [bigint]; value: bigint };
+    | { functionName: "support"; args: readonly [bigint]; value: bigint }
+    | { functionName: "fundRewards"; args: readonly [bigint]; value: bigint }
+    | { functionName: "claimWeeklyReward"; args: readonly [bigint] }
+    | { functionName: "rolloverWeeklyPool"; args: readonly [bigint] };
 
   /** Returns the receipt (truthy) or null; errors land in the toast. */
   async function send(req: Write) {
@@ -181,7 +187,7 @@ export default function Home() {
       let receipt: TransactionReceipt;
       if (burner) {
         setBurnerBusy(true);
-        receipt = await writeContractSync(burner, { ...kicau, ...req } as unknown as Parameters<typeof writeContractSync>[1]);
+        receipt = await retry429(() => writeContractSync(burner, { ...kicau, ...req } as unknown as Parameters<typeof writeContractSync>[1]));
       } else {
         receipt = await writeContractSyncAsync({ ...kicau, ...req } as unknown as Parameters<typeof writeContractSyncAsync>[0]);
       }
@@ -315,10 +321,10 @@ export default function Home() {
             </>
           ) : !isConnected ? (
             <>
-              <button className="btn-primary" disabled={funding} onClick={quickPlay}>
+              <button className={`btn-primary ${CHIP}`} disabled={funding} onClick={quickPlay}>
                 {funding ? "Setting up…" : "⚡ Quick Play"}
               </button>
-              <button className="btn-ghost" disabled={connecting} onClick={() =>
+              <button className={`btn-ghost ${CHIP}`} disabled={connecting} onClick={() =>
                   connect(
                     { connector: connectors[0] },
                     {
@@ -402,37 +408,43 @@ export default function Home() {
         </div>
       )}
 
-      {/* shelter */}
+      {/* kicau garden: every bird on Kicau (shelter species, registered birds, other players' NFTs) */}
       <section className="band mb-14 mt-14 py-14">
         <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
           <div>
             <p className="eyebrow mb-3">Adopt &amp; play</p>
-            <h2 className="mb-1 font-display text-3xl font-bold">Shelter</h2>
-            <p className="text-muted">Tap a bird to hear its song and see its stats.</p>
+            <h2 className="mb-1 font-display text-3xl font-bold">Kicau Garden</h2>
+            <p className="text-muted">Every bird on Kicau lives here. Tap any bird to view it.</p>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <button className="btn-ghost" onClick={() => setRegistering(true)}>
-              + Register your bird
+          <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1.5 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0">
+            <button className={`btn-ghost shrink-0 ${CHIP}`} onClick={() => setRegistering(true)}>
+              + Register<span className="max-sm:hidden"> your bird</span>
             </button>
-            <Link href="/taman" className="btn-primary">
-              Kicau Garden →
+            <Link href="/taman" className={`btn-primary shrink-0 ${CHIP}`}>
+              <span className="max-sm:hidden">Kicau</span> Garden <span className="max-sm:hidden">→</span>
             </Link>
-            <Link href="/lomba" className="btn-primary">
-              Contests →
+            <Link href="/lomba" className={`btn-primary shrink-0 ${CHIP}`}>
+              Contests <span className="max-sm:hidden">→</span>
             </Link>
           </div>
         </div>
         <ShelterScene
-          birds={BIRDS.map((b, id) => {
-            const s = species[id];
-            return {
-              id,
-              name: b.name,
-              priceLabel: s ? `${formatEther(s.price)} MON` : "…",
-              soldOut: !!s && s.minted >= s.maxSupply,
-            };
-          })}
-          onSelect={(id) => species[id] && setOpenSpecies(id)}
+          birds={[
+            ...BIRDS.map((b, id): SceneBird => {
+              const s = species[id];
+              return { key: `s${id}`, id, name: b.name, label: s ? `${formatEther(s.price)} MON` : "…", soldOut: !!s && s.minted >= s.maxSupply };
+            }),
+            ...(community ?? []).slice(0, 6).map((c): SceneBird => ({ key: `r${c.tokenId}`, id: 0, name: c.name, label: `NFT #${c.tokenId}`, image: c.image, imageUp: c.imageUp })),
+            ...otherNfts.map((n): SceneBird => ({ key: `p${n.tokenId}`, id: n.species, name: BIRDS[n.species]?.name ?? "Bird", label: short(n.owner) })),
+          ].slice(0, MAX_SCENE_BIRDS)}
+          onSelect={({ key }) => {
+            const n = Number(key.slice(1));
+            const bird = key[0] === "r" ? community?.find((c) => Number(c.tokenId) === n) : undefined;
+            const nft = key[0] === "p" ? otherNfts.find((o) => o.tokenId === n) : undefined;
+            if (key[0] === "s") return species[n] && setOpenSpecies(n);
+            if (bird) setGardenOpen({ kind: "registered", bird });
+            else if (nft) setGardenOpen({ kind: "player", nft });
+          }}
         />
       </section>
 
@@ -476,29 +488,15 @@ export default function Home() {
           )}
         </section>
 
-        {/* leaderboard */}
-        <section>
-          <h2 className="mb-4 font-display text-3xl font-bold">Leaderboard</h2>
-          <ol className="divide-y divide-line rounded-3xl border border-line bg-paper">
-            {leaderboard.length === 0 && <li className="p-4 text-muted">No scores yet. Be the first.</li>}
-            {leaderboard.map((r, i) => (
-              <li key={r.player} className={`flex items-center justify-between p-4 ${r.player === address ? "bg-sun/15" : ""}`}>
-                <span className="flex items-center gap-3">
-                  <span className="w-6 font-display text-lg font-bold text-muted">{i + 1}</span>
-                  <span className="font-mono text-sm">{short(r.player)}</span>
-                </span>
-                <span className="flex items-center gap-2">
-                  {r.verified > 0 && (
-                    <span className="bg-leaf px-1.5 py-0.5 text-xs text-paper" title="Best score from a seeded, time-checked on-chain run">
-                      ✔ verified run {r.verified}
-                    </span>
-                  )}
-                  <span className="font-display text-xl font-bold tabular-nums">{r.score}</span>
-                </span>
-              </li>
-            ))}
-          </ol>
-        </section>
+        <Leaderboards
+          me={address}
+          busy={txBusy}
+          canWrite={ready}
+          onFund={(amount) => send({ functionName: "fundRewards", args: [0n], value: amount })}
+          onClaim={(week) => send({ functionName: "claimWeeklyReward", args: [week] })}
+          onRollover={(week) => send({ functionName: "rolloverWeeklyPool", args: [week] })}
+          onPlay={playNow}
+        />
       </div>
 
       <div className="band mt-8 pb-14 pt-2">
@@ -533,6 +531,23 @@ export default function Home() {
             onRegister={register}
           />
           {!ready && <p className="mt-3 text-sm text-clay">Hit ⚡ Quick Play or connect a wallet first.</p>}
+        </Modal>
+      )}
+
+      {/* garden: a registered bird or another player's NFT */}
+      {gardenOpen && (
+        <Modal onClose={() => setGardenOpen(null)}>
+          {gardenOpen.kind === "registered" ? (
+            <BirdProfileCard
+              bird={gardenOpen.bird}
+              me={address}
+              busy={txBusy}
+              onAttest={ready ? attest : undefined}
+              onSupport={ready ? supportBird : undefined}
+            />
+          ) : (
+            <OtherCard nft={gardenOpen.nft} />
+          )}
         </Modal>
       )}
 

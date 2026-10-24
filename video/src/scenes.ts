@@ -114,7 +114,7 @@ export const TEASER_CLIPS = [
 export const TEASER_SEC = 40;
 
 export const LINKS = {
-  live: "https://kicau-theta.vercel.app",
+  live: "https://kicau.xyz",
   repo: "https://github.com/PugarHuda/kicau",
   testnet: "0xD15bF5b95dC29083eBA236057e2DC9dE90092725",
   mainnet: "0xdada618e564edaf7ec0af0a12575bf3c0dc8523b",

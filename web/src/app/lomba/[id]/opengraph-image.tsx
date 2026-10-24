@@ -39,7 +39,7 @@ export default async function Image({ params }: { params: Promise<{ id: string }
           {!top.length && <div style={{ display: "flex", fontSize: 32, color: "#5c4a36" }}>No entries yet.</div>}
         </div>
         <div style={{ display: "flex", fontSize: 22, color: "#5c4a36", marginTop: 24 }}>
-          Every judge score is a Monad transaction · kicau-theta.vercel.app/lomba/{c?.id ?? ""}
+          Every judge score is a Monad transaction · kicau.xyz/lomba/{c?.id ?? ""}
         </div>
       </div>
     ),
