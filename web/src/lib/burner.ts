@@ -31,7 +31,7 @@ export function forgetBurner() {
 }
 
 function makeClient(pk: Hex) {
-  return createWalletClient({ account: privateKeyToAccount(pk), chain: monadTestnet, transport: http() });
+  return createWalletClient({ account: privateKeyToAccount(pk), chain: monadTestnet, transport: http() }); // official RPC: supports eth_sendRawTransactionSync
 }
 
 export type BurnerClient = ReturnType<typeof makeClient>;

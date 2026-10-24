@@ -30,6 +30,7 @@ import { CUSTOM_SPECIES, fetchCustomBird } from "@/lib/customBirds";
 import { GAME_VERSION_CANVAS, type GameOver, type GameStart } from "@/lib/game";
 
 const kicau = { address: KICAU_ADDRESS, abi: kicauAbi } as const;
+const GUEST_TOKEN = -1;
 
 export default function Home() {
   const qc = useQueryClient();
@@ -44,7 +45,7 @@ export default function Home() {
   const [funding, setFunding] = useState(false);
   useEffect(() => setBurner(loadBurner()), []);
   const address = burner?.account.address ?? walletAddress;
-  const { data: balance } = useBalance({ address, query: { enabled: !!address, refetchInterval: 5000 } });
+  const { data: balance } = useBalance({ address, query: { enabled: !!address, refetchInterval: 15_000 } });
 
   const { writeContractSyncAsync, isPending: walletBusy } = useWriteContractSync();
   const [burnerBusy, setBurnerBusy] = useState(false);
@@ -208,6 +209,19 @@ export default function Home() {
     });
   }
 
+  /** Hero CTA: fly your first bird, or try the game as a guest Kenari (score stays off-chain). */
+  function playNow() {
+    if (myBirds[0]) return play(myBirds[0]);
+    const s = species[0];
+    setResult(null);
+    setGame({
+      tokenId: GUEST_TOKEN,
+      species: 0,
+      stats: s ? { gravity: s.gravity, flapPower: s.flapPower, hitbox: s.hitbox } : { gravity: 100, flapPower: 100, hitbox: 80 },
+      gameVersion: GAME_VERSION_CANVAS,
+    });
+  }
+
   const birdName = (b: (typeof myBirds)[number]) => (b.custom ? b.custom.name : BIRDS[b.species]?.name);
 
   const ready = !!burner || (isConnected && !wrongChain);
@@ -274,6 +288,11 @@ export default function Home() {
             Adopsi burung kicau Nusantara sebagai NFT, terbangkan di game, dan setiap adopsi langsung mendanai konservasi.
             Semua tercatat on-chain di Monad.
           </p>
+          <div className="mt-5 flex flex-wrap gap-3">
+            <button className="btn bg-sun text-ink" onClick={playNow}>
+              ▶ Main Flappy
+            </button>
+          </div>
         </div>
         <div className="self-end rounded-3xl bg-paper/10 p-5">
           <div className="text-sm uppercase tracking-wider text-paper/70">Dana konservasi terkumpul</div>
@@ -292,7 +311,10 @@ export default function Home() {
         </p>
       )}
       {(error || lastTx) && (
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-line bg-paper p-4 text-sm">
+        <div
+          role="status"
+          className="fixed inset-x-4 bottom-4 z-[1100] mx-auto flex max-w-xl flex-wrap items-center justify-between gap-2 border border-line bg-paper p-4 text-sm shadow-lg"
+        >
           {error ? (
             <span className="text-clay">{error}</span>
           ) : (
@@ -311,9 +333,11 @@ export default function Home() {
             <h2 className="mb-1 font-display text-3xl font-bold">Shelter</h2>
             <p className="text-muted">Klik burung untuk mendengar kicaunya dan melihat statsnya.</p>
           </div>
-          <button className="btn-ghost" onClick={() => setRegistering(true)}>
-            + Daftarkan burungmu
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button className="btn-ghost" onClick={() => setRegistering(true)}>
+              + Daftarkan burungmu
+            </button>
+          </div>
         </div>
         <ShelterScene
           birds={BIRDS.map((b, id) => {
@@ -416,7 +440,9 @@ export default function Home() {
       {game && (
         <Modal onClose={() => setGame(null)}>
           <div className="mb-3 font-display text-xl font-bold">
-            {myBirds.find((b) => b.tokenId === game.tokenId) ? birdName(myBirds.find((b) => b.tokenId === game.tokenId)!) : ""} #{game.tokenId}
+            {game.tokenId === GUEST_TOKEN
+              ? "Kenari (tamu)"
+              : `${myBirds.find((b) => b.tokenId === game.tokenId) ? birdName(myBirds.find((b) => b.tokenId === game.tokenId)!) : ""} #${game.tokenId}`}
           </div>
           <div className="relative">
             <FlappyGame key={result ? "over" : "play"} start={game} onGameOver={setResult} />
@@ -426,9 +452,13 @@ export default function Home() {
                   <div className="text-sm uppercase tracking-wider text-paper/70">Skor</div>
                   <div className="mb-4 font-display text-6xl font-extrabold">{result.score}</div>
                   <div className="flex flex-col gap-2">
-                    <button className="btn bg-sun text-ink" disabled={txBusy} onClick={() => submitScore(result)}>
-                      {txBusy ? "Mengirim…" : "Kirim skor on-chain"}
-                    </button>
+                    {result.tokenId < 0 ? (
+                      <p className="max-w-[16rem] text-sm text-paper/85">Main sebagai tamu. Adopsi burung di Shelter untuk menyimpan skor on-chain.</p>
+                    ) : (
+                      <button className="btn bg-sun text-ink" disabled={txBusy} onClick={() => submitScore(result)}>
+                        {txBusy ? "Mengirim…" : "Kirim skor on-chain"}
+                      </button>
+                    )}
                     <button className="btn border border-paper/40" onClick={() => setResult(null)}>
                       Main lagi
                     </button>
