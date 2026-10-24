@@ -2,6 +2,8 @@
 
 Peta setiap butir rubrik dari hackathon brief ke bukti nyata di project ini. Status per 24 Okt 2026.
 
+**Positioning:** *GameFi + ReFi with a real-world provenance layer — on-chain pedigree and organizer-attested championship records for real songbirds.* Koleksi digital + catatan prestasi yang bisa diverifikasi; **bukan** kepemilikan atau jual-beli hewan hidup.
+
 **Link inti (ucapkan saat pitch):**
 - Repo: https://github.com/PugarHuda/kicau
 - Live: https://kicau-theta.vercel.app

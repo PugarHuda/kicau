@@ -43,7 +43,10 @@ function slides(wing: boolean, stats: LiveStats | null): { dark?: boolean; body:
           </div>
           <h1 className="font-display pd-hero">KICAU</h1>
           <p className="font-display pd-h2 pd-sun">Keep the song, not the cage.</p>
-          <p className="pd-p">Adopt pixel songbirds on Monad. Every adoption funds real bird conservation.</p>
+          <p className="pd-p">
+            GameFi + ReFi with a real-world provenance layer: on-chain pedigrees and organizer-attested championship
+            records for Indonesian songbirds. Built on Monad.
+          </p>
           <p className="pd-sm pd-mt">
             Monad Blitz Jogja 2026 · {LIVE_SHORT} · {REPO}
           </p>
@@ -77,22 +80,26 @@ function slides(wing: boolean, stats: LiveStats | null): { dark?: boolean; body:
     {
       body: (
         <>
-          <Kicker>02 · Solution</Kicker>
-          <h2 className="font-display pd-h1">Keep the song, not the cage.</h2>
+          <Kicker>02 · Solution · GameFi + ReFi + provenance</Kicker>
+          <h2 className="font-display pd-h1">Play, protect, prove.</h2>
           <div className="pd-grid pd-g3">
-            <Card title="① Adopt">
+            <Card title="① Adopt · ReFi">
               <p className="font-display pd-big pd-leaf">30%</p>
               of every digital songbird NFT goes to conservation <b>in the same tx</b>. Support = <b>100%</b>.
             </Card>
-            <Card title="② Fly">
+            <Card title="② Fly · GameFi">
               <p className="font-display pd-big pd-leaf">Flappy</p>
               Each species flies with its own on-chain stats. Scores land on an on-chain leaderboard.
             </Card>
-            <Card title="③ Register">
+            <Card title="③ Register · Provenance">
               <p className="font-display pd-big pd-leaf">Pedigree</p>
-              Your real bird: photo → pixel character + titles, certificate &amp; lineage on-chain.
+              Your real bird: photo → pixel character + titles, certificate &amp; lineage on-chain. Contest organizers
+              attest championship titles.
             </Card>
           </div>
+          <p className="pd-sm pd-mt">
+            Digital collectibles + verifiable records — never ownership or trade of live animals.
+          </p>
         </>
       ),
     },
