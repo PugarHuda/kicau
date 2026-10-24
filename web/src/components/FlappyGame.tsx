@@ -103,11 +103,11 @@ export function FlappyGame({ start, onGameOver }: { start: GameStart; onGameOver
     canvas.height = Math.round(H * dpr);
 
     const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
-    const single = !!start.spriteUrl; // registered birds: one frame, fake the flap with a squash
+    const single = !!start.spriteUrl && !start.spriteUpUrl; // legacy one-frame sprites fake the flap with a squash
     const img = new Image();
     img.src = start.spriteUrl ?? birdDataUri(start.species);
     const imgUp = single ? img : new Image();
-    if (!single) imgUp.src = birdDataUri(start.species, true);
+    if (!single) imgUp.src = start.spriteUpUrl ?? birdDataUri(start.species, true);
 
     // canvas can't read CSS vars in `font`, so resolve next/font's hashed family once
     const family = getComputedStyle(canvas).getPropertyValue("--font-display").trim() || "monospace";

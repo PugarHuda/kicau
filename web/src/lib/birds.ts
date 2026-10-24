@@ -90,10 +90,11 @@ function tones(base: string): string[] {
   return [mix(c, "#fffbe8", 0.32), c, mix(c, "#1a1420", 0.25), mix(c, "#1a1420", 0.52)];
 }
 
-/** SVG markup for a species. Used by the UI, the game canvas and NFT metadata. */
-export function birdSvg(speciesId: number, wingUp = false): string {
-  const id = BIRDS[speciesId] ? speciesId : 0;
-  const c = BIRDS[id].colors;
+/** SVG markup for a species. Used by the UI, the game canvas and NFT metadata.
+ *  `colors` renders a registered bird: same template (plain Kenari shape), palette taken from its photo. */
+export function birdSvg(speciesId: number, wingUp = false, colors?: BirdInfo["colors"]): string {
+  const id = colors ? 0 : BIRDS[speciesId] ? speciesId : 0;
+  const c = colors ?? BIRDS[id].colors;
   const P: Record<string, string[]> = {
     H: tones(c.head), B: tones(c.body), L: tones(c.belly), W: tones(c.wing), T: tones(c.tail),
     K: tones(c.beak),
@@ -226,5 +227,5 @@ export function birdSvg(speciesId: number, wingUp = false): string {
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${GW} ${GH}" shape-rendering="crispEdges">${rects}</svg>`;
 }
 
-export const birdDataUri = (speciesId: number, wingUp = false) =>
-  `data:image/svg+xml;charset=utf-8,${encodeURIComponent(birdSvg(speciesId, wingUp))}`;
+export const birdDataUri = (speciesId: number, wingUp = false, colors?: BirdInfo["colors"]) =>
+  `data:image/svg+xml;charset=utf-8,${encodeURIComponent(birdSvg(speciesId, wingUp, colors))}`;

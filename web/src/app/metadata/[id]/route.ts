@@ -18,9 +18,17 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     return Response.json(
       {
         name: `Kicau · ${bird.name}`,
-        description: "Burung kicau asli milik pemiliknya, diubah jadi karakter pixel. Sprite tersimpan on-chain di Monad.",
+        description:
+          bird.profile.story ||
+          "Burung kicau asli milik pemiliknya, digambar ulang dengan gaya pixel Kicau. Karakter dan silsilahnya tersimpan on-chain di Monad.",
         image: bird.image,
-        attributes: [{ trait_type: "Type", value: "Registered" }],
+        attributes: [
+          { trait_type: "Type", value: "Registered" },
+          ...(bird.profile.owner ? [{ trait_type: "Pemilik", value: bird.profile.owner }] : []),
+          ...(bird.profile.certificate ? [{ trait_type: "Sertifikat", value: bird.profile.certificate }] : []),
+          ...(bird.profile.lineage ? [{ trait_type: "Keturunan", value: bird.profile.lineage }] : []),
+          ...(bird.profile.titles ?? []).map((t) => ({ trait_type: "Prestasi", value: t })),
+        ],
       },
       { headers: { "Cache-Control": "public, max-age=31536000, immutable" } },
     );

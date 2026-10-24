@@ -18,6 +18,7 @@ import {
 import { monadTestnet } from "wagmi/chains";
 import { FlappyGame } from "@/components/FlappyGame";
 import { RegisterBird } from "@/components/RegisterBird";
+import { Badges, RegisteredBirds } from "@/components/RegisteredBirds";
 import { ShelterScene } from "@/components/ShelterScene";
 import { BirdArt, BirdCard, Modal, TxLink, short, type Species } from "@/components/ui";
 import { kicauAbi } from "@/lib/abi";
@@ -202,6 +203,7 @@ export default function Home() {
       stats,
       gameVersion: GAME_VERSION_CANVAS,
       spriteUrl: bird.custom?.image,
+      spriteUpUrl: bird.custom?.imageUp,
     });
   }
 
@@ -338,6 +340,7 @@ export default function Home() {
                   <div className="font-semibold">
                     {birdName(b) ?? "…"} <span className="text-muted">#{b.tokenId}</span>
                   </div>
+                  {b.custom && <Badges bird={b.custom} />}
                   <div className="mb-3 text-sm text-muted">Best: {b.best}</div>
                   <button className="btn-primary w-full !py-2" disabled={!ready} onClick={() => play(b)}>
                     Terbang
@@ -365,6 +368,8 @@ export default function Home() {
           </ol>
         </section>
       </div>
+
+      <RegisteredBirds me={address} />
 
       {/* register own bird */}
       {registering && (
