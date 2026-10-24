@@ -190,6 +190,56 @@ export function encodeBird(c: BirdColors, profile: BirdProfile = {}): Uint8Array
 
 export type DecodedBird = { colors: BirdColors; profile: BirdProfile } | { png: string; profile: BirdProfile };
 
+const str = (v: unknown) => (typeof v === "string" ? v : undefined);
+const rec = (v: unknown) => (v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : undefined);
+const recs = (v: unknown) => (Array.isArray(v) ? v.map(rec).filter((x): x is Record<string, unknown> => !!x) : undefined);
+const parent = (v: unknown): Parent | undefined => {
+  const o = rec(v);
+  return o && { name: str(o.name), ring: str(o.ring) };
+};
+
+/**
+ * The profile JSON is written by anyone who pays registerFee, so coerce it to the declared shape once here.
+ * Without this, `null`, `{"owner":{}}` or `{"certificates":[null]}` crash every page, the metadata route and the
+ * (already paid) certificate render. Well-formed profiles come out unchanged.
+ */
+export function sanitizeProfile(raw: unknown): BirdProfile {
+  const p = rec(raw);
+  if (!p) return {};
+  const lin = rec(p.lineage);
+  const conf = p.aiConfidence;
+  return {
+    owner: str(p.owner),
+    story: str(p.story),
+    species: str(p.species),
+    latin: str(p.latin),
+    aiConfidence: typeof conf === "number" && Number.isFinite(conf) ? conf : undefined,
+    speciesSource: p.speciesSource === "ai" || p.speciesSource === "owner" ? p.speciesSource : undefined,
+    certificates: recs(p.certificates)?.map((c) => ({
+      type: typeof c.type === "string" && Object.keys(CERT_LABELS).includes(c.type) ? (c.type as CertificateType) : "other",
+      issuer: str(c.issuer) ?? "",
+      number: str(c.number) ?? "",
+      date: str(c.date) ?? "",
+      note: str(c.note),
+      docHash: str(c.docHash),
+    })),
+    lineage:
+      typeof p.lineage === "string"
+        ? p.lineage
+        : lin && { sire: parent(lin.sire), dam: parent(lin.dam), breeder: str(lin.breeder), breederRing: str(lin.breederRing) },
+    wins: recs(p.wins)?.map((w) => ({
+      event: str(w.event) ?? "",
+      organizer: str(w.organizer),
+      class: str(w.class),
+      rank: typeof w.rank === "number" && Number.isFinite(w.rank) ? String(w.rank) : str(w.rank),
+      date: str(w.date),
+      location: str(w.location),
+    })),
+    titles: Array.isArray(p.titles) ? p.titles.filter((t): t is string => typeof t === "string") : undefined,
+    certificate: str(p.certificate),
+  };
+}
+
 /** Decodes a registered bird's on-chain bytes: palette (+profile) or a legacy PNG sprite. */
 export function decodeBirdImage(bytes: Uint8Array): DecodedBird | null {
   if (bytes.length >= 21 && bytes[0] === 0x4b && bytes[1] === 0x43 && (bytes[2] === 0x01 || bytes[2] === 0x02)) {
@@ -198,7 +248,7 @@ export function decodeBirdImage(bytes: Uint8Array): DecodedBird | null {
     let profile: BirdProfile = {};
     if (bytes[2] === 0x02) {
       try {
-        profile = JSON.parse(new TextDecoder().decode(bytes.slice(21)));
+        profile = sanitizeProfile(JSON.parse(new TextDecoder().decode(bytes.slice(21))));
       } catch {
         // malformed profile: still show the bird
       }

@@ -65,7 +65,8 @@ async function scan(client: PublicClient, fromBlock: bigint, toBlock: bigint) {
       while (next < starts.length) {
         const i = next++;
         const end = starts[i] + LOG_SPAN - 1n;
-        out[i] = await getChunk(client, starts[i], end > toBlock ? toBlock : end, end <= toBlock);
+        // cache only chunks well behind head: a lagging fallback RPC must not freeze a half-indexed chunk for the session
+        out[i] = await getChunk(client, starts[i], end > toBlock ? toBlock : end, end + 30n <= toBlock);
       }
     }),
   );

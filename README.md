@@ -10,7 +10,7 @@ Built at **Monad Blitz Jogja 2026** · [docs/JUDGING.md](docs/JUDGING.md) (rubri
 | Pages | [Home](https://kicau.xyz) · [Contests `/lomba`](https://kicau.xyz/lomba) · result page `/lomba/<id>` · [Kicau Garden `/taman`](https://kicau.xyz/taman) · [Pitch deck `/pitch`](https://kicau.xyz/pitch) |
 | **Testnet** (chain 10143, used by the app) | [`0x947929841Ba8154BB6E9BDeb35137d159c6A0F58`](https://testnet.monadvision.com/address/0x947929841Ba8154BB6E9BDeb35137d159c6A0F58) · verified on MonadVision + [Monadscan](https://testnet.monadscan.com/address/0x947929841Ba8154BB6E9BDeb35137d159c6A0F58) · deploy tx [`0x2d3980a3…5efb69d`](https://testnet.monadvision.com/tx/0x2d3980a35125711b90e1d3b6972c8991ce6bb22fc21d89975d4dae1a15efb69d) (block 73741359) |
 | **Mainnet** (chain 143) | [`0xA98CeE28C6EB35b6Ee7440b7490e265f23975d61`](https://monadvision.com/address/0xA98CeE28C6EB35b6Ee7440b7490e265f23975d61) · verified on MonadVision + [Monadscan](https://monadscan.com/address/0xA98CeE28C6EB35b6Ee7440b7490e265f23975d61) · deploy tx [`0x34c0b085…a3bb01`](https://monadvision.com/tx/0x34c0b0859000f0a8c99e04d1b5f705626951714bb81faef3d37640c4c2a3bb01) · weekly pool funded 0.5 MON |
-| Source | Same `contracts/src/Kicau.sol` on both networks · 57 Foundry tests · organizer "Kicau Demo Contest" registered on both |
+| Source | Same `contracts/src/Kicau.sol` on both networks · 60 Foundry tests · organizer "Kicau Demo Contest" registered on both |
 | Build in public | [X thread](https://x.com/BangDropID/status/2113853488170156259) · [update](https://x.com/BangDropID/status/2113869717429789043) · more in [JUDGING.md](docs/JUDGING.md#3-advance--did-anyone-see-it--build-in-public-100) |
 
 ## Problem
@@ -66,7 +66,7 @@ Prerequisites: Node 22+, [Foundry](https://getfoundry.sh). No wallet needed: ⚡
 # contract
 cd contracts
 forge install --no-git foundry-rs/forge-std OpenZeppelin/openzeppelin-contracts@v5.4.0   # if lib/ is empty
-forge test                                   # 57 tests incl. fuzz + reentrancy
+forge test                                   # 60 tests incl. fuzz + reentrancy
 cast wallet import deployer --interactive    # encrypted keystore, no key in files
 BASE_URI=https://<host>/metadata/ forge script script/Deploy.s.sol --rpc-url monad_testnet --account deployer --broadcast
 # optional env: TREASURY, CONSERVATION (default: deployer)

@@ -227,7 +227,7 @@ function slides(wing: boolean, stats: LiveStats | null): { dark?: boolean; body:
           )}
           <ul className="pd-p pd-checks">
             {stats && <li>Numbers above read live from the testnet contract when this page rendered</li>}
-            <li>57 Foundry tests (incl. fuzz + reentrancy)</li>
+            <li>60 Foundry tests (incl. fuzz + reentrancy)</li>
             <li>Playwright QA with real txs: full contest flow, each tx 0.5–0.9 s</li>
             <li>Same contract on mainnet, verified on MonadVision + Monadscan</li>
           </ul>

@@ -877,6 +877,68 @@ contract KicauTest is Test {
         assertEq(alice.balance - aliceBefore, 0.01 ether);
         assertEq(kicau.owed(address(evil)), 0.01 ether);
     }
+
+    // ------------------------------------------- edge cases mirrored by web/src/lib (contestLive, birdHistory)
+
+    /// Two entries: 3rd place stays NO_ENTRY and its 15% joins the 10% conservation share (web payouts(pool, 2)).
+    function test_FinalizeUnfilledThirdGoesToConservation() public {
+        uint256 a1 = _birdOf(alice, "A1");
+        uint256 b1 = _birdOf(bob, "B1");
+        uint256 cid = _contest(0.01 ether);
+        _enter(cid, alice, a1, 0.01 ether);
+        _enter(cid, bob, b1, 0.01 ether);
+        vm.prank(host);
+        kicau.startJudging(cid);
+        _score(cid, judge1, b1, 1, 0, 0, 0);
+        uint256 aliceBefore = alice.balance;
+        uint256 bobBefore = bob.balance;
+        uint256 consBefore = conservation.balance;
+        uint256 totalBefore = kicau.totalConservation();
+        vm.expectEmit(true, false, false, true);
+        emit Kicau.ContestFinalized(cid, b1, a1, kicau.NO_ENTRY(), 0.02 ether);
+        vm.prank(host);
+        kicau.finalize(cid);
+        assertEq(bob.balance - bobBefore, 0.01 ether); // 50%
+        assertEq(alice.balance - aliceBefore, 0.005 ether); // 25%
+        assertEq(conservation.balance - consBefore, 0.005 ether); // 10% + unfilled 15%
+        assertEq(kicau.totalConservation() - totalBefore, 0.005 ether);
+        assertEq(kicau.winsOf(b1)[0], 1);
+        assertEq(kicau.winsOf(a1)[1], 1);
+        assertEq(address(kicau).balance, 0);
+    }
+
+    /// Support and run components cap at 500 each (web valuePoints clamps the same way).
+    function test_ValueComponentsCap() public {
+        uint256 id = _birdOf(alice, "A1");
+        vm.prank(bob);
+        kicau.supportBird{value: 6 ether}(id); // 6000 milli-MON / 10 = 600 -> 500
+        vm.prank(alice);
+        (uint256 runId,) = kicau.startRun(id);
+        vm.warp(block.timestamp + 1 hours);
+        vm.prank(alice);
+        kicau.submitRun(runId, 3000); // 3000 * 2 -> 500
+        Kicau.ValueBreakdown memory v = kicau.valueBreakdown(id);
+        assertEq(v.support, 500);
+        assertEq(v.runs, 500);
+        assertEq(v.supporters, 10);
+        assertEq(v.points, 100 + 10 + 500 + 500);
+    }
+
+    /// Honest-play bound: the canvas spawns one obstacle per 1.4 s of game time (<= wall time), i.e. <= 0.72 pts/s,
+    /// while submitRun allows 1 pt/s + 3 pts of grace. Same-second submit still accepts the grace points.
+    function test_RunGraceAllowsFastestHonestStart() public {
+        uint256 id = _birdOf(alice, "A1");
+        vm.startPrank(alice);
+        (uint256 runId,) = kicau.startRun(id);
+        kicau.submitRun(runId, 3); // elapsed 0 s
+        (runId,) = kicau.startRun(id);
+        vm.warp(block.timestamp + 60);
+        kicau.submitRun(runId, 43); // 60 s of honest play scores at most 1 + (60 - 1.6) / 1.4 = 42.7
+        (runId,) = kicau.startRun(id);
+        vm.expectRevert(Kicau.ScoreTooFast.selector);
+        kicau.submitRun(runId, 4);
+        vm.stopPrank();
+    }
 }
 
 /// Holds a bird, enters contests and tries to re-enter Kicau when paid.

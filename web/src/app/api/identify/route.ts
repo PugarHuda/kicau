@@ -70,6 +70,8 @@ const fail = (status: number, error: string) => Response.json({ error }, { statu
 export async function POST(req: Request) {
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0].trim() || "local";
   if (limited(ip)) return fail(429, "Too many identifications. Please wait a few minutes.");
+  // reject oversized bodies before buffering them (base64 is 4/3 of MAX_BYTES, plus the data-URL prefix and JSON)
+  if (Number(req.headers.get("content-length") ?? 0) > MAX_BYTES * 1.4) return fail(413, "Image too large (max 1.5 MB).");
 
   let image: unknown;
   try {
