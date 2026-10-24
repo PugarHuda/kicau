@@ -6,7 +6,7 @@ Built at **Monad Blitz Jogja 2026**. Brief and mechanics: [docs/BRIEF.md](docs/B
 
 | | |
 |---|---|
-| **Live app** | **https://kicau-theta.vercel.app** · also https://kicau-monad.vercel.app |
+| **Live app** | **https://kicau.xyz** (custom domain) · https://kicau-theta.vercel.app · https://kicau-monad.vercel.app |
 | Pages | [Home](https://kicau-theta.vercel.app) · [Contests](https://kicau-theta.vercel.app/lomba) · [Kicau Garden](https://kicau-theta.vercel.app/taman) · [Pitch deck](https://kicau-theta.vercel.app/pitch) |
 | **Testnet** (chain 10143, used by the app) | [`0xD15bF5b95dC29083eBA236057e2DC9dE90092725`](https://testnet.monadvision.com/address/0xD15bF5b95dC29083eBA236057e2DC9dE90092725) — verified on MonadVision + Monadscan · deploy tx [`0xc1abd22c…0b96b9b`](https://testnet.monadvision.com/tx/0xc1abd22cc0977c01a9809b9647cd4806a7642ab5531327435f9b62a6f0b96b9b) |
 | **Mainnet** (chain 143) | [`0xdada618e564edaf7ec0af0a12575bf3c0dc8523b`](https://monadvision.com/address/0xdada618e564edaf7ec0af0a12575bf3c0dc8523b) — verified on MonadVision + Monadscan · deploy tx [`0x2a2118c7…cb8c76`](https://monadvision.com/tx/0x2a2118c7b699d747c9263a94b2c3e86671b6e62d2af284750ccd6196d6cb8c76) |

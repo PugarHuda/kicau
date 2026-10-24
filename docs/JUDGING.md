@@ -6,7 +6,7 @@ Peta setiap butir rubrik dari hackathon brief ke bukti nyata di project ini. Sta
 
 **Link inti (ucapkan saat pitch):**
 - Repo: https://github.com/PugarHuda/kicau
-- Live: https://kicau-theta.vercel.app
+- Live: https://kicau.xyz (custom domain) · https://kicau-theta.vercel.app
 - Kontrak Mainnet (chain 143): `0xdada618e564edaf7ec0af0a12575bf3c0dc8523b` — [MonadVision](https://monadvision.com/address/0xdada618e564edaf7ec0af0a12575bf3c0dc8523b)
 - Kontrak Testnet (chain 10143, dipakai app untuk demo): `0xD15bF5b95dC29083eBA236057e2DC9dE90092725` — [MonadVision](https://testnet.monadvision.com/address/0xD15bF5b95dC29083eBA236057e2DC9dE90092725) · [Monadscan](https://testnet.monadscan.com/address/0xD15bF5b95dC29083eBA236057e2DC9dE90092725)
 
@@ -48,7 +48,7 @@ Peta setiap butir rubrik dari hackathon brief ke bukti nyata di project ini. Sta
 | Butir | Poin | Penilai | Bukti / argumen | Status |
 |---|---|---|---|---|
 | Kontrak di Monad Mainnet | 25 | Panitia | `0xdada618e564edaf7ec0af0a12575bf3c0dc8523b` di chain 143, dideploy 24 Okt (tx `0x2a2118c7…cb8c76`), verified MonadVision + Monadscan · [explorer](https://monadvision.com/address/0xdada618e564edaf7ec0af0a12575bf3c0dc8523b) | ✅ |
-| Public page di custom domain | 15 | Panitia | Vercel mendukung custom domain; perlu domain | ❌ belum |
+| Public page di custom domain | 15 | Panitia | **https://kicau.xyz** (dibeli via Vercel 24 Okt, terpasang sebagai production domain + redirect www) | ✅ |
 | Product-market fit | ≤20 | Juri | Kicau mania = hobi nasional di Indonesia dengan lomba gantangan mingguan. Kicau memberi versi digital (koleksi, game, lomba skor) + **daftarkan burung asli** dengan silsilah, prestasi, sertifikat yang tersimpan on-chain — menjawab kebutuhan pamer & bukti prestasi | argumen pitch |
 | Revenue potential & strategy | ≤20 | Juri | 70% hasil adopsi ke treasury, biaya register burung, sertifikat x402 $0.01 USDC per dokumen (live). Entry fee lomba sudah live tapi 90% ke pemenang + 10% konservasi (bukan pendapatan treasury). Ke depan: sponsor lomba, attestation berbayar | argumen pitch |
 | Innovation & originality | ≤20 | Juri | Lihat bagian 5 | argumen pitch |
