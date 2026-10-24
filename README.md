@@ -9,6 +9,7 @@ Built at **Monad Blitz Jogja 2026**. Brief and mechanics: [docs/BRIEF.md](docs/B
 | Network | **Monad Testnet** (chain 10143) |
 | Contract | [`0x7b0A5E9D4A8b1bf2829478e72f62283C6939C816`](https://testnet.monadvision.com/address/0x7b0A5E9D4A8b1bf2829478e72f62283C6939C816) (verified on MonadVision + Monadscan) |
 | Live app | **https://kicau-theta.vercel.app** (also https://kicau-monad.vercel.app) · [Kicau Garden](https://kicau-theta.vercel.app/taman) · [Pitch deck](https://kicau-theta.vercel.app/pitch) |
+| **Mainnet** (chain 143) | [`0x269f6d0E6CB20387Bb4494cf447218eE1f03C09b`](https://monadvision.com/address/0x269f6d0E6CB20387Bb4494cf447218eE1f03C09b) (verified on MonadVision + Monadscan) · deploy tx [`0xa1c9fbfe…b47055`](https://monadvision.com/tx/0xa1c9fbfee7276e3f49af15f581db1da95b761700e158737f0c20631374b47055) |
 | Deploy tx | [`0xbc190b63…4a794`](https://testnet.monadvision.com/tx/0xbc190b63991354d67859ec17f26601755e00a66e59c2404f7af76a62be44a794) |
 
 ## What it does
