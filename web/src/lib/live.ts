@@ -12,7 +12,7 @@ import { kicauAbi } from "./abi";
 import { BIRDS } from "./birds";
 
 export const WS_URL = "wss://testnet-rpc.monad.xyz";
-const EVENTS = ["BirdBought", "Supported", "ScoreSubmitted", "BirdRegistered"] as const;
+const EVENTS = ["BirdBought", "Supported", "ScoreSubmitted", "BirdRegistered", "Attested", "BirdSupported"] as const;
 type Kind = (typeof EVENTS)[number];
 const TOPICS = kicauAbi
   .filter((x) => x.type === "event" && (EVENTS as readonly string[]).includes(x.name))
@@ -54,6 +54,7 @@ export function describe(topics: Hex[], data: Hex): { kind: Kind; label: string;
     const ev = decodeEventLog({ abi: kicauAbi, topics: topics as [Hex, ...Hex[]], data });
     switch (ev.eventName) {
       case "BirdBought":
+        if (ev.args.speciesId === 999n) return null; // registerBird also emits BirdRegistered; show that one only
         return { kind: ev.eventName, actor: ev.args.buyer, label: `adopted ${speciesName(ev.args.speciesId)}` };
       case "Supported":
         return {
@@ -62,9 +63,18 @@ export function describe(topics: Hex[], data: Hex): { kind: Kind; label: string;
           label: `support ${formatEther(ev.args.amount)} MON → ${speciesName(ev.args.speciesId)}`,
         };
       case "ScoreSubmitted":
-        return { kind: ev.eventName, actor: ev.args.player, label: `score ${ev.args.score} · ${speciesName(ev.args.speciesId)}` };
+        // gameVersion 3 = submitRun (seeded, time-checked); its RunSubmitted twin isn't subscribed
+        return {
+          kind: ev.eventName,
+          actor: ev.args.player,
+          label: `${ev.args.gameVersion === 3 ? "verified score" : "score"} ${ev.args.score} · ${speciesName(ev.args.speciesId)}`,
+        };
       case "BirdRegistered":
         return { kind: ev.eventName, actor: ev.args.owner, label: `registered '${ev.args.name}'` };
+      case "BirdSupported":
+        return { kind: ev.eventName, actor: ev.args.supporter, label: `supported #${ev.args.tokenId} ${formatEther(ev.args.amount)} MON` };
+      case "Attested":
+        return { kind: ev.eventName, actor: ev.args.organizer, label: `verified title '${ev.args.title}' for #${ev.args.tokenId}` };
     }
   } catch {}
   return null;

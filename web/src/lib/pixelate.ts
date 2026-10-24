@@ -121,11 +121,14 @@ export type BirdProfile = {
   titles?: string[]; // e.g. "Juara 1 Piala Raja 2025"
   certificate?: string; // ring / certificate number
   lineage?: string; // e.g. "Trah juara Murai 'Gladiator'"
+  species?: string; // AI-identified (or owner-corrected) Indonesian name, e.g. "Murai Batu"
+  latin?: string;
+  aiConfidence?: number; // 0..1, absent when the owner overrode the species
 };
 
 export function encodeBird(c: BirdColors, profile: BirdProfile = {}): Uint8Array {
   const clean = Object.fromEntries(
-    Object.entries(profile).filter(([, v]) => (Array.isArray(v) ? v.length : typeof v === "string" && v.trim())),
+    Object.entries(profile).filter(([, v]) => (Array.isArray(v) ? v.length : typeof v === "number" ? Number.isFinite(v) : typeof v === "string" && v.trim())),
   );
   const json = Object.keys(clean).length ? new TextEncoder().encode(JSON.stringify(clean)) : new Uint8Array();
   const out = new Uint8Array(21 + json.length);

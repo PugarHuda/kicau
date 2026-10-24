@@ -63,7 +63,6 @@ export const OBSTACLES: Rect[] = [
   { x: YARD.c * TILE, y: yb * TILE + 18, w: (GATE.c - YARD.c) * TILE - 12, h: fence },
   { x: (GATE.c + GATE.w) * TILE + 12, y: yb * TILE + 18, w: (YARD.c + YARD.w - GATE.c - GATE.w) * TILE, h: fence },
   tr(HOUSE.c, HOUSE.r, 3, 3),
-  { x: POND.cx - POND.rx + 24, y: POND.cy - POND.ry + 20, w: POND.rx * 2 - 48, h: POND.ry * 2 - 34 },
   tr(GAZEBO.c, GAZEBO.r, 3, 2.6),
   { x: SIGN.c * TILE + 20, y: (SIGN.r + 1) * TILE - 18, w: SIGN.w * TILE - 40, h: 16 },
   ...TREES.map((t) => ({ x: t.x - 10, y: t.y - 16, w: 20, h: 14 })),
@@ -72,6 +71,9 @@ export const OBSTACLES: Rect[] = [
 ];
 
 export function hits(x: number, y: number, hw: number, hh: number) {
+  // pond is an ellipse: a box collider left invisible walls on the grass at its corners
+  const px = (x - POND.cx) / (POND.rx - 24 + hw), py = (y - POND.cy - 3) / (POND.ry - 17 + hh);
+  if (px * px + py * py < 1) return true;
   return OBSTACLES.some((o) => x + hw > o.x && x - hw < o.x + o.w && y + hh > o.y && y - hh < o.y + o.h);
 }
 

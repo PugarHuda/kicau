@@ -14,6 +14,7 @@ import {
   W,
   gapSize,
   hitsPipe,
+  mulberry32,
   nextGapY,
   passedPipe,
   pipeSpeed,
@@ -123,6 +124,9 @@ export function FlappyGame({ start, onGameOver }: { start: GameStart; onGameOver
     const gravity = BASE.gravity * (start.stats.gravity / 100);
     const flapV = BASE.flap * (start.stats.flapPower / 100);
     const radius = BASE.radius * (start.stats.hitbox / 100);
+
+    // run seed's low 32 bits → deterministic gaps; guest / practice games stay random
+    const rand = start.seed ? mulberry32(Number(BigInt(start.seed) & 0xffffffffn)) : Math.random;
 
     const bestKey = `kicau:best:${start.tokenId}`;
     let best = 0;
@@ -250,7 +254,7 @@ export function FlappyGame({ start, onGameOver }: { start: GameStart; onGameOver
         if (spawnT <= 0) {
           spawnT = BASE.spawnEvery;
           const gap = gapSize(score);
-          lastGapY = nextGapY(lastGapY, gap, score, Math.random());
+          lastGapY = nextGapY(lastGapY, gap, score, rand());
           pipes.push({ x: W + CAP_OVERHANG, gapY: lastGapY, gap, passed: false });
         }
         let hit = y + radius >= GROUND_Y || y - radius <= 0;

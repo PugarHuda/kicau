@@ -13,7 +13,8 @@ import { BIRDS, birdDataUri } from "@/lib/birds";
 import { chirp } from "@/lib/chirp";
 import { EXPLORER, KICAU_ADDRESS } from "@/lib/config";
 import { CUSTOM_SPECIES, type CustomBird, fetchCustomBird, fetchRegisteredBirds } from "@/lib/customBirds";
-import { GAME_VERSION_CANVAS, type GameOver, type GameStart } from "@/lib/game";
+import { GAME_VERSION_CANVAS, GAME_VERSION_RUN, type GameOver, type GameStart } from "@/lib/game";
+import { useMusic } from "@/lib/music";
 import { kicau, useKicau } from "@/lib/useKicau";
 
 type Other = { tokenId: number; owner: `0x${string}`; species: number };
@@ -133,6 +134,9 @@ export default function Taman() {
   const [open, setOpen] = useState<Open | null>(null);
   const [game, setGame] = useState<GameStart | null>(null);
   const [result, setResult] = useState<GameOver | null>(null);
+  const [run, setRun] = useState<{ runId: bigint } | null>(null); // null while playing = practice (guest)
+  const [starting, setStarting] = useState(false);
+  const [muted, toggleMusic] = useMusic(game ? "flappy" : "garden");
   const { data: supported } = useReadContract({
     ...kicau,
     functionName: "supportOf",
@@ -163,36 +167,63 @@ export default function Taman() {
     if (await send({ functionName: "buy", args: [BigInt(id)], value: species[id].price })) setOpen(null);
   }
 
-  function fly() {
-    if (!current) return;
-    const s = species[current.species];
-    if (!s && !current.custom) return;
+  /** Owner: startRun on-chain -> seeded game -> submitRun. Guest: practice with Kenari, nothing on-chain. */
+  async function fly() {
+    const s = species[current?.species ?? 0];
+    const stats = s ? { gravity: s.gravity, flapPower: s.flapPower, hitbox: s.hitbox } : { gravity: 100, flapPower: 100, hitbox: 100 };
     setResult(null);
+    if (!current) {
+      setRun(null);
+      setGame({ tokenId: -1, species: 0, stats, gameVersion: GAME_VERSION_CANVAS }); // -1: own local-best slot
+      return;
+    }
+    if ((!species[current.species] && !current.custom) || !ready) return;
+    setStarting(true);
+    const r = await k.startVerifiedRun(BigInt(current.tokenId));
+    setStarting(false);
+    if (!r) return;
+    setRun({ runId: r.runId });
     setGame({
       tokenId: current.tokenId,
       species: current.species,
-      stats: s ? { gravity: s.gravity, flapPower: s.flapPower, hitbox: s.hitbox } : { gravity: 100, flapPower: 100, hitbox: 100 },
-      gameVersion: GAME_VERSION_CANVAS,
+      stats,
+      gameVersion: GAME_VERSION_RUN,
       spriteUrl: current.custom?.image,
       spriteUpUrl: current.custom?.imageUp,
+      seed: r.seed.toString(),
     });
   }
 
   async function submitScore(r: GameOver) {
-    if (await send({ functionName: "submitScore", args: [BigInt(r.tokenId), BigInt(r.score), GAME_VERSION_CANVAS] })) {
+    if (!run) return;
+    if (await send({ functionName: "submitRun", args: [run.runId, BigInt(r.score)] })) {
+      setRun(null);
       setResult(null);
       setGame(null);
     }
   }
 
-  const notReady = !ready && <p className="mt-3 text-sm text-clay">Tap ⚡ Quick Play above or connect a wallet on Monad Testnet.</p>;
+  function closeGame() {
+    setGame(null);
+    setResult(null);
+    k.setError(undefined);
+  }
+
+  const notReady = !ready && (
+    <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-clay">
+      <button className="btn-primary !px-2 !py-2 !text-[0.6rem]" disabled={k.funding} onClick={k.quickPlay}>
+        {k.funding ? "Setting up…" : "⚡ Quick Play"}
+      </button>
+      to adopt or support with a free testnet wallet.
+    </div>
+  );
 
   return (
     <main className="fixed inset-0 flex flex-col overflow-hidden">
       {/* HUD */}
       <header className="z-10 flex flex-wrap items-center gap-2 border-b-[3px] border-ink bg-paper px-3 py-2">
-        <Link href="/" className="btn-ghost !px-2 !py-2 !text-[0.6rem]">
-          ← Home
+        <Link href="/" className="btn-ghost !px-2 !py-2 !text-[0.6rem]" aria-label="Home">
+          ←<span className="hidden sm:inline"> Home</span>
         </Link>
         <div className="flex min-w-0 flex-1 items-center gap-2">
           <span className="hidden font-display text-[0.6rem] sm:inline">Kicau Garden</span>
@@ -200,7 +231,10 @@ export default function Taman() {
             <select
               className="min-w-0 max-w-[11rem] border-[3px] border-ink bg-paper px-1 py-1 text-sm"
               value={current?.tokenId}
-              onChange={(e) => setSel(Number(e.target.value))}
+              onChange={(e) => {
+                setSel(Number(e.target.value));
+                e.currentTarget.blur(); // hand the keyboard back to the garden
+              }}
               aria-label="Choose bird"
             >
               {myBirds.map((b) => (
@@ -213,14 +247,34 @@ export default function Taman() {
             <span className="truncate text-sm font-semibold">{player.label}</span>
           )}
         </div>
+        <button className="btn-ghost !px-2 !py-1" onClick={toggleMusic} aria-label={muted ? "Unmute music" : "Mute music"}>
+          {muted ? "🔇" : "🎵"}
+        </button>
+        {guest && (
+          <button
+            className={`btn-ghost !px-2 !py-2 !text-[0.6rem] ${address ? "" : "max-sm:!hidden"}`}
+            onClick={fly}
+            title="Practice run, not recorded on-chain"
+          >
+            Practice
+          </button>
+        )}
         {!address ? (
           <button className="btn-primary !px-2 !py-2 !text-[0.6rem]" disabled={k.funding} onClick={k.quickPlay}>
             {k.funding ? "Setting up…" : "⚡ Quick Play"}
           </button>
         ) : (
-          <button className="btn-primary !px-2 !py-2 !text-[0.6rem]" disabled={guest || !ready} onClick={fly}>
-            <span className="hidden sm:inline">Fly in</span> Flappy
-          </button>
+          !guest && (
+            <button className="btn-primary !px-2 !py-2 !text-[0.6rem]" disabled={!ready || starting || txBusy} onClick={fly}>
+              {starting ? (
+                "Starting…"
+              ) : (
+                <>
+                  <span className="hidden sm:inline">Fly in</span> Flappy
+                </>
+              )}
+            </button>
+          )
         )}
       </header>
 
@@ -281,8 +335,11 @@ export default function Taman() {
       )}
 
       {game && (
-        <Modal onClose={() => setGame(null)}>
-          <div className="mb-3 font-display text-xl font-bold">{player.label}</div>
+        <Modal onClose={closeGame}>
+          <div className="mb-3 font-display text-xl font-bold">
+            {guest ? "Kenari" : player.label}
+            <span className="ml-2 align-middle text-xs font-normal text-muted">{run ? "✔ verified run" : "practice"}</span>
+          </div>
           <div className="relative">
             <FlappyGame key={result ? "over" : "play"} start={game} onGameOver={setResult} />
             {result && (
@@ -291,11 +348,15 @@ export default function Taman() {
                   <div className="text-sm uppercase tracking-wider text-paper/70">Score</div>
                   <div className="mb-4 font-display text-6xl font-extrabold">{result.score}</div>
                   <div className="flex flex-col gap-2">
-                    <button className="btn bg-sun text-ink" disabled={txBusy || !ready} onClick={() => submitScore(result)}>
-                      {txBusy ? "Sending…" : "Submit score on-chain"}
-                    </button>
-                    <button className="btn border border-paper/40" onClick={() => setResult(null)}>
-                      Play again
+                    {run ? (
+                      <button className="btn bg-sun text-ink" disabled={txBusy || !ready} onClick={() => submitScore(result)}>
+                        {txBusy ? "Sending…" : "Submit verified score"}
+                      </button>
+                    ) : (
+                      <p className="text-sm text-paper/80">Practice run. Adopt a bird to record verified scores on-chain.</p>
+                    )}
+                    <button className="btn border border-paper/40" disabled={starting || txBusy} onClick={() => (run ? fly() : setResult(null))}>
+                      {starting ? "Starting…" : "Play again"}
                     </button>
                   </div>
                 </div>
@@ -311,6 +372,7 @@ export default function Taman() {
 
 function OtherCard({ nft }: { nft: Other }) {
   const { data: best } = useReadContract({ ...kicau, functionName: "bestByToken", args: [BigInt(nft.tokenId)] });
+  const { data: verified } = useReadContract({ ...kicau, functionName: "bestValidatedByPlayer", args: [nft.owner] });
   return (
     <div>
       <div className="mb-4 grid place-items-center bg-cream py-6">
@@ -325,9 +387,18 @@ function OtherCard({ nft }: { nft: Other }) {
           {short(nft.owner)}
         </a>
       </p>
-      <div className="border-[3px] border-ink p-3">
-        <div className="font-display text-xs">Best score</div>
-        <div className="font-display text-2xl tabular-nums">{best !== undefined ? String(best) : "…"}</div>
+      <div className="grid grid-cols-2 gap-2">
+        <div className="border-[3px] border-ink p-3">
+          <div className="font-display text-xs">Best score</div>
+          <div className="font-display text-2xl tabular-nums">{best !== undefined ? String(best) : "…"}</div>
+        </div>
+        <div className="border-[3px] border-ink p-3">
+          <div className="font-display text-xs">Owner&apos;s verified best</div>
+          <div className="font-display text-2xl tabular-nums">
+            {verified !== undefined ? String(verified) : "…"}
+            {!!verified && <span className="ml-1 align-middle text-xs text-leaf">✔ verified</span>}
+          </div>
+        </div>
       </div>
     </div>
   );

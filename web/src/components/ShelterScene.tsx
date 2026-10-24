@@ -160,8 +160,8 @@ export function ShelterScene({ birds, onSelect }: { birds: SceneBird[]; onSelect
             type="button"
             aria-label={`${b.name}, ${b.priceLabel}${b.soldOut ? ", sold out" : ""}`}
             onClick={() => {
+              onSelect(b.id); // first: an audio failure must never block the card
               chirp(b.id);
-              onSelect(b.id);
             }}
             className="group absolute cursor-pointer outline-offset-2 hover:z-[200]! focus-visible:z-[200]!"
             style={{

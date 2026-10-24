@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { birdDataUri } from "@/lib/birds";
 import { type BirdColors, DEFAULT_TOLERANCE, encodeBird, extractBirdColors } from "@/lib/pixelate";
+import { type IdentifyResult, SpeciesCheck } from "./SpeciesCheck";
 
 const MAX_BYTES = 4096;
 const field = "mt-1 w-full border-[3px] border-ink bg-paper px-3 py-2";
@@ -30,6 +31,8 @@ export function RegisterBird({
   const [titles, setTitles] = useState("");
   const [certificate, setCertificate] = useState("");
   const [lineage, setLineage] = useState("");
+  const [species, setSpecies] = useState<IdentifyResult | null>(null);
+  const [speciesOverride, setSpeciesOverride] = useState<string>();
 
   useEffect(() => {
     if (!file) return;
@@ -43,7 +46,12 @@ export function RegisterBird({
     let cancelled = false;
     extractBirdColors(file, tolerance)
       .then((c) => !cancelled && (setColors(c), setError(undefined)))
-      .catch((e) => !cancelled && (setColors(null), setError((e as Error).message)));
+      .catch((e) => {
+        if (cancelled) return;
+        setColors(null);
+        const msg = (e as Error).message;
+        setError(msg.startsWith("No bird") ? msg : "Couldn't read that file as an image. Try a JPG or PNG photo.");
+      });
     return () => {
       cancelled = true;
     };
@@ -55,6 +63,9 @@ export function RegisterBird({
     titles: titles.split("\n").map((t) => t.trim()).filter(Boolean),
     certificate: certificate.trim(),
     lineage: lineage.trim(),
+    ...(speciesOverride !== undefined
+      ? { species: speciesOverride.trim() }
+      : species && { species: species.indonesianName || species.commonName, latin: species.latinName, aiConfidence: Math.round(species.confidence * 100) / 100 }),
   };
   const bytes = colors ? encodeBird(colors, profile) : null;
   const nameBytes = new TextEncoder().encode(name.trim()).length;
@@ -89,6 +100,32 @@ export function RegisterBird({
             <figcaption className="mt-1 text-center text-xs text-muted">Kicau character</figcaption>
           </figure>
         </div>
+      )}
+
+      <SpeciesCheck
+        file={file}
+        onResult={(r) => {
+          setSpecies(r);
+          setSpeciesOverride(undefined);
+        }}
+      />
+      {file && (
+        <label className="mb-4 block text-sm">
+          <span className="text-muted">
+            {speciesOverride !== undefined
+              ? "Species (entered by owner)"
+              : species
+                ? "Species (AI-identified) — edit if it's wrong"
+                : "Species"}
+          </span>
+          <input
+            value={speciesOverride ?? species?.indonesianName ?? species?.commonName ?? ""}
+            maxLength={60}
+            placeholder="Murai Batu"
+            onChange={(e) => setSpeciesOverride(e.target.value)}
+            className={field}
+          />
+        </label>
       )}
 
       {colors && (
@@ -155,6 +192,7 @@ export function RegisterBird({
       </div>
 
       {error && <p className="mb-3 text-sm text-clay">{error}</p>}
+      {nameBytes > 32 && <p className="mb-3 text-sm text-clay">Name too long ({nameBytes} bytes, max 32). Emoji and accents take 2–4 bytes each.</p>}
       {tooBig && <p className="mb-3 text-sm text-clay">Too much data ({bytes?.length} B, max {MAX_BYTES} B). Shorten the story.</p>}
 
       <div className="flex flex-wrap items-center justify-between gap-3">

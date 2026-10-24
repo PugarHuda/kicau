@@ -10,6 +10,8 @@ const ICON: Record<LiveItem["kind"], string> = {
   Supported: "💚",
   ScoreSubmitted: "🏆",
   BirdRegistered: "📝",
+  Attested: "🏅",
+  BirdSupported: "💚",
 };
 
 const BADGE: Record<Status, string> = {

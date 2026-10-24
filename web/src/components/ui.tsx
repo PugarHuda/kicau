@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { formatEther, parseEther } from "viem";
 import { BIRDS, IUCN_LABEL, birdDataUri } from "@/lib/birds";
-import { chirp } from "@/lib/chirp";
+import { singSong } from "@/lib/chirp";
 import { EXPLORER } from "@/lib/config";
 import { VIDEOS } from "@/lib/videos";
 
@@ -54,6 +54,13 @@ export function StatBar({ label, value }: { label: string; value: number }) {
 }
 
 export function Modal({ onClose, children }: { onClose: () => void; children: React.ReactNode }) {
+  const panel = useRef<HTMLDivElement>(null);
+  // move focus into the dialog (so Space/Enter can't re-trigger the button behind it), restore on close
+  useEffect(() => {
+    const prev = document.activeElement as HTMLElement | null;
+    panel.current?.focus({ preventScroll: true });
+    return () => prev?.focus?.({ preventScroll: true });
+  }, []);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", onKey);
@@ -65,9 +72,26 @@ export function Modal({ onClose, children }: { onClose: () => void; children: Re
       onClick={onClose}
       role="dialog"
       aria-modal="true"
+      onKeyDown={(e) => {
+        // keep Tab inside the dialog
+        if (e.key !== "Tab" || !panel.current) return;
+        const f = panel.current.querySelectorAll<HTMLElement>("button:not(:disabled), a[href], input:not(:disabled), textarea, select, iframe, video[controls], [tabindex='0']");
+        if (!f.length) return;
+        const first = f[0];
+        const last = f[f.length - 1];
+        if (e.shiftKey && (document.activeElement === first || document.activeElement === panel.current)) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }}
     >
       <div
-        className="relative max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-3xl bg-paper p-6 shadow-2xl"
+        ref={panel}
+        tabIndex={-1}
+        className="relative max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-3xl bg-paper p-6 shadow-2xl outline-none"
         onClick={(e) => e.stopPropagation()}
       >
         <button onClick={onClose} className="absolute right-4 top-4 text-2xl leading-none text-muted hover:text-ink" aria-label="Close">
@@ -159,7 +183,7 @@ function BirdVideo({ id }: { id: number }) {
             {open ? "Close video" : "Watch real video"}
           </button>
         )}
-        <button onClick={() => chirp(id)} className="btn-ghost !py-2">
+        <button onClick={() => singSong(id)} className="btn-ghost !py-2">
           Pixel chirp
         </button>
       </div>

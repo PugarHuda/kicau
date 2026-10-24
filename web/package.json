@@ -10,15 +10,18 @@
     "abi": "node -e \"const a=require('../contracts/out/Kicau.sol/Kicau.json').abi;require('fs').writeFileSync('src/lib/abi.ts','export const kicauAbi = '+JSON.stringify(a)+' as const;\\n')\""
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "4.0.87",
     "@tanstack/react-query": "^5.104.5",
     "@x402/core": "2.28.0",
     "@x402/evm": "2.28.0",
     "@x402/fetch": "2.28.0",
+    "ai": "7.0.152",
     "next": "15.5.28",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "viem": "^2.57.10",
-    "wagmi": "^3.7.9"
+    "wagmi": "^3.7.9",
+    "zod": "3.25.76"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
