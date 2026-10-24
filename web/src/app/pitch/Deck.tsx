@@ -318,46 +318,6 @@ function slides(wing: boolean, stats: LiveStats | null): { dark?: boolean; body:
         </div>
       ),
     },
-    // Appendix A
-    {
-      body: (
-        <>
-          <Kicker>Appendix A · Blitz rubric checklist</Kicker>
-          <div className="pd-grid pd-g3">
-            <div className="pd-card pd-paper">
-              <h3 className="font-display pd-h3">Basic</h3>
-              <ul className="pd-li pd-checks">
-                <li>Public repo</li>
-                <li>README: live URL + contracts</li>
-                <li>Deployed on testnet during Blitz</li>
-                <li>Hosted · kicau.xyz</li>
-              </ul>
-            </div>
-            <div className="pd-card pd-paper">
-              <h3 className="font-display pd-h3">Advance</h3>
-              <ul className="pd-li pd-checks">
-                <li>All functions working · Playwright QA, real txs ~0.6–1.6 s</li>
-                <li>Live tx on stage · finalize #0</li>
-                <li>Verified on MonadVision + Monadscan</li>
-                <li>Runnable from README · no DB, no indexer</li>
-                <li>Build in public · X thread @BangDropID</li>
-                <li>Demo + ad videos posted today</li>
-              </ul>
-            </div>
-            <div className="pd-card pd-paper">
-              <h3 className="font-display pd-h3">Bonus</h3>
-              <ul className="pd-li pd-checks">
-                <li>Mainnet · {MAINNET.slice(0, 6)}…{MAINNET.slice(-4)}</li>
-                <li>Custom domain · kicau.xyz</li>
-                <li>PMF → slide 2</li>
-                <li>Revenue → slide 6</li>
-                <li>Innovation → slide 5</li>
-              </ul>
-            </div>
-          </div>
-        </>
-      ),
-    },
   ];
 }
 

@@ -38,8 +38,8 @@ Peta setiap butir rubrik ke bukti nyata. Status per 24 Okt 2026, ~14:30 WIB.
 | Butir | Poin | Bukti | Status |
 |---|---|---|---|
 | Post di X dengan tag @monad @monad_dev @geeky_kartikey | 25 | Thread @BangDropID: [post 1](https://x.com/BangDropID/status/2113853488170156259) · [reply (Monad + repo + kontrak)](https://x.com/BangDropID/status/2113853615941284205) · [update 2](https://x.com/BangDropID/status/2113869717429789043) · [update 3 (quote)](https://x.com/BangDropID/status/2113885785019798003) | ✅ |
-| Video demo ≥30 detik | 25 | _(diisi setelah rekaman)_ | ⏳ |
-| Video iklan kreatif | 25 | _(diisi setelah rekaman)_ | ⏳ |
+| Video demo ≥30 detik | 25 | [Demo 1:49 di X](https://x.com/BangDropID/status/2113904695873798527) — rekaman Playwright klik sungguhan di kicau.xyz (lomba live, finalize, register + AI, Kicau Value, sponsor, Flappy, Garden); juga di slide demo `/pitch` | ✅ |
+| Video iklan kreatif | 25 | [Teaser 0:40 di X](https://x.com/BangDropID/status/2113905544969048464) — motion graphic pixel + chiptune gamelan (Remotion) | ✅ |
 | 5K+ views kolektif | 25 | Sebar ke grup kicau mania, Dev Web3 Jogja, Monad Developers Indonesia | ⏳ |
 
 ## 4. Bonus (100)
@@ -68,7 +68,7 @@ Peta setiap butir rubrik ke bukti nyata. Status per 24 Okt 2026, ~14:30 WIB.
 - [ ] Submit di https://blitz.devnads.com/events/monad-blitz-jogja-v2 **lebih awal** (urutan submit = urutan pitching)
 - [ ] Isi GitHub URL + Demo URL (https://kicau.xyz)
 - [x] Post X (link di bagian 3)
-- [ ] Rekam video demo + iklan, isi baris ⏳
+- [x] Video demo + iklan diposting di X (15:05 & 15:08 WIB)
 - [ ] Pastikan lomba #0 status Judging + wallet host terisi MON untuk `finalize` di panggung
 - [ ] Satu tab saja (hindari 429 RPC), hard refresh sebelum naik
 - [ ] Ucapkan: repo, alamat kontrak, live URL, network
