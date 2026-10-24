@@ -6,9 +6,10 @@ Built at **Monad Blitz Jogja 2026**. Brief lengkap dan mekanisme: [docs/BRIEF.md
 
 | | |
 |---|---|
+| Network | **Monad Testnet** (chain 10143) |
+| Contract | [`0xDea6Da93265871d828B20cace2BADd5F5e70209d`](https://testnet.monadvision.com/address/0xDea6Da93265871d828B20cace2BADd5F5e70209d) (verified on MonadVision + Monadscan) |
 | Live app | _TBA_ |
-| Contract (Monad Testnet, chain 10143) | _TBA_ |
-| Explorer | _TBA_ |
+| Deploy tx | [`0x27f983ba…2942d`](https://testnet.monadvision.com/tx/0x27f983baa2af0d51e6a91b6d6d16e51ffdcc9d2410a9e9112663f7538ab2942d) |
 
 ## Apa yang dilakukan
 
