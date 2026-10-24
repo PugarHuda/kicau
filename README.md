@@ -14,6 +14,19 @@ Built at **Monad Blitz Jogja 2026** · [docs/JUDGING.md](docs/JUDGING.md) (rubri
 | Source | Same `contracts/src/Kicau.sol` on both networks · 60 Foundry tests · organizer "Kicau Demo Contest" registered on both |
 | Build in public | [X thread](https://x.com/BangDropID/status/2113853488170156259) · [update](https://x.com/BangDropID/status/2113869717429789043) · more in [JUDGING.md](docs/JUDGING.md#3-advance--did-anyone-see-it--build-in-public-100) |
 
+## Try it in 1 minute (no install, no wallet)
+
+1. Open **https://kicau.xyz** (Monad testnet).
+2. Click **⚡ Quick Play**. A burner wallet is created in your browser and funded from the testnet faucet. No MetaMask and no popups: each action is one transaction with its receipt in about a second.
+3. Things to try:
+   - **Contests** → [kicau.xyz/lomba](https://kicau.xyz/lomba): host a contest, enter a bird, score it as a judge and watch the live scoreboard, then finalize to pay the podium.
+   - **Register your bird** (home page): upload a photo → AI names the species → your bird becomes a pixel character with an on-chain record. Certificates/lineage are optional.
+   - **Play** Flappy with your bird (verified run → daily/weekly leaderboard), or walk around the [Kicau Garden](https://kicau.xyz/taman).
+   - **My Dashboard** → [kicau.xyz/me](https://kicau.xyz/me): your birds, Kicau Value chart, sponsorships and winnings.
+4. Every action links to MonadVision so you can check the transaction.
+
+Prefer your own wallet? Connect MetaMask/Rabby on Monad testnet (chain 10143; get MON at [faucet.monad.xyz](https://faucet.monad.xyz)). For **mainnet**, use https://mainnet.kicau.xyz with MetaMask and real MON (Quick Play is testnet-only).
+
 ## Problem
 
 *Kicau mania* is a nationwide Indonesian hobby with weekly songbird contests. Scores are on paper, results get disputed, and champion titles and pedigrees can't be verified. Demand for champion singers also drives poaching (Straw-headed bulbul and Bali myna are Critically Endangered).
@@ -59,32 +72,47 @@ web/        Next.js 15 · wagmi · viem · Tailwind v4
 docs/       JUDGING · INTEGRATIONS · PEDIGREE · BRIEF
 ```
 
-## Run it
+## Run it locally (developers)
 
-Prerequisites: Node 22+, [Foundry](https://getfoundry.sh). No wallet needed: ⚡ Quick Play creates a burner and funds it from the testnet faucet. MetaMask/Rabby also work.
+Prerequisites: **Node 22+** and git. Foundry ([getfoundry.sh](https://getfoundry.sh)) only if you want to test or deploy the contract.
+
+### 1. Frontend against the live contract (zero config)
 
 ```bash
-# contract
-cd contracts
-forge install --no-git foundry-rs/forge-std OpenZeppelin/openzeppelin-contracts@v5.4.0   # if lib/ is empty
-forge test                                   # 60 tests incl. fuzz + reentrancy
-cast wallet import deployer --interactive    # encrypted keystore, no key in files
-BASE_URI=https://<host>/metadata/ forge script script/Deploy.s.sol --rpc-url monad_testnet --account deployer --broadcast
-# optional env: TREASURY, CONSERVATION (default: deployer)
-
-# frontend
-cd ../web
+git clone https://github.com/PugarHuda/kicau.git
+cd kicau/web
 npm install
-cat > .env.local <<EOF
-NEXT_PUBLIC_KICAU_ADDRESS=0x947929841Ba8154BB6E9BDeb35137d159c6A0F58
-NEXT_PUBLIC_KICAU_DEPLOY_BLOCK=73741359
-# optional: AI species ID (on Vercel it falls back to AI Gateway via OIDC)
-ANTHROPIC_API_KEY=
-EOF
-npm run dev                                  # http://localhost:3000
+npm run dev            # http://localhost:3000
 ```
 
-After changing the contract: `forge build` then `cd web && npm run abi`.
+No `.env` needed: the app defaults to the deployed testnet contract (`0x9479…0F58`) and Quick Play works the same as on kicau.xyz.
+
+Optional `web/.env.local`:
+
+| Variable | What it does | Default |
+|---|---|---|
+| `ANTHROPIC_API_KEY` | AI species ID from the bird photo. Without it the AI panel shows an error; you can still type the species and register | (unset) |
+| `NEXT_PUBLIC_NETWORK` | `mainnet` points the app at Monad mainnet | testnet |
+| `NEXT_PUBLIC_KICAU_ADDRESS` / `NEXT_PUBLIC_KICAU_DEPLOY_BLOCK` | Use your own deployment instead | deployed contract of the chosen network |
+
+### 2. Contract: test and deploy your own
+
+```bash
+cd kicau/contracts
+forge install --no-git foundry-rs/forge-std OpenZeppelin/openzeppelin-contracts@v5.4.0   # lib/ is not committed
+forge test                                   # 60 tests incl. fuzz + reentrancy
+cast wallet import deployer --interactive    # encrypted keystore, no private key in files
+BASE_URI=https://<your-host>/metadata/ forge script script/Deploy.s.sol --rpc-url monad_testnet --account deployer --broadcast
+# optional env: TREASURY, CONSERVATION (default: deployer)
+```
+
+Then put the new address and deploy block in `web/.env.local` (see table above). After changing the contract: `forge build`, then `cd ../web && npm run abi` to regenerate the ABI.
+
+### Troubleshooting
+
+- **"Too many faucet requests"**: the testnet faucet is rate-limited; wait a minute or fund the burner address from [faucet.monad.xyz](https://faucet.monad.xyz).
+- **HTTP 429 / data loads slowly**: public Monad RPC rate limit; keep one tab open, the app retries automatically.
+- **Wallet on the wrong chain**: switch to Monad testnet (10143) or mainnet (143) to match the page.
 
 ## Contract API
 
