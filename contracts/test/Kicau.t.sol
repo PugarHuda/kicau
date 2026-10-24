@@ -178,4 +178,234 @@ contract KicauTest is Test {
         kicau.support{value: 1}(42);
         vm.stopPrank();
     }
+
+    // ------------------------------------------------------- v4: organizers
+
+    address org = makeAddr("org");
+
+    function _customBird() internal returns (uint256) {
+        vm.prank(alice);
+        return kicau.registerBird{value: 0.005 ether}("Si Jambul", hex"4b4301");
+    }
+
+    function test_OrganizerAddRemove() public {
+        kicau.setOrganizer(org, "Kontes Kicau", true);
+        (string memory name, bool active) = kicau.organizers(org);
+        assertEq(name, "Kontes Kicau");
+        assertTrue(active);
+        kicau.setOrganizer(org, "Kontes Kicau", false);
+        (, active) = kicau.organizers(org);
+        assertFalse(active);
+
+        vm.prank(alice);
+        vm.expectRevert();
+        kicau.setOrganizer(alice, "x", true);
+        vm.expectRevert(Kicau.ZeroAddress.selector);
+        kicau.setOrganizer(address(0), "x", true);
+    }
+
+    function test_AttestOnlyActiveOrganizer() public {
+        uint256 id = _customBird();
+        vm.prank(org);
+        vm.expectRevert(Kicau.NotOrganizer.selector);
+        kicau.attest(id, "Champion");
+
+        kicau.setOrganizer(org, "Kontes Kicau", true);
+        vm.prank(org);
+        vm.expectEmit(true, true, false, true);
+        emit Kicau.Attested(id, org, "Champion");
+        kicau.attest(id, "Champion");
+
+        assertEq(kicau.attestationCount(id), 1);
+        Kicau.Attestation[] memory list = kicau.attestationsOf(id);
+        assertEq(list[0].organizer, org);
+        assertEq(list[0].title, "Champion");
+        assertEq(list[0].timestamp, block.timestamp);
+        assertFalse(list[0].revoked);
+
+        kicau.setOrganizer(org, "Kontes Kicau", false);
+        vm.prank(org);
+        vm.expectRevert(Kicau.NotOrganizer.selector);
+        kicau.attest(id, "Again");
+    }
+
+    function test_AttestOnlyCustomBirdAndLimits() public {
+        kicau.setOrganizer(org, "Kontes Kicau", true);
+        vm.prank(alice);
+        uint256 bought = kicau.buy{value: 0.01 ether}(0);
+        uint256 id = _customBird();
+
+        vm.startPrank(org);
+        vm.expectRevert(Kicau.NotCustomBird.selector);
+        kicau.attest(bought, "Champion");
+        vm.expectRevert(Kicau.NotCustomBird.selector);
+        kicau.attest(12345, "Champion");
+        vm.expectRevert(Kicau.InvalidTitle.selector);
+        kicau.attest(id, "");
+        vm.expectRevert(Kicau.InvalidTitle.selector);
+        kicau.attest(id, string(new bytes(65)));
+        kicau.attest(id, string(new bytes(64)));
+        for (uint256 i = 1; i < 32; i++) {
+            kicau.attest(id, "t");
+        }
+        vm.expectRevert(Kicau.TooManyAttestations.selector);
+        kicau.attest(id, "t");
+        vm.stopPrank();
+        assertEq(kicau.attestationCount(id), 32);
+    }
+
+    function test_RevokeAttestation() public {
+        kicau.setOrganizer(org, "Kontes Kicau", true);
+        kicau.setOrganizer(bob, "Other", true);
+        uint256 id = _customBird();
+        vm.prank(org);
+        kicau.attest(id, "Champion");
+
+        vm.prank(bob);
+        vm.expectRevert(Kicau.InvalidAttestation.selector);
+        kicau.revokeAttestation(id, 0);
+        vm.prank(org);
+        vm.expectRevert(Kicau.InvalidAttestation.selector);
+        kicau.revokeAttestation(id, 1);
+
+        vm.prank(org);
+        kicau.revokeAttestation(id, 0);
+        assertTrue(kicau.attestationsOf(id)[0].revoked);
+        vm.prank(org);
+        vm.expectRevert(Kicau.InvalidAttestation.selector);
+        kicau.revokeAttestation(id, 0);
+    }
+
+    // ------------------------------------------------------------- v4: runs
+
+    function _aliceRun() internal returns (uint256 tokenId, uint256 runId, uint256 seed) {
+        vm.startPrank(alice);
+        tokenId = kicau.buy{value: 0.01 ether}(0);
+        (runId, seed) = kicau.startRun(tokenId);
+        vm.stopPrank();
+    }
+
+    function test_RunHappyPath() public {
+        (uint256 tokenId, uint256 runId, uint256 seed) = _aliceRun();
+        assertEq(runId, 1);
+        (address player, uint64 start,, bool active, uint256 tid, uint256 s) = kicau.runs(runId);
+        assertEq(player, alice);
+        assertEq(start, block.timestamp);
+        assertTrue(active);
+        assertEq(tid, tokenId);
+        assertEq(s, seed);
+        assertEq(kicau.activeRunOf(alice), runId);
+
+        vm.warp(block.timestamp + 20);
+        vm.prank(alice);
+        vm.expectEmit(true, true, true, true);
+        emit Kicau.ScoreSubmitted(alice, tokenId, 0, 20, 3);
+        kicau.submitRun(runId, 20);
+
+        assertEq(kicau.bestByToken(tokenId), 20);
+        assertEq(kicau.bestByPlayer(alice), 20);
+        assertEq(kicau.bestValidatedByPlayer(alice), 20);
+        assertEq(kicau.activeRunOf(alice), 0);
+        (,,, active,,) = kicau.runs(runId);
+        assertFalse(active);
+
+        vm.prank(alice);
+        vm.expectRevert(Kicau.RunNotActive.selector);
+        kicau.submitRun(runId, 1);
+    }
+
+    function test_RevertRunTooFast() public {
+        (, uint256 runId,) = _aliceRun();
+        vm.warp(block.timestamp + 5);
+        vm.prank(alice);
+        vm.expectRevert(Kicau.ScoreTooFast.selector);
+        kicau.submitRun(runId, 9); // 5 s + 3 s grace = max 8
+        vm.prank(alice);
+        kicau.submitRun(runId, 8);
+    }
+
+    function test_RevertRunWrongPlayer() public {
+        (, uint256 runId,) = _aliceRun();
+        vm.warp(block.timestamp + 10);
+        vm.prank(bob);
+        vm.expectRevert(Kicau.NotRunPlayer.selector);
+        kicau.submitRun(runId, 1);
+    }
+
+    function test_RevertRunTokenTransferred() public {
+        (uint256 tokenId, uint256 runId,) = _aliceRun();
+        vm.prank(alice);
+        kicau.transferFrom(alice, bob, tokenId);
+        vm.warp(block.timestamp + 10);
+        vm.prank(alice);
+        vm.expectRevert(Kicau.NotBirdOwner.selector);
+        kicau.submitRun(runId, 1);
+    }
+
+    function test_RevertStartRunNotOwner() public {
+        vm.prank(alice);
+        uint256 tokenId = kicau.buy{value: 0.01 ether}(0);
+        vm.prank(bob);
+        vm.expectRevert(Kicau.NotBirdOwner.selector);
+        kicau.startRun(tokenId);
+    }
+
+    function test_RevertRunExpired() public {
+        (, uint256 runId,) = _aliceRun();
+        vm.warp(block.timestamp + 1 hours + 1);
+        vm.prank(alice);
+        vm.expectRevert(Kicau.RunExpired.selector);
+        kicau.submitRun(runId, 1);
+    }
+
+    function test_NewRunClosesPrevious() public {
+        (uint256 tokenId, uint256 runId,) = _aliceRun();
+        vm.prank(alice);
+        (uint256 runId2, uint256 seed2) = kicau.startRun(tokenId);
+        assertEq(runId2, runId + 1);
+        assertTrue(seed2 != 0);
+        assertEq(kicau.activeRunOf(alice), runId2);
+        vm.warp(block.timestamp + 10);
+        vm.startPrank(alice);
+        vm.expectRevert(Kicau.RunNotActive.selector);
+        kicau.submitRun(runId, 1);
+        kicau.submitRun(runId2, 1);
+        vm.stopPrank();
+    }
+
+    function test_LeaderboardV2() public {
+        (, uint256 runId,) = _aliceRun();
+        vm.warp(block.timestamp + 30);
+        vm.prank(alice);
+        kicau.submitRun(runId, 25);
+
+        vm.startPrank(bob);
+        uint256 bobToken = kicau.buy{value: 0.01 ether}(0);
+        kicau.submitScore(bobToken, 99, 2);
+        vm.stopPrank();
+
+        (address[] memory players, uint256[] memory best, uint256[] memory validated) = kicau.getLeaderboardV2();
+        assertEq(players.length, 2);
+        assertEq(players[0], alice);
+        assertEq(best[0], 25);
+        assertEq(validated[0], 25);
+        assertEq(players[1], bob);
+        assertEq(best[1], 99);
+        assertEq(validated[1], 0);
+    }
+
+    function testFuzz_RunTimeBound(uint32 elapsed, uint256 score) public {
+        elapsed = uint32(bound(elapsed, 0, 1 hours));
+        score = bound(score, 0, 10_000);
+        (, uint256 runId,) = _aliceRun();
+        vm.warp(block.timestamp + elapsed);
+        vm.prank(alice);
+        if (score * 1000 > uint256(elapsed) * 1000 + 3000) {
+            vm.expectRevert(Kicau.ScoreTooFast.selector);
+            kicau.submitRun(runId, score);
+        } else {
+            kicau.submitRun(runId, score);
+            assertEq(kicau.bestValidatedByPlayer(alice), score);
+        }
+    }
 }

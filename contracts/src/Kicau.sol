@@ -29,6 +29,36 @@ contract Kicau is ERC721Enumerable, Ownable, ReentrancyGuard {
     uint256 public constant CUSTOM_SPECIES = 999;
     uint256 public constant MAX_NAME_BYTES = 32;
     uint256 public constant MAX_IMAGE_BYTES = 4096;
+    uint256 public constant MAX_TITLE_BYTES = 64;
+    uint256 public constant MAX_ATTESTATIONS = 32;
+    /// @notice Physical floor for the flappy game: pipes spawn every 1.4 s at start and speed up
+    ///         +5% per 10 points, so each point needs >= ~0.9 s of real play. 1000 ms/point is the bound.
+    uint256 public constant MIN_MS_PER_POINT = 1000;
+    /// @notice Slack for second-granularity block timestamps and inclusion delay.
+    uint256 public constant GRACE_MS = 3000;
+    uint256 public constant MAX_RUN_AGE = 1 hours;
+    uint8 public constant RUN_GAME_VERSION = 3;
+
+    struct Organizer {
+        string name;
+        bool active;
+    }
+
+    struct Attestation {
+        address organizer;
+        uint64 timestamp;
+        bool revoked;
+        string title;
+    }
+
+    struct Run {
+        address player;
+        uint64 startTime;
+        uint64 startBlock;
+        bool active;
+        uint256 tokenId;
+        uint256 seed;
+    }
 
     Species[] internal _species;
     mapping(uint256 tokenId => uint256) public speciesOf;
@@ -51,6 +81,15 @@ contract Kicau is ERC721Enumerable, Ownable, ReentrancyGuard {
     mapping(uint256 speciesId => uint256) public supportOf;
     string public baseURI;
 
+    mapping(address org => Organizer) public organizers;
+    mapping(uint256 tokenId => Attestation[]) public attestations;
+    /// @notice Run ids start at 1; 0 means "no run".
+    mapping(uint256 runId => Run) public runs;
+    mapping(address player => uint256) public activeRunOf;
+    uint256 public runNonce;
+    /// @notice Best score per player that came from a seeded, time-validated run.
+    mapping(address player => uint256) public bestValidatedByPlayer;
+
     event BirdBought(address indexed buyer, uint256 indexed tokenId, uint256 indexed speciesId, uint256 conservation);
     event ScoreSubmitted(
         address indexed player, uint256 indexed tokenId, uint256 indexed speciesId, uint256 score, uint8 gameVersion
@@ -58,6 +97,11 @@ contract Kicau is ERC721Enumerable, Ownable, ReentrancyGuard {
     event Supported(address indexed supporter, uint256 indexed speciesId, uint256 amount);
     event BirdRegistered(address indexed owner, uint256 indexed tokenId, string name, bytes image);
     event SpeciesAdded(uint256 indexed speciesId, string name, uint256 price, uint256 maxSupply);
+    event OrganizerSet(address indexed organizer, string name, bool active);
+    event Attested(uint256 indexed tokenId, address indexed organizer, string title);
+    event AttestationRevoked(uint256 indexed tokenId, address indexed organizer, uint256 index);
+    event RunStarted(uint256 indexed runId, address indexed player, uint256 indexed tokenId, uint256 seed);
+    event RunSubmitted(uint256 indexed runId, uint256 score);
 
     error UnknownSpecies();
     error WrongPayment();
@@ -67,6 +111,15 @@ contract Kicau is ERC721Enumerable, Ownable, ReentrancyGuard {
     error ZeroAddress();
     error TransferFailed();
     error InvalidBird();
+    error NotOrganizer();
+    error NotCustomBird();
+    error InvalidTitle();
+    error TooManyAttestations();
+    error InvalidAttestation();
+    error RunNotActive();
+    error NotRunPlayer();
+    error RunExpired();
+    error ScoreTooFast();
 
     constructor(address treasury_, address conservationWallet_, string memory baseURI_) ERC721("Kicau", "KICAU") Ownable(msg.sender) {
         if (treasury_ == address(0) || conservationWallet_ == address(0)) revert ZeroAddress();
@@ -138,16 +191,69 @@ contract Kicau is ERC721Enumerable, Ownable, ReentrancyGuard {
 
     // -------------------------------------------------------------- score
 
-    /// @dev Score is client-reported; anti-cheat (signed replays) is roadmap.
+    /// @notice Legacy, unvalidated score (kept for backward compatibility). v4 frontends use startRun/submitRun.
     function submitScore(uint256 tokenId, uint256 score, uint8 gameVersion) external {
         if (ownerOf(tokenId) != msg.sender) revert NotBirdOwner();
-        if (!_isPlayer[msg.sender]) {
-            _isPlayer[msg.sender] = true;
-            _players.push(msg.sender);
-        }
-        if (score > bestByToken[tokenId]) bestByToken[tokenId] = score;
-        if (score > bestByPlayer[msg.sender]) bestByPlayer[msg.sender] = score;
-        emit ScoreSubmitted(msg.sender, tokenId, speciesOf[tokenId], score, gameVersion);
+        _recordScore(tokenId, score, gameVersion);
+    }
+
+    // --------------------------------------------------------------- runs
+
+    /// @notice Start a seeded run. The seed drives the frontend's deterministic pipe layout.
+    ///         Starting a new run closes the caller's previous one.
+    function startRun(uint256 tokenId) external returns (uint256 runId, uint256 seed) {
+        if (ownerOf(tokenId) != msg.sender) revert NotBirdOwner();
+        uint256 prev = activeRunOf[msg.sender];
+        if (prev != 0) runs[prev].active = false;
+
+        runId = ++runNonce;
+        seed = uint256(keccak256(abi.encode(block.prevrandao, msg.sender, tokenId, runId)));
+        runs[runId] = Run(msg.sender, uint64(block.timestamp), uint64(block.number), true, tokenId, seed);
+        activeRunOf[msg.sender] = runId;
+        emit RunStarted(runId, msg.sender, tokenId, seed);
+    }
+
+    /// @notice Submit a run's score. Rejected if faster than MIN_MS_PER_POINT allows or older than MAX_RUN_AGE.
+    function submitRun(uint256 runId, uint256 score) external {
+        Run storage r = runs[runId];
+        if (!r.active) revert RunNotActive();
+        if (r.player != msg.sender) revert NotRunPlayer();
+        uint256 tokenId = r.tokenId;
+        if (ownerOf(tokenId) != msg.sender) revert NotBirdOwner();
+        uint256 elapsed = block.timestamp - r.startTime;
+        if (elapsed > MAX_RUN_AGE) revert RunExpired();
+        // Division form so a huge score cannot overflow.
+        if (score > (elapsed * 1000 + GRACE_MS) / MIN_MS_PER_POINT) revert ScoreTooFast();
+
+        r.active = false;
+        activeRunOf[msg.sender] = 0;
+        if (score > bestValidatedByPlayer[msg.sender]) bestValidatedByPlayer[msg.sender] = score;
+        _recordScore(tokenId, score, RUN_GAME_VERSION);
+        emit RunSubmitted(runId, score);
+    }
+
+    // ------------------------------------------------------- attestations
+
+    /// @notice Active organizers attest a title (e.g. a contest championship) to a registered bird.
+    function attest(uint256 tokenId, string calldata title) external {
+        if (!organizers[msg.sender].active) revert NotOrganizer();
+        if (speciesOf[tokenId] != CUSTOM_SPECIES) revert NotCustomBird();
+        uint256 len = bytes(title).length;
+        if (len == 0 || len > MAX_TITLE_BYTES) revert InvalidTitle();
+        Attestation[] storage list = attestations[tokenId];
+        if (list.length >= MAX_ATTESTATIONS) revert TooManyAttestations();
+        list.push(Attestation(msg.sender, uint64(block.timestamp), false, title));
+        emit Attested(tokenId, msg.sender, title);
+    }
+
+    /// @notice The attesting organizer can revoke their own attestation (kept, marked revoked).
+    function revokeAttestation(uint256 tokenId, uint256 index) external {
+        Attestation[] storage list = attestations[tokenId];
+        if (index >= list.length) revert InvalidAttestation();
+        Attestation storage a = list[index];
+        if (a.organizer != msg.sender || a.revoked) revert InvalidAttestation();
+        a.revoked = true;
+        emit AttestationRevoked(tokenId, msg.sender, index);
     }
 
     // -------------------------------------------------------------- views
@@ -182,6 +288,31 @@ contract Kicau is ERC721Enumerable, Ownable, ReentrancyGuard {
         for (uint256 i; i < players.length; i++) {
             scores[i] = bestByPlayer[players[i]];
         }
+    }
+
+    /// @notice Leaderboard plus each player's best score from validated runs (0 = none yet).
+    /// @dev ponytail: same unbounded read as getLeaderboard; indexer when players grow.
+    function getLeaderboardV2()
+        external
+        view
+        returns (address[] memory players, uint256[] memory bestScores, uint256[] memory bestValidated)
+    {
+        players = _players;
+        uint256 n = players.length;
+        bestScores = new uint256[](n);
+        bestValidated = new uint256[](n);
+        for (uint256 i; i < n; i++) {
+            bestScores[i] = bestByPlayer[players[i]];
+            bestValidated[i] = bestValidatedByPlayer[players[i]];
+        }
+    }
+
+    function attestationsOf(uint256 tokenId) external view returns (Attestation[] memory) {
+        return attestations[tokenId];
+    }
+
+    function attestationCount(uint256 tokenId) external view returns (uint256) {
+        return attestations[tokenId].length;
     }
 
     /// @notice Game stats for a token. Registered birds play with balanced 100/100/100.
@@ -232,6 +363,14 @@ contract Kicau is ERC721Enumerable, Ownable, ReentrancyGuard {
         baseURI = uri;
     }
 
+    function setOrganizer(address org, string calldata name, bool active) external onlyOwner {
+        if (org == address(0)) revert ZeroAddress();
+        uint256 len = bytes(name).length;
+        if (len == 0 || len > MAX_TITLE_BYTES) revert InvalidTitle();
+        organizers[org] = Organizer(name, active);
+        emit OrganizerSet(org, name, active);
+    }
+
     // ----------------------------------------------------------- internal
 
     function _addSpecies(string memory name, uint128 price, uint32 maxSupply, uint16 gravity, uint16 flapPower, uint16 hitbox)
@@ -239,6 +378,16 @@ contract Kicau is ERC721Enumerable, Ownable, ReentrancyGuard {
     {
         _species.push(Species(name, price, maxSupply, 0, gravity, flapPower, hitbox));
         emit SpeciesAdded(_species.length - 1, name, price, maxSupply);
+    }
+
+    function _recordScore(uint256 tokenId, uint256 score, uint8 gameVersion) internal {
+        if (!_isPlayer[msg.sender]) {
+            _isPlayer[msg.sender] = true;
+            _players.push(msg.sender);
+        }
+        if (score > bestByToken[tokenId]) bestByToken[tokenId] = score;
+        if (score > bestByPlayer[msg.sender]) bestByPlayer[msg.sender] = score;
+        emit ScoreSubmitted(msg.sender, tokenId, speciesOf[tokenId], score, gameVersion);
     }
 
     /// @dev Pass-through split; rounding dust goes to treasury. Returns the conservation share.
