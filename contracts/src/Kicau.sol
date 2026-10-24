@@ -47,12 +47,15 @@ contract Kicau is ERC721Enumerable, Ownable, ReentrancyGuard {
     ///      Frontends fetch the log from exactly this block, so no wide getLogs range is needed.
     mapping(uint256 tokenId => uint256) public registeredAt;
     mapping(uint256 tokenId => string) public customName;
+    /// @notice Total donated per species through support() (100% goes to conservation).
+    mapping(uint256 speciesId => uint256) public supportOf;
     string public baseURI;
 
     event BirdBought(address indexed buyer, uint256 indexed tokenId, uint256 indexed speciesId, uint256 conservation);
     event ScoreSubmitted(
         address indexed player, uint256 indexed tokenId, uint256 indexed speciesId, uint256 score, uint8 gameVersion
     );
+    event Supported(address indexed supporter, uint256 indexed speciesId, uint256 amount);
     event BirdRegistered(address indexed owner, uint256 indexed tokenId, string name, bytes image);
     event SpeciesAdded(uint256 indexed speciesId, string name, uint256 price, uint256 maxSupply);
 
@@ -93,6 +96,18 @@ contract Kicau is ERC721Enumerable, Ownable, ReentrancyGuard {
 
         uint256 conservation = _split(msg.value);
         emit BirdBought(msg.sender, tokenId, speciesId, conservation);
+    }
+
+    // ------------------------------------------------------------ support
+
+    /// @notice Donate for a species without adopting. The full amount goes to the conservation wallet.
+    function support(uint256 speciesId) external payable nonReentrant {
+        if (speciesId >= _species.length) revert UnknownSpecies();
+        if (msg.value == 0) revert WrongPayment();
+        supportOf[speciesId] += msg.value;
+        totalConservation += msg.value;
+        _send(conservationWallet, msg.value);
+        emit Supported(msg.sender, speciesId, msg.value);
     }
 
     // ----------------------------------------------------------- register

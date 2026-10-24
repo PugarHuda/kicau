@@ -7,9 +7,9 @@ Built at **Monad Blitz Jogja 2026**. Brief lengkap dan mekanisme: [docs/BRIEF.md
 | | |
 |---|---|
 | Network | **Monad Testnet** (chain 10143) |
-| Contract | [`0xE9DC8a36e8f14c85E687eEe26978692dA98cbeab`](https://testnet.monadvision.com/address/0xE9DC8a36e8f14c85E687eEe26978692dA98cbeab) (verified on MonadVision + Monadscan) |
+| Contract | [`0x7b0A5E9D4A8b1bf2829478e72f62283C6939C816`](https://testnet.monadvision.com/address/0x7b0A5E9D4A8b1bf2829478e72f62283C6939C816) (verified on MonadVision + Monadscan) |
 | Live app | **https://kicau-theta.vercel.app** |
-| Deploy tx | [`0x3a11dc52…2c002`](https://testnet.monadvision.com/tx/0x3a11dc52d390a174a768991de654e9f127978d92af0d687cd4b33288eea2c002) |
+| Deploy tx | [`0xbc190b63…4a794`](https://testnet.monadvision.com/tx/0xbc190b63991354d67859ec17f26601755e00a66e59c2404f7af76a62be44a794) |
 
 ## Apa yang dilakukan
 

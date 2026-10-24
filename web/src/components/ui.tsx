@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect } from "react";
-import { formatEther } from "viem";
+import { useEffect, useState } from "react";
+import { formatEther, parseEther } from "viem";
 import { BIRDS, IUCN_LABEL, birdDataUri } from "@/lib/birds";
 import { chirp } from "@/lib/chirp";
 import { EXPLORER } from "@/lib/config";
+import { VIDEOS } from "@/lib/videos";
 
 export type Species = {
   name: string;
@@ -82,12 +83,16 @@ export function BirdCard({
   id,
   species,
   onBuy,
+  onSupport,
+  supported,
   busy,
   canBuy,
 }: {
   id: number;
   species: Species;
   onBuy: () => void;
+  onSupport: (amount: bigint) => void;
+  supported?: bigint;
   busy: boolean;
   canBuy: boolean;
 }) {
@@ -105,9 +110,7 @@ export function BirdCard({
       <p className="mb-3 text-sm italic text-muted">
         {bird?.latin} · {bird?.rarity}
       </p>
-      <button onClick={() => chirp(id)} className="btn-ghost mb-4 !py-1.5 text-sm">
-        ▶ Dengar kicaunya
-      </button>
+      <BirdVideo id={id} />
       <p className="mb-5 leading-relaxed">{bird?.description}</p>
       <div className="mb-5 space-y-2 rounded-2xl border border-line p-4">
         <StatBar label="Gravitasi" value={species.gravity} />
@@ -125,6 +128,65 @@ export function BirdCard({
           {soldOut ? "Sold out" : busy ? "Memproses…" : "Adopsi NFT"}
         </button>
       </div>
+      <div className="mt-5 border-t-[3px] border-dashed border-ink pt-4">
+        <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
+          <span className="font-display text-xs">Support tanpa adopsi</span>
+          <span className="text-sm text-muted">
+            Terkumpul {supported !== undefined ? formatEther(supported) : "…"} MON · 100% ke konservasi
+          </span>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {["0.005", "0.01", "0.05"].map((amt) => (
+            <button key={amt} onClick={() => onSupport(parseEther(amt))} disabled={busy || !canBuy} className="btn-ghost !py-2">
+              {amt} MON
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Real singing clip of the species (loaded on demand: Commons file or youtube-nocookie embed). */
+function BirdVideo({ id }: { id: number }) {
+  const [open, setOpen] = useState(false);
+  const v = VIDEOS[id];
+  return (
+    <div className="mb-4">
+      <div className="mb-2 flex flex-wrap gap-2">
+        {v && (
+          <button onClick={() => setOpen((o) => !o)} className="btn-primary !py-2" aria-expanded={open}>
+            {open ? "Tutup video" : "Lihat video asli"}
+          </button>
+        )}
+        <button onClick={() => chirp(id)} className="btn-ghost !py-2">
+          Kicau pixel
+        </button>
+      </div>
+      {open && v && (
+        <figure>
+          <div className="aspect-video w-full border-[3px] border-ink bg-ink">
+            {v.kind === "file" ? (
+              <video src={v.src} className="h-full w-full" controls autoPlay playsInline />
+            ) : (
+              <iframe
+                className="h-full w-full"
+                src={`https://www.youtube-nocookie.com/embed/${v.id}?autoplay=1&rel=0`}
+                title="Video kicau burung"
+                allow="autoplay; encrypted-media; picture-in-picture"
+                allowFullScreen
+              />
+            )}
+          </div>
+          <figcaption className="mt-1 text-xs text-muted">
+            Video:{" "}
+            <a href={v.page} target="_blank" rel="noreferrer" className="underline">
+              {v.author}
+            </a>{" "}
+            · {v.license}
+          </figcaption>
+        </figure>
+      )}
     </div>
   );
 }

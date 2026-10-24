@@ -18,7 +18,8 @@ import {
 import { monadTestnet } from "wagmi/chains";
 import { FlappyGame } from "@/components/FlappyGame";
 import { RegisterBird } from "@/components/RegisterBird";
-import { BirdArt, BirdCard, IucnBadge, Modal, TxLink, short, type Species } from "@/components/ui";
+import { ShelterScene } from "@/components/ShelterScene";
+import { BirdArt, BirdCard, Modal, TxLink, short, type Species } from "@/components/ui";
 import { kicauAbi } from "@/lib/abi";
 import { BIRDS } from "@/lib/birds";
 import { type BurnerClient, createBurner, forgetBurner, fundBurner, loadBurner } from "@/lib/burner";
@@ -63,6 +64,12 @@ export default function Home() {
   const { data: totalConservation } = useReadContract({ ...kicau, functionName: "totalConservation", query: { enabled } });
   const { data: board } = useReadContract({ ...kicau, functionName: "getLeaderboard", query: { enabled } });
   const { data: registerFee } = useReadContract({ ...kicau, functionName: "registerFee", query: { enabled } });
+  const { data: supportedRaw } = useReadContract({
+    ...kicau,
+    functionName: "supportOf",
+    args: [BigInt(openSpecies ?? 0)],
+    query: { enabled: enabled && openSpecies !== null },
+  });
   const { data: tokenIds } = useReadContract({
     ...kicau,
     functionName: "tokensOf",
@@ -111,7 +118,8 @@ export default function Home() {
   type Write =
     | { functionName: "buy"; args: readonly [bigint]; value: bigint }
     | { functionName: "submitScore"; args: readonly [bigint, bigint, number] }
-    | { functionName: "registerBird"; args: readonly [string, `0x${string}`]; value: bigint };
+    | { functionName: "registerBird"; args: readonly [string, `0x${string}`]; value: bigint }
+    | { functionName: "support"; args: readonly [bigint]; value: bigint };
 
   async function send(req: Write) {
     setError(undefined);
@@ -171,6 +179,10 @@ export default function Home() {
       setResult(null);
       setGame(null);
     }
+  }
+
+  async function support(id: number, amount: bigint) {
+    await send({ functionName: "support", args: [BigInt(id)], value: amount });
   }
 
   async function register(name: string, image: Uint8Array) {
@@ -289,28 +301,18 @@ export default function Home() {
             + Daftarkan burungmu
           </button>
         </div>
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-          {BIRDS.map((b, id) => {
+        <ShelterScene
+          birds={BIRDS.map((b, id) => {
             const s = species[id];
-            return (
-              <button
-                key={id}
-                onClick={() => s && setOpenSpecies(id)}
-                className="group rounded-3xl border border-line bg-paper p-4 text-left transition hover:-translate-y-1 hover:border-ink hover:shadow-lg"
-              >
-                <div className="mb-3 grid place-items-center rounded-2xl bg-cream py-4">
-                  <BirdArt id={id} className="h-20 w-auto transition group-hover:scale-110" />
-                </div>
-                <div className="font-display text-lg font-bold leading-tight">{b.name}</div>
-                <div className="mb-2 text-xs text-muted">{b.rarity}</div>
-                <div className="flex items-center justify-between gap-1">
-                  <IucnBadge id={id} />
-                  <span className="text-sm font-semibold tabular-nums">{s ? `${formatEther(s.price)} MON` : "…"}</span>
-                </div>
-              </button>
-            );
+            return {
+              id,
+              name: b.name,
+              priceLabel: s ? `${formatEther(s.price)} MON` : "…",
+              soldOut: !!s && s.minted >= s.maxSupply,
+            };
           })}
-        </div>
+          onSelect={(id) => species[id] && setOpenSpecies(id)}
+        />
       </section>
 
       <div className="grid gap-8 lg:grid-cols-[1.4fr_1fr]">
@@ -386,6 +388,8 @@ export default function Home() {
             busy={txBusy}
             canBuy={ready}
             onBuy={() => buy(openSpecies)}
+            onSupport={(amount) => support(openSpecies, amount)}
+            supported={supportedRaw}
           />
           {!ready && <p className="mt-3 text-sm text-clay">Klik ⚡ Quick Play atau hubungkan wallet ke Monad Testnet untuk adopsi.</p>}
         </Modal>

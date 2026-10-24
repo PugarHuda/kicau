@@ -159,4 +159,23 @@ contract KicauTest is Test {
         (, uint16 f,) = kicau.statsOf(id);
         assertEq(f, 125);
     }
+
+    function test_SupportGoesFullyToConservation() public {
+        vm.prank(alice);
+        kicau.support{value: 0.02 ether}(3);
+        assertEq(conservation.balance, 0.02 ether);
+        assertEq(treasury.balance, 0);
+        assertEq(kicau.supportOf(3), 0.02 ether);
+        assertEq(kicau.totalConservation(), 0.02 ether);
+        assertEq(address(kicau).balance, 0);
+    }
+
+    function test_RevertSupportInvalid() public {
+        vm.startPrank(alice);
+        vm.expectRevert(Kicau.WrongPayment.selector);
+        kicau.support{value: 0}(0);
+        vm.expectRevert(Kicau.UnknownSpecies.selector);
+        kicau.support{value: 1}(42);
+        vm.stopPrank();
+    }
 }
