@@ -8,7 +8,7 @@ export const maxDuration = 30;
 
 // Cost-aware: cheap Haiku first, escalate to Sonnet only when Haiku is unsure.
 // ANTHROPIC_API_KEY set -> Anthropic API directly (own Claude credits); otherwise Vercel AI Gateway (OIDC).
-const ESCALATE_BELOW = 0.6;
+const ESCALATE_BELOW = 0.85; // e.g. female shama vs magpie-robin came back at 0.8 from Haiku
 const anthropic = process.env.ANTHROPIC_API_KEY ? createAnthropic({ apiKey: process.env.ANTHROPIC_API_KEY }) : null;
 const CHEAP: LanguageModel = anthropic ? anthropic("claude-haiku-5-5") : "anthropic/claude-haiku-5.5";
 const STRONG: LanguageModel = anthropic ? anthropic("claude-sonnet-5-5") : "anthropic/claude-sonnet-5.5";
