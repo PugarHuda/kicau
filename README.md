@@ -1,5 +1,7 @@
 # Kicau
 
+![Kicau: keep the song, not the cage](docs/kicau-cover.png)
+
 **The on-chain record for real-life songbird contests.** Kicau puts Indonesian *gantangan* songbird contests on Monad: judges score on-chain, a live scoreboard updates in under a second, prizes pay out in the finalize tx, and champion titles become verifiable pedigree for real birds. Plus a pixel Flappy game and open world where your bird lives.
 
 Built at **Monad Blitz Jogja 2026** · [docs/JUDGING.md](docs/JUDGING.md) (rubric → evidence) · [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md) · [docs/PEDIGREE.md](docs/PEDIGREE.md) · [docs/BRIEF.md](docs/BRIEF.md)
@@ -12,8 +14,8 @@ Built at **Monad Blitz Jogja 2026** · [docs/JUDGING.md](docs/JUDGING.md) (rubri
 | **Testnet** (chain 10143, used by the app) | [`0x947929841Ba8154BB6E9BDeb35137d159c6A0F58`](https://testnet.monadvision.com/address/0x947929841Ba8154BB6E9BDeb35137d159c6A0F58) · verified on MonadVision + [Monadscan](https://testnet.monadscan.com/address/0x947929841Ba8154BB6E9BDeb35137d159c6A0F58) · deploy tx [`0x2d3980a3…5efb69d`](https://testnet.monadvision.com/tx/0x2d3980a35125711b90e1d3b6972c8991ce6bb22fc21d89975d4dae1a15efb69d) (block 73741359) |
 | **Mainnet** (chain 143) | [`0xA98CeE28C6EB35b6Ee7440b7490e265f23975d61`](https://monadvision.com/address/0xA98CeE28C6EB35b6Ee7440b7490e265f23975d61) · verified on MonadVision + [Monadscan](https://monadscan.com/address/0xA98CeE28C6EB35b6Ee7440b7490e265f23975d61) · deploy tx [`0x34c0b085…a3bb01`](https://monadvision.com/tx/0x34c0b0859000f0a8c99e04d1b5f705626951714bb81faef3d37640c4c2a3bb01) · weekly pool funded 0.5 MON |
 | Source | Same `contracts/src/Kicau.sol` on both networks · 60 Foundry tests · organizer "Kicau Demo Contest" registered on both |
-| Videos | Demo v2: [kicau.xyz/demo/kicau-demo.mp4](https://kicau.xyz/demo/kicau-demo.mp4) · Teaser (0:40): [kicau.xyz/demo/kicau-teaser.mp4](https://kicau.xyz/demo/kicau-teaser.mp4) · both also on X |
-| Build in public | [X thread](https://x.com/BangDropID/status/2113853488170156259) · [update](https://x.com/BangDropID/status/2113869717429789043) · more in [JUDGING.md](docs/JUDGING.md#3-advance--did-anyone-see-it--build-in-public-100) |
+| Videos | Demo (1:53): [watch / download](https://kicau.xyz/demo/kicau-demo.mp4) · [on X](https://x.com/BangDropID/status/2113904695873798527) · Ad / teaser (0:40): [watch / download](https://kicau.xyz/demo/kicau-teaser.mp4) · [on X](https://x.com/BangDropID/status/2113905544969048464) |
+| Build in public | 12 posts on X by the team, all listed in [Build in public](#build-in-public) below |
 
 ## Try it in 1 minute (no install, no wallet)
 
@@ -27,6 +29,41 @@ Built at **Monad Blitz Jogja 2026** · [docs/JUDGING.md](docs/JUDGING.md) (rubri
 4. Every action links to MonadVision so you can check the transaction.
 
 Prefer your own wallet? Connect MetaMask/Rabby on Monad testnet (chain 10143; get MON at [faucet.monad.xyz](https://faucet.monad.xyz)). For **mainnet**, use https://mainnet.kicau.xyz with MetaMask and real MON (Quick Play is testnet-only).
+
+## Build in public
+
+All posts were made during Monad Blitz Jogja V2 (24 Oct 2026). The @BangDropID thread tags @monad @monad_dev @geeky_kartikey.
+
+**Videos**
+
+| Video | Length | Watch |
+|---|---|---|
+| Product demo (real clicks on kicau.xyz: register + AI, Kicau Value, pedigree, My Dashboard, sponsor, Flappy, Garden, mainnet, live contest, podium) | 1:53 | [kicau.xyz/demo/kicau-demo.mp4](https://kicau.xyz/demo/kicau-demo.mp4) · [X post](https://x.com/BangDropID/status/2113904695873798527) |
+| Creative ad / teaser (pixel motion graphics + chiptune) | 0:40 | [kicau.xyz/demo/kicau-teaser.mp4](https://kicau.xyz/demo/kicau-teaser.mp4) · [X post](https://x.com/BangDropID/status/2113905544969048464) |
+
+**[@BangDropID](https://x.com/BangDropID)**
+
+| Time (WIB) | Post |
+|---|---|
+| 11:41 | [Building in public: Kicau kickoff](https://x.com/BangDropID/status/2113853488170156259) |
+| 11:42 | [The Monad side: Quick Play + monadLogs, repo and contract](https://x.com/BangDropID/status/2113853615941284205) |
+| 12:46 | [Hour 3: Kicau Garden and what shipped](https://x.com/BangDropID/status/2113869717429789043) |
+| 13:50 | [Hour 4: on-chain contests, Kicau Value, AI species ID](https://x.com/BangDropID/status/2113885785019798003) |
+| 15:05 | [Demo video](https://x.com/BangDropID/status/2113904695873798527) |
+| 15:08 | [Ad / teaser video](https://x.com/BangDropID/status/2113905544969048464) |
+| 15:42 | [Final hour: My Dashboard, pedigree, mainnet toggle](https://x.com/BangDropID/status/2113914109905539443) |
+
+**[@maziazi_](https://x.com/maziazi_)**
+
+| Time (WIB) | Post |
+|---|---|
+| 13:49 | [Just shipped Kicau at #MonadBlitz](https://x.com/maziazi_/status/2113885481339699617) |
+| 13:59 | [Register your real songbird as a pixel NFT with on-chain pedigree](https://x.com/maziazi_/status/2113887970956820525) |
+| 14:27 | [Explore every registered songbird, adopt and play](https://x.com/maziazi_/status/2113895194752086071) |
+| 14:50 | [Fly your bird, top the weekly leaderboard](https://x.com/maziazi_/status/2113900935718260952) |
+| 15:22 | [Live on Monad testnet and mainnet](https://x.com/maziazi_/status/2113908931999531132) |
+
+**Other materials:** [pitch deck](https://kicau.xyz/pitch) · [rubric to evidence](docs/JUDGING.md) · [project cover](docs/kicau-cover.png)
 
 ## Problem
 
