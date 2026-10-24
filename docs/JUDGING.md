@@ -35,7 +35,7 @@ Peta setiap butir rubrik dari hackathon brief ke bukti nyata di project ini. Sta
 
 | Butir | Poin | Syarat | Rencana / bukti | Status |
 |---|---|---|---|---|
-| Post di X atau LinkedIn dengan tag | 25 | Tag **@monad @monad_dev @geeky_kartikey** | Thread di @BangDropID: post 1 apa itu Kicau + link live; reply sisi teknis Monad + repo + kontrak; tag + #MonadBlitz #MonadBlitzJogja + @devweb3jogja | 🔄 sedang diposting |
+| Post di X atau LinkedIn dengan tag | 25 | Tag **@monad @monad_dev @geeky_kartikey** | Thread @BangDropID 11:41 WIB: [post 1](https://x.com/BangDropID/status/2113853488170156259) (apa itu Kicau + live + screenshot) · [reply](https://x.com/BangDropID/status/2113853615941284205) (sisi Monad + repo + kontrak) | ✅ |
 | Video demo ≥30 detik di sosial | 25 | Produk berjalan, ≥30 detik | Rekam layar alur demo di atas (≤60 detik) | ⏳ setelah post teks |
 | Video iklan kreatif di sosial | 25 | Bebas, kreatif | Mis. sprite pixel burung + kicau asli + "Pelihara kicaunya, bukan sangkarnya" | ⏳ |
 | 5K+ views kolektif | 25 | Total semua post selama Blitz | Sebar ke grup kicau mania, Dev Web3 Jogja, Monad Developers Indonesia | ⏳ |
@@ -63,7 +63,7 @@ Peta setiap butir rubrik dari hackathon brief ke bukti nyata di project ini. Sta
 
 - [ ] Submit di https://blitz.devnads.com/events/monad-blitz-jogja-v2 **lebih awal** (urutan submit = urutan pitching)
 - [ ] Isi GitHub URL + Demo URL (live)
-- [ ] Post X selesai sebelum 16:45, catat link post untuk bukti
+- [x] Post X selesai sebelum 16:45 (link di bagian 3)
 - [ ] Siapkan burner demo terisi MON, satu tab saja (hindari 429 RPC)
 - [ ] Hard refresh live site sebelum naik panggung
 - [ ] Ucapkan: repo, alamat kontrak, live URL, network
