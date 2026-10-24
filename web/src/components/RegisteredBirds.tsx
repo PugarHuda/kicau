@@ -1,5 +1,6 @@
 "use client";
 
+import { NET } from "@/lib/network";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { formatEther, parseEther } from "viem";
@@ -419,7 +420,7 @@ export function BirdProfileCard({ bird, me, busy = false, onAttest, onSupport }:
           <p className="mt-2 text-xs text-muted">Minimum sponsorship = 10% of Kicau Value (<span className="tabular-nums">{formatEther(minSupport)} MON</span>) — rises as the bird wins.</p>
         )}
         {price && <p className="mt-1 text-[0.65rem] text-muted">USD (Chainlink MON/USD)</p>}
-        {!onSupport && <p className="mt-2 text-sm text-clay">Hit ⚡ Quick Play or connect a wallet to support.</p>}
+        {!onSupport && <p className="mt-2 text-sm text-clay">{NET.faucet ? "Hit ⚡ Quick Play or connect a wallet to support." : "Connect a wallet to support."}</p>}
       </div>
       <CertificateButton tokenId={bird.tokenId} />
       {meOrg?.[1] && onAttest && (

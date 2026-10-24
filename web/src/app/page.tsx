@@ -312,7 +312,7 @@ export default function Home() {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Link href="/me" className={`btn-ghost ${CHIP}`} title="My Dashboard" aria-label="My Dashboard">
-            ▤<span className="hidden sm:inline"> My Dashboard</span>
+            <span className="sm:hidden">Me</span><span className="hidden sm:inline">My Dashboard</span>
           </Link>
           {burner ? (
             <>
@@ -460,7 +460,7 @@ export default function Home() {
         <section>
           <h2 className="mb-4 font-display text-3xl font-bold">My Birds</h2>
           {!address ? (
-            <p className="text-muted">Hit ⚡ Quick Play or connect a wallet to see your collection.</p>
+            <p className="text-muted">{NET.faucet ? "Hit ⚡ Quick Play or connect a wallet to see your collection." : "Connect a wallet to see your collection."}</p>
           ) : myBirds.length === 0 ? (
             <p className="text-muted">No birds yet. Adopt one from the Shelter.</p>
           ) : (
@@ -537,7 +537,7 @@ export default function Home() {
             canRegister={ready}
             onRegister={register}
           />
-          {!ready && <p className="mt-3 text-sm text-clay">Hit ⚡ Quick Play or connect a wallet first.</p>}
+          {!ready && <p className="mt-3 text-sm text-clay">{NET.faucet ? "Hit ⚡ Quick Play or connect a wallet first." : "Connect a wallet first."}</p>}
         </Modal>
       )}
 
@@ -570,7 +570,7 @@ export default function Home() {
             onSupport={(amount) => support(openSpecies, amount)}
             supported={supportedRaw}
           />
-          {!ready && <p className="mt-3 text-sm text-clay">Hit ⚡ Quick Play or connect a wallet on Monad Testnet to adopt.</p>}
+          {!ready && <p className="mt-3 text-sm text-clay">{NET.faucet ? "Hit ⚡ Quick Play or connect a wallet on Monad Testnet to adopt." : `Connect a wallet on ${NET.label} to adopt.`}</p>}
         </Modal>
       )}
 

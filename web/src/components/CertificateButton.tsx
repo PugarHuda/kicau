@@ -26,7 +26,7 @@ export function CertificateButton({ tokenId }: { tokenId: bigint }) {
     const address = burner?.account.address ?? wallet?.account.address;
     type Typed = Parameters<NonNullable<typeof burner>["signTypedData"]>[0];
     const sign = (m: unknown) => (burner ? burner.signTypedData(m as Typed) : wallet!.signTypedData(m as Typed));
-    if (!address || !client) return setState({ kind: "error", msg: "Start Quick Play or connect a wallet first." });
+    if (!address || !client) return setState({ kind: "error", msg: NET.faucet ? "Start Quick Play or connect a wallet first." : "Connect a wallet first." });
     setState({ kind: "busy" });
     try {
       const bal = await client.readContract({ address: MONAD_TESTNET_USDC, abi: erc20Abi, functionName: "balanceOf", args: [address] });
