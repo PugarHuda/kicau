@@ -7,7 +7,6 @@ import type { GameOver, GameStart } from "@/lib/game";
 import {
   BASE,
   BIRD_X,
-  CAP_H,
   CAP_OVERHANG,
   GROUND_Y,
   H,
@@ -16,9 +15,12 @@ import {
   hitsPipe,
   mulberry32,
   nextGapY,
+  obstacleLook,
   passedPipe,
   pipeSpeed,
+  type Look,
 } from "./game/physics";
+import { obstacleArt } from "./game/obstacles";
 
 export { pipeSpeed };
 
@@ -37,7 +39,7 @@ const CLOUDS = [
 ];
 const MAX_P = 64;
 
-type Pipe = { x: number; gapY: number; gap: number; passed: boolean };
+type Pipe = { x: number; gapY: number; gap: number; passed: boolean; look: Look };
 type State = "ready" | "playing" | "paused" | "dying" | "over";
 
 /** One seamless W-wide strip, pre-rendered once so each frame is just two drawImage calls. */
@@ -126,7 +128,10 @@ export function FlappyGame({ start, onGameOver }: { start: GameStart; onGameOver
     const radius = BASE.radius * (start.stats.hitbox / 100);
 
     // run seed's low 32 bits → deterministic gaps; guest / practice games stay random
-    const rand = start.seed ? mulberry32(Number(BigInt(start.seed) & 0xffffffffn)) : Math.random;
+    const seed32 = start.seed ? Number(BigInt(start.seed) & 0xffffffffn) : (Math.random() * 2 ** 32) >>> 0;
+    const rand = start.seed ? mulberry32(seed32) : Math.random;
+    const drawObstacle = obstacleArt();
+    let spawned = 0; // obstacle index → cosmetics hash (separate from the gap PRNG)
 
     const bestKey = `kicau:best:${start.tokenId}`;
     let best = 0;
@@ -255,7 +260,7 @@ export function FlappyGame({ start, onGameOver }: { start: GameStart; onGameOver
           spawnT = BASE.spawnEvery;
           const gap = gapSize(score);
           lastGapY = nextGapY(lastGapY, gap, score, rand());
-          pipes.push({ x: W + CAP_OVERHANG, gapY: lastGapY, gap, passed: false });
+          pipes.push({ x: W + CAP_OVERHANG, gapY: lastGapY, gap, passed: false, look: obstacleLook(seed32, spawned++) });
         }
         let hit = y + radius >= GROUND_Y || y - radius <= 0;
         for (const p of pipes) {
@@ -270,7 +275,7 @@ export function FlappyGame({ start, onGameOver }: { start: GameStart; onGameOver
               chirp(start.species, 0.06);
             }
           }
-          if (!hit && hitsPipe(y, radius, p.x, p.gapY, p.gap)) hit = true;
+          if (!hit && hitsPipe(y, radius, p.x, p.gapY, p.gap, p.look)) hit = true;
         }
         while (pipes.length && pipes[0].x + BASE.pipeW + CAP_OVERHANG < 0) pipes.shift();
         if (hit) {
@@ -300,20 +305,6 @@ export function FlappyGame({ start, onGameOver }: { start: GameStart; onGameOver
       g.fillText(s, x + sh, ty + sh);
       g.fillStyle = col;
       g.fillText(s, x, ty);
-    };
-
-    const column = (x: number, cy: number, w: number, h: number) => {
-      if (h <= 0) return;
-      g.fillStyle = INK;
-      g.fillRect(x, cy, w, h);
-      g.fillStyle = "#2f6b3a";
-      g.fillRect(x + 3, cy, w - 6, h);
-      g.fillStyle = "#5a9a5c";
-      g.fillRect(x + 7, cy, 6, h);
-      g.fillStyle = "#8cc27a";
-      g.fillRect(x + 10, cy, 3, h);
-      g.fillStyle = "#24552e";
-      g.fillRect(x + w - 13, cy, 10, h);
     };
 
     const render = (now: number) => {
@@ -346,21 +337,7 @@ export function FlappyGame({ start, onGameOver }: { start: GameStart; onGameOver
       g.drawImage(trees, -tx, 0);
       g.drawImage(trees, W - tx, 0);
 
-      for (const p of pipes) {
-        const x = Math.round(p.x);
-        const top = Math.round(p.gapY - p.gap / 2);
-        const bot = Math.round(p.gapY + p.gap / 2);
-        const cw = BASE.pipeW + CAP_OVERHANG * 2;
-        column(x, -8, BASE.pipeW, top - CAP_H + 8);
-        column(x, bot + CAP_H, BASE.pipeW, GROUND_Y - bot - CAP_H);
-        column(x - CAP_OVERHANG, top - CAP_H, cw, CAP_H);
-        column(x - CAP_OVERHANG, bot, cw, CAP_H);
-        g.fillStyle = INK;
-        g.fillRect(x - CAP_OVERHANG, top - CAP_H, cw, 3);
-        g.fillRect(x - CAP_OVERHANG, top - 3, cw, 3);
-        g.fillRect(x - CAP_OVERHANG, bot, cw, 3);
-        g.fillRect(x - CAP_OVERHANG, bot + CAP_H - 3, cw, 3);
-      }
+      for (const p of pipes) drawObstacle(g, Math.round(p.x), Math.round(p.gapY - p.gap / 2), Math.round(p.gapY + p.gap / 2), p.look);
 
       // tiled ground that scrolls with the pipes
       const gy = GROUND_Y;
