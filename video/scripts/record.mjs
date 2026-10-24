@@ -315,6 +315,84 @@ const SCENES = {
     await sleep(4500);
     await save(v, "proof", lead);
   },
+  // Read-only: testnet header toggle -> same path on mainnet, home stats, then contest #0 (Judging) on mainnet.
+  async mainnet() {
+    const v = await actor("viewer", { record: true });
+    await v.page.goto(BASE, { waitUntil: "networkidle" });
+    await sleep(2000);
+    const lead = mark(v);
+    await v.page.mouse.move(900, 300, { steps: 20 });
+    await click(v.page, v.page.locator("header a:text-is('mainnet')"));
+    await v.page.waitForURL(/mainnet\.kicau\.xyz/, { timeout: 30000 });
+    await v.page.waitForLoadState("networkidle").catch(() => {});
+    await sleep(2500);
+    await v.page.mouse.wheel(0, 500);
+    await sleep(1500);
+    await v.page.goto("https://mainnet.kicau.xyz/lomba/0", { waitUntil: "networkidle" });
+    await v.page.mouse.move(960, 450, { steps: 25 });
+    await sleep(3000);
+    await save(v, "mainnet", lead);
+  },
+
+  // Off camera: owner registers a bird with a demo certificate + lineage. Filmed: /me dashboard, then its pedigree.
+  async dashboard() {
+    const o = await actor("owner", { record: true });
+    const name = arg("pedname", "Si Silsilah");
+    if (!process.argv.includes("--noreg")) {
+      await o.page.goto(BASE, { waitUntil: "networkidle" });
+      await quickPlay(o.page);
+      await o.page.click("button:has-text('Register your bird')");
+      await sleep(800);
+      await dialogFile(o.page).setInputFiles(path.resolve(ROOT, arg("photo", "assets/bird.jpg")));
+      await o.page.locator("[role=dialog] >> text=confidence").first().waitFor({ timeout: 60000 }).catch(() => console.warn("  ! no AI species result"));
+      await o.page.fill("[role=dialog] input[placeholder='Si Jambul']", name);
+      const d = o.page.locator("[role=dialog]");
+      await d.locator("button:has-text('+ Add certificate')").click();
+      await d.locator("input[placeholder='Penangkar / BKSDA / PBI']").fill("Penangkar Demo");
+      await d.locator("input[placeholder='ring / permit no.']").fill("DEMO-001");
+      await d.locator("input[type=date]").first().fill("2025-06-01");
+      await d.locator("input[type=file]").nth(1).setInputFiles(path.resolve(ROOT, "assets/CREDITS.txt"));
+      await d.locator("summary:has-text('Add lineage')").click();
+      await d.getByLabel("Sire (father) name").fill("Demo Jantan");
+      await d.getByLabel("Sire ring").fill("DEMO-S01");
+      await d.getByLabel("Dam (mother) name").fill("Demo Betina");
+      await d.getByLabel("Dam ring").fill("DEMO-D01");
+      await d.getByLabel("Breeder (penangkar)").fill("Penangkar Demo");
+      await sleep(500);
+      await tx(o.page, "registerPedigree", () => d.locator("button", { hasText: /^Register$/ }).click());
+      await sleep(3000);
+    }
+    await o.page.goto(BASE, { waitUntil: "networkidle" });
+    await sleep(2500);
+    const lead = mark(o);
+    await click(o.page, o.page.locator("a[href='/me']"));
+    await o.page.locator("h2:has-text('My registered birds')").waitFor({ timeout: 30000 });
+    await sleep(3500);
+    await o.page.mouse.move(700, 500, { steps: 25 });
+    for (let i = 0; i < 5; i++) { await o.page.mouse.wheel(0, 260); await sleep(600); }
+    await sleep(800);
+    const dashEnd = mark(o);
+    // pedigree
+    await o.page.evaluate(() => scrollTo({ top: 0 }));
+    await sleep(600);
+    const pedStart = mark(o);
+    const idx = await o.page.evaluate((nm) => {
+      const bs = [...document.querySelectorAll("button")].filter((b) => b.textContent.includes("Open profile"));
+      return Math.max(0, bs.findIndex((b) => { let e = b; for (let i = 0; i < 6 && e; i++, e = e.parentElement) if (e.textContent.includes(nm)) return !e.textContent.includes("Si Jambul"); return false; }));
+    }, name);
+    console.log("  open profile idx", idx);
+    const target = o.page.locator("button:has-text('Open profile')").nth(idx);
+    await click(o.page, target);
+    await o.page.locator("[role=dialog], .fixed").first().waitFor({ timeout: 10000 }).catch(() => {});
+    await sleep(1200);
+    const cert = o.page.locator("text=Certificates (self-declared").first();
+    await cert.evaluate((e) => e.scrollIntoView({ behavior: "smooth", block: "start" }), null, { timeout: 5000 }).catch(() => console.warn("  ! no certificates"));
+    await sleep(2200);
+    await o.page.locator("text=Check a document").first().evaluate((e) => e.scrollIntoView({ behavior: "smooth", block: "center" }), null, { timeout: 5000 }).catch(() => console.warn("  ! no check-a-document"));
+    await sleep(3000);
+    const pedEnd = mark(o);
+    await save(o, "", 0, [["dashboard", lead, dashEnd], ["pedigree", pedStart, pedEnd]]);
+  },
 };
 
 const ids = process.argv.slice(2).filter((a) => !a.startsWith("--"));
