@@ -257,3 +257,12 @@ html { overflow-x: clip; } /* only the desktop scrollbar width of 100vw bleeds *
   .hs-flyer { transform: translate(55vw, -1rem); }
 }
 .hero-title { font-size: clamp(1.35rem, 6.2vw, 2.9rem); line-height: 1.3 !important; }
+
+/* ---------- Legible numbers: every tabular-nums value uses VT323 (pixel, but clear digits) ---------- */
+.tabular-nums {
+  font-family: var(--font-num), ui-monospace, monospace !important;
+  font-weight: 400 !important;
+  letter-spacing: 0.02em;
+  font-size: 1.25em;
+  line-height: 1.1;
+}
