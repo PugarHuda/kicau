@@ -9,3 +9,7 @@ broadcast/
 .claude/skills/
 contracts/lib/
 contracts/out/
+video/node_modules/
+video/out/
+video/public/recordings/
+video/.profiles/
