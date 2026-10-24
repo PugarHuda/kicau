@@ -37,7 +37,7 @@ Peta setiap butir rubrik ke bukti nyata. Status per 24 Okt 2026, ~14:30 WIB.
 
 | Butir | Poin | Bukti | Status |
 |---|---|---|---|
-| Post di X dengan tag @monad @monad_dev @geeky_kartikey | 25 | Thread @BangDropID: [post 1](https://x.com/BangDropID/status/2113853488170156259) · [reply (Monad + repo + kontrak)](https://x.com/BangDropID/status/2113853615941284205) · [update 2](https://x.com/BangDropID/status/2113869717429789043) · [update 3 (quote)](https://x.com/BangDropID/status/2113885785019798003) | ✅ |
+| Post di X dengan tag @monad @monad_dev @geeky_kartikey | 25 | Thread @BangDropID: [post 1](https://x.com/BangDropID/status/2113853488170156259) · [reply (Monad + repo + kontrak)](https://x.com/BangDropID/status/2113853615941284205) · [update 2](https://x.com/BangDropID/status/2113869717429789043) · [update 3 (quote)](https://x.com/BangDropID/status/2113885785019798003) · [final update (quote)](https://x.com/BangDropID/status/2113914109905539443) | ✅ |
 | Video demo ≥30 detik | 25 | [Demo 1:49 di X](https://x.com/BangDropID/status/2113904695873798527) — rekaman Playwright klik sungguhan di kicau.xyz (lomba live, finalize, register + AI, Kicau Value, sponsor, Flappy, Garden); juga di slide demo `/pitch` | ✅ |
 | Video iklan kreatif | 25 | [Teaser 0:40 di X](https://x.com/BangDropID/status/2113905544969048464) — motion graphic pixel + chiptune gamelan (Remotion) | ✅ |
 | 5K+ views kolektif | 25 | Sebar ke grup kicau mania, Dev Web3 Jogja, Monad Developers Indonesia | ⏳ |
