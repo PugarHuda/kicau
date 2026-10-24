@@ -145,7 +145,7 @@ function slides(wing: boolean, stats: LiveStats | null): { dark?: boolean; body:
           <div className="pd-grid pd-g2">
             <Card title="Door A · real bird owners" tone="leafbg">
               Photo → AI species ID → pixel character + verified record. Enter contests; <b>Kicau Value</b> grows with
-              every result.
+              every result. Track it all in <b>My Dashboard</b>.
             </Card>
             <Card title="Door B · everyone">
               Kicau Garden, adopt a species, verified Flappy runs, daily/weekly leaderboards + weekly prize pool.
@@ -169,7 +169,7 @@ function slides(wing: boolean, stats: LiveStats | null): { dark?: boolean; body:
               <li>
                 <b>Finalize</b> → instant prizes + &quot;Juara&quot; attested, same tx
               </li>
-              <li>Then: register a bird, Kicau Value chart, play</li>
+              <li>Also: register a bird, Kicau Value, pedigree, My Dashboard, mainnet</li>
             </ul>
           </div>
           <p className="font-display pd-h2 pd-sun pd-mt">Live on stage: we finalize contest #0 now.</p>

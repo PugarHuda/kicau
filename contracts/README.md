@@ -1,66 +1,20 @@
-## Foundry
+# Kicau contracts
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+Foundry · Solidity 0.8.28 (via_ir) · OpenZeppelin v5.4.0. Single contract: `src/Kicau.sol` (ERC-721 species NFTs + registered birds, contests, attestations, Kicau Value, verified runs, leaderboards, weekly prize pool). API overview: [../README.md](../README.md#contract-api).
 
-Foundry consists of:
+| Network | Address |
+|---|---|
+| Monad testnet (10143) | `0x947929841Ba8154BB6E9BDeb35137d159c6A0F58` |
+| Monad mainnet (143) | `0xA98CeE28C6EB35b6Ee7440b7490e265f23975d61` |
 
-- **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
-- **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
-- **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
-- **Chisel**: Fast, utilitarian, and verbose solidity REPL.
+Both verified on MonadVision and Monadscan.
 
-## Documentation
-
-https://book.getfoundry.sh/
-
-## Usage
-
-### Build
-
-```shell
-$ forge build
+```bash
+forge install --no-git foundry-rs/forge-std OpenZeppelin/openzeppelin-contracts@v5.4.0   # lib/ is not committed
+forge build
+forge test                                   # 60 tests incl. fuzz + reentrancy
+cast wallet import deployer --interactive    # encrypted keystore, no private key in files
+BASE_URI=https://<your-host>/metadata/ forge script script/Deploy.s.sol --rpc-url monad_testnet --account deployer --broadcast
 ```
 
-### Test
-
-```shell
-$ forge test
-```
-
-### Format
-
-```shell
-$ forge fmt
-```
-
-### Gas Snapshots
-
-```shell
-$ forge snapshot
-```
-
-### Anvil
-
-```shell
-$ anvil
-```
-
-### Deploy
-
-```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
-```
-
-### Cast
-
-```shell
-$ cast <subcommand>
-```
-
-### Help
-
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
-```
+Optional deploy env: `TREASURY`, `CONSERVATION` (default: deployer). RPC aliases `monad_testnet` / `monad` are in `foundry.toml`.

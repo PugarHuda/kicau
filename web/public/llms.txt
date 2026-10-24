@@ -2,13 +2,13 @@
 
 > Kicau is a GameFi + ReFi app on Monad for Indonesian songbirds (burung kicau): adopt pixel species NFTs, register your real bird with an on-chain pedigree, sponsor birds, play a seeded and time-checked Flappy run, and run judged gantangan contests with automatic payouts. Every adoption sends 30% to conservation in the same transaction. Pedigree fields are claims made by the keeper; only organizer attestations and on-chain contest results count as verified. Kicau records digital collectibles and achievements. It does not sell or transfer live animals.
 
-Site: https://kicau.xyz · Source: https://github.com/PugarHuda/kicau
+Site: https://kicau.xyz (testnet) · Mainnet app: https://mainnet.kicau.xyz · My Dashboard: https://kicau.xyz/me · Source: https://github.com/PugarHuda/kicau
 
 ## Contracts
 
 - Monad testnet (chain 10143, used by the app): `0x947929841Ba8154BB6E9BDeb35137d159c6A0F58` (verified on https://testnet.monadvision.com/address/0x947929841Ba8154BB6E9BDeb35137d159c6A0F58)
 - Monad mainnet (chain 143): `0xA98CeE28C6EB35b6Ee7440b7490e265f23975d61` (verified on https://monadvision.com/address/0xA98CeE28C6EB35b6Ee7440b7490e265f23975d61)
-- RPC: https://testnet-rpc.monad.xyz · WebSocket: wss://testnet-rpc.monad.xyz (supports `eth_subscribe` `monadLogs` / `monadNewHeads` with commit states Proposed → Voted → Finalized → Verified)
+- RPC: https://testnet-rpc.monad.xyz (mainnet: https://rpc.monad.xyz) · WebSocket: wss://testnet-rpc.monad.xyz (mainnet: wss://rpc.monad.xyz) (supports `eth_subscribe` `monadLogs` / `monadNewHeads` with commit states Proposed → Voted → Finalized → Verified)
 
 Key functions (ERC-721 "Kicau"):
 - Registered birds (speciesOf = 999): `registerBird(name, bytes)`, `updateBird(tokenId, bytes)`, `supportBird(tokenId)` payable (minimum 10% of the bird's value), `valueBreakdown(tokenId)`, `valueOf(tokenId)`. The profile bytes are stored in the `BirdRegistered` / `BirdUpdated` event, not in storage. Read `registeredAt(tokenId)` / `updatedAtBlock(tokenId)` and fetch the log from that single block. Encoding: "KC", a version byte (0x01 palette only, 0x02 palette + UTF-8 JSON profile), then 18 bytes of RGB, then the JSON.

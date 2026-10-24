@@ -29,7 +29,7 @@ Peta setiap butir rubrik ke bukti nyata. Status per 24 Okt 2026, ~14:30 WIB.
 | Semua fungsi yang diumumkan jalan | 25 | QA Playwright final terhadap kontrak testnet live, dengan tx asli: register burung (foto) → `createContest` → `enter` ×2 → `startJudging` → skor juri → `finalize` (tx [`0x60b2c83d…a07a5bd`](https://testnet.monadvision.com/tx/0x60b2c83de51483e165a4a413e8f87a67560ccc05fbdf0007b18314feda07a5bd)), `updateBird`, adopt, support, `supportBird` (preset minimum), `startRun`/`submitRun`, faucet Quick Play. Tiap tx 536–913 ms; scoreboard penonton ter-update 782–1012 ms setelah skor juri. 40/40 cek mobile (375/360 px) + keyboard lolos. Kegagalan saat QA = 429 rate limit RPC publik testnet & bug selector di skrip test, lolos saat diulang. x402: settlement nyata di [INTEGRATIONS.md](INTEGRATIONS.md) | ✅ |
 | Live transaction on chain saat demo | 25 | Rencana: di panggung **`finalize` lomba #0** di `/lomba/0` → hadiah 50/25/15% + konservasi dibayar di tx yang sama, gelar "Juara" ter-attest, item muncul di LIVE KICAU (Proposed → Finalized). Cadangan: skor juri / ⚡ adopt | ✅ (siapkan wallet host terisi) |
 | Kontrak verified di explorer | 25 | Testnet + mainnet: verified di MonadVision + Monadscan (API verifikasi devnads) | ✅ |
-| Bisa di-run orang lain dari README | 25 | Tanpa database/indexer. `npm install` → `.env.local` (`NEXT_PUBLIC_KICAU_ADDRESS`, `NEXT_PUBLIC_KICAU_DEPLOY_BLOCK`, opsional `ANTHROPIC_API_KEY`) → `npm run dev`. Kontrak: `forge test` (60 test, termasuk fuzz + reentrancy) + script deploy dengan keystore | ✅ |
+| Bisa di-run orang lain dari README | 25 | README punya 2 jalur: **Try it in 1 minute** (user: kicau.xyz → Quick Play, tanpa install/wallet) dan **Run it locally** (dev: `git clone` → `npm install` → `npm run dev`, **tanpa .env**: alamat kontrak testnet jadi default; env opsional ditabelkan) + troubleshooting. Tanpa database/indexer. Kontrak: `forge test` (60 test, termasuk fuzz + reentrancy) + script deploy dengan keystore | ✅ |
 
 ## 3. Advance — Did anyone see it / Build in public (100)
 
@@ -38,8 +38,8 @@ Peta setiap butir rubrik ke bukti nyata. Status per 24 Okt 2026, ~14:30 WIB.
 | Butir | Poin | Bukti | Status |
 |---|---|---|---|
 | Post di X dengan tag @monad @monad_dev @geeky_kartikey | 25 | Thread @BangDropID: [post 1](https://x.com/BangDropID/status/2113853488170156259) · [reply (Monad + repo + kontrak)](https://x.com/BangDropID/status/2113853615941284205) · [update 2](https://x.com/BangDropID/status/2113869717429789043) · [update 3 (quote)](https://x.com/BangDropID/status/2113885785019798003) · [final update (quote)](https://x.com/BangDropID/status/2113914109905539443) | ✅ |
-| Video demo ≥30 detik | 25 | [Demo 1:49 di X](https://x.com/BangDropID/status/2113904695873798527) — rekaman Playwright klik sungguhan di kicau.xyz (lomba live, finalize, register + AI, Kicau Value, sponsor, Flappy, Garden); juga di slide demo `/pitch` | ✅ |
-| Video iklan kreatif | 25 | [Teaser 0:40 di X](https://x.com/BangDropID/status/2113905544969048464) — motion graphic pixel + chiptune gamelan (Remotion) | ✅ |
+| Video demo ≥30 detik | 25 | [Demo 1:49 di X](https://x.com/BangDropID/status/2113904695873798527): rekaman Playwright klik sungguhan di kicau.xyz. **Versi 2** menambah pedigree, My Dashboard dan mainnet: [`/demo/kicau-demo.mp4`](https://kicau.xyz/demo/kicau-demo.mp4), juga di slide demo `/pitch` | ✅ |
+| Video iklan kreatif | 25 | [Teaser 0:40 di X](https://x.com/BangDropID/status/2113905544969048464): motion graphic pixel + chiptune gamelan (Remotion). Versi terbaru dengan kartu "LIVE ON MAINNET": [`/demo/kicau-teaser.mp4`](https://kicau.xyz/demo/kicau-teaser.mp4) | ✅ |
 | 5K+ views kolektif | 25 | Sebar ke grup kicau mania, Dev Web3 Jogja, Monad Developers Indonesia | ⏳ |
 
 ## 4. Bonus (100)
@@ -72,3 +72,15 @@ Peta setiap butir rubrik ke bukti nyata. Status per 24 Okt 2026, ~14:30 WIB.
 - [ ] Pastikan lomba #0 status Judging + wallet host terisi MON untuk `finalize` di panggung
 - [ ] Satu tab saja (hindari 429 RPC), hard refresh sebelum naik
 - [ ] Ucapkan: repo, alamat kontrak, live URL, network
+
+## 5. Kriteria di portal blitz.devnads.com
+
+Portal event menampilkan skema **80% juri + 20% community vote**. Bobot juri: Execution 30% · On-chain necessity / Monad fit 25% · Problem & promise 20% · Originality 15% · Presentation 10%. Syarat lolos:
+
+| Syarat | Bukti |
+|---|---|
+| Built at the event, prior work disclosed | Repo dibuat hari ini, semua commit 24 Okt 2026 dalam hacking window. Yang disiapkan sebelum event hanya ide/riset (diizinkan rules). Disebut di deskripsi submission |
+| Deployed on Monad (ada code di testnet) | `0x947929841Ba8154BB6E9BDeb35137d159c6A0F58` (testnet) + `0xA98CeE28C6EB35b6Ee7440b7490e265f23975d61` (mainnet), keduanya verified |
+| Honest pitch | Semua klaim di deskripsi dan deck ada di kode dan live; angka latency diukur hari ini; data dunia nyata bersumber (Kompas.id, Garda Animalia, FLIGHT) |
+
+Pemetaan ke bobot juri: Execution → semua fitur di tabel Project Working jalan di kicau.xyz dan mainnet.kicau.xyz · Monad fit → 1 tx per skor juri, `monadLogs`, `eth_sendRawTransactionSync` · Problem & promise → pasar gantangan + strategi revenue di deck slide 6–7 · Originality → provenance on-chain untuk lomba burung dunia nyata · Presentation → deck `/pitch` + naskah 3 menit.
