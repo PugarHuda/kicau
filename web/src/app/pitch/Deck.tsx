@@ -5,13 +5,13 @@ import { birdDataUri } from "@/lib/birds";
 import { KICAU_ADDRESS } from "@/lib/config";
 import { qrSvgPath } from "./qr";
 
-export type LiveStats = { birds: number; conservation: string; players: number };
+export type LiveStats = { birds: number; conservation: string; players: number; contests: number };
 
 const LIVE = "https://kicau.xyz";
 const LIVE_SHORT = "kicau.xyz";
 const REPO = "github.com/PugarHuda/kicau";
 const CONTRACT = KICAU_ADDRESS; // testnet (used by the app); follows NEXT_PUBLIC_KICAU_ADDRESS on redeploy
-const MAINNET = "0xdada618e564edaf7ec0af0a12575bf3c0dc8523b"; // chain 143
+const MAINNET = "0xA98CeE28C6EB35b6Ee7440b7490e265f23975d61"; // chain 143, same source, verified
 const QR = qrSvgPath(LIVE);
 
 function Bird({ id, wing, size = "pd-bird" }: { id: number; wing: boolean; size?: string }) {
@@ -32,26 +32,36 @@ function Card({ title, children, tone = "paper" }: { title: ReactNode; children?
   );
 }
 
+function Qr({ className = "pd-qr" }: { className?: string }) {
+  return (
+    <a href={LIVE} className={className} aria-label={`Open ${LIVE_SHORT}`}>
+      <svg viewBox={`0 0 ${QR.size} ${QR.size}`} shapeRendering="crispEdges" role="img" aria-label="QR code">
+        <rect width={QR.size} height={QR.size} fill="#fffdf7" />
+        <path d={QR.d} fill="#1e2a1f" />
+      </svg>
+    </a>
+  );
+}
+
 function slides(wing: boolean, stats: LiveStats | null): { dark?: boolean; body: ReactNode }[] {
   return [
     {
       dark: true,
       body: (
-        <div className="pd-center">
-          <div className="pd-birdrow">
-            {[0, 1, 2, 3, 4].map((i) => (
-              <Bird key={i} id={i} wing={(i % 2 === 0) === wing} size="pd-bird-lg" />
-            ))}
+        <div className="pd-close">
+          <div className="pd-title-main">
+            <div className="pd-birdrow pd-left">
+              {[0, 1, 2, 3, 4].map((i) => (
+                <Bird key={i} id={i} wing={(i % 2 === 0) === wing} size="pd-bird-lg" />
+              ))}
+            </div>
+            <h1 className="font-display pd-hero">KICAU</h1>
+            <p className="font-display pd-h2 pd-sun">The on-chain record for real-life songbird contests.</p>
+            <p className="pd-p">Judges score on-chain · live scoreboard · instant prizes · verified champions. Built on Monad.</p>
+            <p className="font-display pd-url pd-sun">{LIVE_SHORT}</p>
+            <p className="pd-sm">Monad Blitz Jogja 2026 · {REPO}</p>
           </div>
-          <h1 className="font-display pd-hero">KICAU</h1>
-          <p className="font-display pd-h2 pd-sun">Keep the song, not the cage.</p>
-          <p className="pd-p">
-            GameFi + ReFi with a real-world provenance layer: on-chain pedigrees and organizer-attested championship
-            records for Indonesian songbirds. Built on Monad.
-          </p>
-          <p className="pd-sm pd-mt">
-            Monad Blitz Jogja 2026 · {LIVE_SHORT} · {REPO}
-          </p>
+          <Qr className="pd-qr pd-qr-sm" />
         </div>
       ),
     },
@@ -59,10 +69,13 @@ function slides(wing: boolean, stats: LiveStats | null): { dark?: boolean; body:
       body: (
         <>
           <Kicker>01 · Problem</Kicker>
-          <h2 className="font-display pd-h1">Indonesia loves songbirds to death.</h2>
+          <h2 className="font-display pd-h1">Every week, thousands of contests. Zero trusted records.</h2>
           <div className="pd-grid pd-g3">
-            <Card title="Kicau mania">
-              A massive national hobby. Weekly <b>gantangan</b> songbird contests in every city.
+            <Card title="Paper scores">
+              <b>Gantangan</b> songbird contests run weekly across Indonesia. Scores live on paper; results get disputed.
+            </Card>
+            <Card title="Unverifiable champions">
+              &quot;Juara 1&quot; titles, rings and pedigree certificates are claims nobody can check.
             </Card>
             <Card title="Poaching" tone="clay">
               <div className="pd-birdrow pd-left">
@@ -70,10 +83,7 @@ function slides(wing: boolean, stats: LiveStats | null): { dark?: boolean; body:
                 <Bird id={4} wing={!wing} />
               </div>
               Demand for champion singers empties forests. Straw-headed bulbul &amp; Bali myna are{" "}
-              <b>Critically Endangered</b> (IUCN).
-            </Card>
-            <Card title="Paper pedigrees">
-              Champion titles and lineage are unverifiable claims on paper.
+              <b>Critically Endangered</b>.
             </Card>
           </div>
         </>
@@ -82,41 +92,42 @@ function slides(wing: boolean, stats: LiveStats | null): { dark?: boolean; body:
     {
       body: (
         <>
-          <Kicker>02 · Solution · GameFi + ReFi + provenance</Kicker>
-          <h2 className="font-display pd-h1">Play, protect, prove.</h2>
+          <Kicker>02 · Solution</Kicker>
+          <h2 className="font-display pd-h1">Contests · verified pedigree · play.</h2>
           <div className="pd-grid pd-g3">
-            <Card title="① Adopt · ReFi">
-              <p className="font-display pd-big pd-leaf">30%</p>
-              of every digital songbird NFT goes to conservation <b>in the same tx</b>. Support = <b>100%</b>.
+            <Card title="① Contests on-chain">
+              <p className="font-display pd-big pd-leaf">50/25/15</p>
+              Judges score 4 aspects on-chain. <code>finalize</code> pays keepers + conservation and attests
+              &quot;Juara&quot; titles in the same tx.
             </Card>
-            <Card title="② Fly · GameFi">
+            <Card title="② Verified pedigree">
+              <p className="font-display pd-big pd-leaf">Real bird</p>
+              Photo → AI species ID → pixel sprite. Organizer-attested titles &amp; certificates; self-declared data
+              labelled. <b>Kicau Value</b> rises with results.
+            </Card>
+            <Card title="③ Play">
               <p className="font-display pd-big pd-leaf">Flappy</p>
-              Each species flies with its own on-chain stats. Scores land on an on-chain leaderboard.
-            </Card>
-            <Card title="③ Register · Provenance">
-              <p className="font-display pd-big pd-leaf">Pedigree</p>
-              Your real bird: photo → pixel character + titles, certificate &amp; lineage on-chain. Contest organizers
-              attest championship titles.
+              Verified on-chain runs, Daily/Weekly/All-time boards, weekly prize pool, Kicau Garden open world.
             </Card>
           </div>
-          <p className="pd-sm pd-mt">
-            Digital collectibles + verifiable records — never ownership or trade of live animals.
-          </p>
+          <p className="pd-sm pd-mt">Records and collectibles. Never ownership or trade of live animals.</p>
         </>
       ),
     },
     {
       body: (
         <>
-          <Kicker>03 · Product tour → live demo</Kicker>
-          <h2 className="font-display pd-h1">From shelter to podium.</h2>
+          <Kicker>03 · Live demo · kicau.xyz/lomba/0</Kicker>
+          <h2 className="font-display pd-h1">Watch a contest close on stage.</h2>
           <div className="pd-grid pd-g3">
-            <Card title="1 · Shelter">Kicau Garden: birds waiting for adoption.</Card>
-            <Card title="2 · Bird card">Real singing video, IUCN status, game stats.</Card>
-            <Card title="3 · Adopt / Support">One tap, confirmed in ~0.8 s, no popup.</Card>
-            <Card title="4 · Flappy">Species stats change how your bird flies.</Card>
-            <Card title="5 · Contests">Host a gantangan, judges score on-chain, live board, auto payout.</Card>
-            <Card title="6 · Register">Photo → pixel bird + titles, certificate, lineage.</Card>
+            <Card title="1 · Contest">Host, class, entry fee, judges. Birds entered by their keepers.</Card>
+            <Card title="2 · Judge scores">Melody, volume, duration, style. One tx each.</Card>
+            <Card title="3 · Live board">Every viewer&apos;s scoreboard updates in under a second.</Card>
+            <Card title="4 · Finalize" tone="sun">
+              Live tx: prizes paid, conservation funded, Juara titles attested.
+            </Card>
+            <Card title="5 · Share">/lomba/&lt;id&gt; result page with an OG image from chain data.</Card>
+            <Card title="6 · Bird record">Wins, attestations, Kicau Value chart, x402 certificate.</Card>
           </div>
         </>
       ),
@@ -125,38 +136,32 @@ function slides(wing: boolean, stats: LiveStats | null): { dark?: boolean; body:
       dark: true,
       body: (
         <>
-          <Kicker>04 · Why Monad</Kicker>
-          <h2 className="font-display pd-h1">Built on what only Monad does.</h2>
+          <Kicker>04 · Why Monad · measured today</Kicker>
+          <h2 className="font-display pd-h1">One tx per judge score only works here.</h2>
           <div className="pd-grid pd-g2">
             <div className="pd-card pd-ink">
-              <p className="font-display pd-big pd-sun">~540 ms</p>
+              <p className="font-display pd-big pd-sun">~0.6–1 s</p>
               <p className="pd-p">
-                <b>LIVE KICAU</b> via <code>monadLogs</code> speculative subscription: Proposed → Voted → Finalized.
+                Judge score → every viewer&apos;s scoreboard, via <code>monadLogs</code> (speculative, Proposed state).
               </p>
-              <div className="pd-bars">
-                <span className="pd-bar pd-bar-sun" style={{ width: "51%" }}>monadLogs 540</span>
-                <span className="pd-bar" style={{ width: "100%" }}>eth logs 1,050 ms</span>
-              </div>
-              <p className="pd-sm">≈ 2× faster than eth_subscribe logs</p>
             </div>
             <div className="pd-card pd-ink">
-              <p className="font-display pd-big pd-sun">~0.8 s</p>
+              <p className="font-display pd-big pd-sun">~0.5–1 s</p>
               <p className="pd-p">
-                <b>⚡ Quick Play</b>: browser burner + <code>eth_sendRawTransactionSync</code>. Receipt in one call,{" "}
-                <b>zero popups</b>.
+                <b>⚡ Quick Play</b>: browser burner + <code>eth_sendRawTransactionSync</code>. Receipt in one call, no
+                popups.
               </p>
             </div>
             <div className="pd-card pd-ink">
               <p className="font-display pd-big pd-sun">Per-slot</p>
               <p className="pd-p">
-                Parallel-execution-friendly hot paths: scores, supports and judge scores write per-player / per-token /
-                per-(contest, bird, judge) slots. Only mints and run IDs bump a counter.
+                Hot paths write per-player / per-token / per-(contest, bird, judge) slots: parallel-execution friendly.
               </p>
             </div>
             <div className="pd-card pd-ink">
               <p className="font-display pd-big pd-sun">21 bytes</p>
               <p className="pd-p">
-                Pedigree = palette + JSON in <b>event logs</b>, read from one block. <b>No indexer.</b>
+                Sprite palette + pedigree JSON in <b>event logs</b>, read from one block. <b>No indexer.</b>
               </p>
             </div>
           </div>
@@ -170,36 +175,31 @@ function slides(wing: boolean, stats: LiveStats | null): { dark?: boolean; body:
           <h2 className="font-display pd-h1">No database. No indexer.</h2>
           <div className="pd-arch">
             <div className="pd-card pd-paper">
-              <h3 className="font-display pd-h3">Browser</h3>
+              <h3 className="font-display pd-h3">Next.js 15 on Vercel</h3>
               <ul className="pd-p pd-list">
-                <li>Next.js 15 on Vercel</li>
-                <li>wagmi / viem</li>
-                <li>canvas Flappy game</li>
-                <li>⚡ burner wallet</li>
+                <li>wagmi / viem · ⚡ burner</li>
+                <li>contests · Flappy · Garden</li>
+                <li>API: faucet · AI species ID</li>
+                <li>x402 certificate · JSON API</li>
               </ul>
             </div>
             <div className="pd-arrows pd-sm">
               <span>tx → eth_sendRawTransactionSync →</span>
-              <span>← WebSocket monadLogs (Proposed) ←</span>
-              <span>← reads: leaderboard, species ←</span>
+              <span>← monadLogs (Proposed) ←</span>
+              <span>← reads + one-block logs ←</span>
             </div>
             <div className="pd-card pd-leafbg">
-              <h3 className="font-display pd-h3">Monad testnet</h3>
+              <h3 className="font-display pd-h3">Kicau.sol · Monad</h3>
               <ul className="pd-p pd-list">
-                <li>Kicau.sol · ERC-721 Enumerable</li>
-                <li>buy → 30% split</li>
-                <li>support → 100%</li>
-                <li>startRun / submitRun · verified runs</li>
-                <li>registerBird → event log</li>
                 <li>contests: enter · score · finalize</li>
+                <li>registerBird · attest · valueOf</li>
+                <li>supportBird · buy · support</li>
+                <li>runs · weekly prize pool</li>
               </ul>
             </div>
           </div>
           <p className="pd-sm pd-mt">
-            + 3 API routes (faucet, AI species ID, x402 certificate) · public JSON API · devnads faucet + verify API
-            <br />
-            testnet <span className="pd-mono">{CONTRACT}</span> · mainnet <span className="pd-mono">{MAINNET}</span> · both
-            verified on MonadVision + Monadscan
+            External: Chainlink MON/USD · Monad x402 facilitator · Claude Haiku → Sonnet · devnads faucet + verify API
           </p>
         </>
       ),
@@ -210,24 +210,30 @@ function slides(wing: boolean, stats: LiveStats | null): { dark?: boolean; body:
           <Kicker>06 · Proof · built today</Kicker>
           <h2 className="font-display pd-h1">It works. On chain. Right now.</h2>
           {stats && (
-            <div className="pd-grid pd-g3">
-              <Card title="Birds on chain">
+            <div className="pd-grid pd-g4">
+              <Card title="Contests">
+                <p className="font-display pd-big pd-leaf">{stats.contests}</p>
+              </Card>
+              <Card title="Birds (NFTs)">
                 <p className="font-display pd-big pd-leaf">{stats.birds}</p>
               </Card>
               <Card title="MON to conservation">
                 <p className="font-display pd-big pd-leaf">{stats.conservation}</p>
               </Card>
-              <Card title="Leaderboard players">
+              <Card title="Players">
                 <p className="font-display pd-big pd-leaf">{stats.players}</p>
               </Card>
             </div>
           )}
           <ul className="pd-p pd-checks">
-            {stats && <li>Numbers above read live from Monad testnet when this page rendered</li>}
-            <li>Contract verified on MonadVision + Monadscan, testnet and mainnet</li>
-            <li>46 Foundry tests (incl. fuzz + reentrancy) · Playwright E2E with real testnet transactions</li>
-            <li>Build in public on X: @BangDropID</li>
+            {stats && <li>Numbers above read live from the testnet contract when this page rendered</li>}
+            <li>57 Foundry tests (incl. fuzz + reentrancy)</li>
+            <li>Playwright QA with real txs: full contest flow, each tx 0.5–0.9 s</li>
+            <li>Same contract on mainnet, verified on MonadVision + Monadscan</li>
           </ul>
+          <p className="pd-sm pd-mt">
+            testnet <span className="pd-mono">{CONTRACT}</span> · mainnet <span className="pd-mono">{MAINNET}</span>
+          </p>
         </>
       ),
     },
@@ -235,22 +241,19 @@ function slides(wing: boolean, stats: LiveStats | null): { dark?: boolean; body:
       body: (
         <>
           <Kicker>07 · Business model</Kicker>
-          <h2 className="font-display pd-h1">Hobbyists pay to compete.</h2>
+          <h2 className="font-display pd-h1">Trust is the product.</h2>
           <div className="pd-grid pd-g2">
             <div className="pd-stack">
-              <Card title="70% of adoptions → treasury">30% to conservation, split by the contract in the same tx.</Card>
-              <Card title="Registration fee">Mint your real bird&apos;s on-chain profile.</Card>
-              <Card title="x402 certificate · live">$0.01 USDC per printable pedigree, settled gasless to the treasury.</Card>
-              <Card title="Contest entry fees · live">On-chain gantangan: 90% prizes, 10% conservation.</Card>
+              <Card title="Bird registration · live">0.005 MON per bird record, 70% treasury / 30% conservation.</Card>
+              <Card title="x402 certificate · live">$0.01 USDC per printable pedigree, gasless for the payer.</Card>
+              <Card title="Sponsorships · live">supportBird: 70% to the keeper (not us), 30% to conservation.</Card>
             </div>
             <div className="pd-stack">
-              <Card title="Paid attestations · planned" tone="sun">
-                Contest organizers sign champion titles → verified pedigree.
+              <Card title="Contest platform fee · planned" tone="sun">
+                Today entry fees go up to 90% to winners, the rest to conservation; a host fee comes next.
               </Card>
-              <Card title="Sponsored contests · planned">Sponsor-branded contests &amp; prize pools for bird brands.</Card>
-              <Card title="Market" tone="leafbg">
-                The kicau mania community: a nationwide Indonesian hobby with weekly gantangan contests.
-              </Card>
+              <Card title="Verified organizers · planned">Paid onboarding for contest organizers who attest titles.</Card>
+              <Card title="Sponsored contests · planned">Feed &amp; cage brands fund prize pools.</Card>
             </div>
           </div>
         </>
@@ -263,12 +266,12 @@ function slides(wing: boolean, stats: LiveStats | null): { dark?: boolean; body:
           <h2 className="font-display pd-h1">Next flights.</h2>
           <div className="pd-grid pd-g4">
             <Card title="Shipped" tone="leafbg">
-              Contests with on-chain judging + payouts, organizer-attested titles, x402 certificates, Kicau Value. Testnet
-              app; contract also on mainnet.
+              On-chain contests + payouts + auto-attested titles, verified pedigree, Kicau Value, x402 certificate,
+              verified runs + weekly pool. Contract on mainnet.
             </Card>
-            <Card title="Next">Pilot with a real gantangan organizer: verified-organizer onboarding, printed QR results.</Card>
-            <Card title="Then">Full replay verification of seeded Flappy runs (today: on-chain time bound).</Card>
-            <Card title="Later">Mainnet app + conservation partner wallet. Unity client.</Card>
+            <Card title="Next">Pilot with a real gantangan organizer; printed QR on result sheets.</Card>
+            <Card title="Then">Conservation partner wallet; app on mainnet.</Card>
+            <Card title="Later">Full replay verification of Flappy runs (today: on-chain time bound).</Card>
           </div>
         </>
       ),
@@ -277,18 +280,18 @@ function slides(wing: boolean, stats: LiveStats | null): { dark?: boolean; body:
       dark: true,
       body: (
         <div className="pd-close">
-          <a href={LIVE} className="pd-qr" aria-label={`Open ${LIVE_SHORT}`}>
-            <svg viewBox={`0 0 ${QR.size} ${QR.size}`} shapeRendering="crispEdges" role="img" aria-label="QR code">
-              <rect width={QR.size} height={QR.size} fill="#fffdf7" />
-              <path d={QR.d} fill="#1e2a1f" />
-            </svg>
-          </a>
+          <Qr />
           <div>
             <Kicker>Try it now</Kicker>
             <p className="font-display pd-url pd-sun">{LIVE_SHORT}</p>
             <ul className="pd-p pd-list">
               <li>{REPO}</li>
-              <li className="pd-mono pd-break">{CONTRACT}</li>
+              <li>
+                testnet <span className="pd-mono pd-break">{CONTRACT}</span>
+              </li>
+              <li>
+                mainnet <span className="pd-mono pd-break">{MAINNET}</span>
+              </li>
               <li>Built by @BangDropID</li>
             </ul>
             <p className="pd-sm pd-mt">Thanks @monad @monad_dev @geeky_kartikey @devweb3jogja</p>
@@ -460,6 +463,8 @@ code{font-family:ui-monospace,monospace;font-size:.9em;background:rgb(232 163 61
 .pd-close{display:flex;flex-direction:column;gap:20px}
 .pd-qr{display:block;width:min(100%,320px);margin:0 auto;border:4px solid var(--paper);box-shadow:6px 6px 0 var(--sun)}
 .pd-qr svg{display:block;width:100%;height:auto}
+.pd-qr-sm{width:min(100%,220px)}
+.pd-title-main{display:flex;flex-direction:column;gap:12px}
 .pd-num{position:absolute;right:16px;top:12px;font-size:.6rem;opacity:.5}
 .pd-nav{position:fixed;left:50%;bottom:12px;translate:-50% 0;display:flex;gap:8px;align-items:center;
   background:var(--paper);border:3px solid var(--ink);padding:6px 10px;font-size:.7rem;color:var(--ink);z-index:2;opacity:.9;white-space:nowrap}
@@ -492,6 +497,8 @@ code{font-family:ui-monospace,monospace;font-size:.9em;background:rgb(232 163 61
   .pd-arch{grid-template-columns:1fr auto 1fr;align-items:stretch}
   .pd-close{flex-direction:row;align-items:center;gap:5cqw;height:100%}
   .pd-qr{width:36cqw;flex:none;margin:0;border-width:.5cqw}
+  .pd-qr-sm{width:26cqw}
+  .pd-title-main{gap:1.6cqw;flex:1}
   .pd-url{font-size:2.6cqw;word-break:normal;white-space:nowrap;margin:1cqw 0 2cqw}
   .pd-num{right:2cqw;top:1.6cqw;font-size:1cqw}
   .pd-nav{opacity:.25;transition:opacity .15s}
@@ -515,6 +522,8 @@ code{font-family:ui-monospace,monospace;font-size:.9em;background:rgb(232 163 61
   .pd-stage:last-of-type{break-after:auto;page-break-after:auto}
   .pd-close{flex-direction:row;align-items:center;gap:5cqw;height:100%}
   .pd-qr{width:36cqw;flex:none;margin:0}
+  .pd-qr-sm{width:26cqw}
+  .pd-title-main{gap:1.6cqw;flex:1}
   .pd-inner{gap:2.2cqw}.pd-kicker{font-size:1.3cqw}.pd-hero{font-size:9cqw}.pd-h1{font-size:3.1cqw}.pd-h2{font-size:2.2cqw}
   .pd-h3{font-size:1.45cqw}.pd-p{font-size:2.05cqw}.pd-sm{font-size:1.45cqw}.pd-big{font-size:3.8cqw}
   .pd-grid,.pd-stack,.pd-arch{gap:2cqw}.pd-card{padding:1.6cqw}.pd-center{min-height:0;height:100%}

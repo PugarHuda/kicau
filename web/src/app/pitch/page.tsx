@@ -7,7 +7,7 @@ import { Deck, type LiveStats } from "./Deck";
 
 export const metadata: Metadata = {
   title: "Kicau — Pitch",
-  description: "Kicau pitch deck — Monad Blitz Jogja 2026.",
+  description: "Kicau: the on-chain record for real-life songbird contests. Pitch deck, Monad Blitz Jogja 2026.",
 };
 
 // Re-read chain numbers at most once a minute.
@@ -23,16 +23,18 @@ async function readStats(): Promise<LiveStats | null> {
     client.readContract({ ...base, functionName: "totalSupply" }),
     client.readContract({ ...base, functionName: "totalConservation" }),
     client.readContract({ ...base, functionName: "getLeaderboard" }),
+    client.readContract({ ...base, functionName: "contestCount" }),
   ]);
   const timeout = new Promise<null>((r) => setTimeout(() => r(null), 6000));
   try {
     const res = await Promise.race([read, timeout]);
     if (!res) return null;
-    const [supply, conservation, [players]] = res;
+    const [supply, conservation, [players], contests] = res;
     return {
       birds: Number(supply),
       conservation: Number(formatEther(conservation)).toLocaleString("en-US", { maximumFractionDigits: 4 }),
       players: players.length,
+      contests: Number(contests),
     };
   } catch {
     return null; // slides fall back to static proof

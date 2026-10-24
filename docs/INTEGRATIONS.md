@@ -1,6 +1,6 @@
 # Kicau: Monad integrations
 
-What we checked on 24 Oct 2026, the status of each, and proof for what shipped. We do not use mock data anywhere: an item is either live against real Monad infra or marked not feasible.
+Kicau is the on-chain record for real-life songbird contests. This page lists every Monad / ecosystem integration we checked on 24 Oct 2026, its status, and proof for what shipped. No mock data: an item is either live against real Monad infra or marked not feasible.
 
 ## Summary
 
@@ -17,6 +17,10 @@ What we checked on 24 Oct 2026, the status of each, and proof for what shipped. 
 | e2 | EIP-7702 "adopt + support in one tx" | ⏭ Not now | Supported on Monad, but it needs a delegate/batcher contract plus wallet support for type-4 txs. The burner flow already makes each action 1 call (~0.8 s). Medium effort, low marginal value before the freeze |
 | e3 | Para embedded wallet | ⏭ Not now | Needs a Para developer account and API key (signup). The Quick Play burner already gives popup-free onboarding |
 | f | **Public read API + shareable result pages** | ✅ **Implemented** | `GET /api/contest/<id>`, `GET /api/bird/<id>` (CORS `*`, read live from the contract over the Monad testnet RPC fallback set) and `/lomba/<id>` with a per-contest `opengraph-image.tsx` rendered from `getContest` + `entriesOf` + `BirdRegistered` logs. The x402 certificate embeds a QR to `/api/bird/<id>` |
+| g | **`monadLogs` speculative subscription** | ✅ **Implemented** | `web/src/lib/live.ts` (LIVE KICAU feed) and `web/src/lib/contestLive.ts` (contest scoreboard). Judge score → spectator scoreboard measured 782–1012 ms in the final QA run; feed items show Proposed → Voted → Finalized |
+| h | **`eth_sendRawTransactionSync`** (⚡ Quick Play burner) | ✅ **Implemented** | `web/src/lib/useKicau.ts` + `burner.ts`: one RPC call returns the receipt. Final QA: createContest / enter / startJudging / score / finalize each 536–913 ms |
+| i | **AI species identification** (Anthropic Claude) | ✅ **Implemented** | `web/src/app/api/identify/route.ts`: Haiku first, escalates to Sonnet when unsure; 5/5 correct on our test photos. Optional: without a key the register flow still works (species chosen manually) |
+| j | **devnads faucet + verification API** | ✅ **Implemented** | `/api/faucet` funds Quick Play burners; testnet + mainnet contracts verified on MonadVision + Monadscan via the devnads API |
 
 ## (a) x402 paid certificate: how it works
 
@@ -44,4 +48,4 @@ What we checked on 24 Oct 2026, the status of each, and proof for what shipped. 
 
 ## Revenue angle (for the pitch)
 
-The x402 certificate is a working **pay-per-document API**: no account and no subscription, and AI agents or contest organizers can call it machine-to-machine. Revenue goes straight to the Kicau treasury in USDC, and settlement costs the payer no gas. It extends naturally to paid organizer attestations (contract v4) and per-call pedigree lookups.
+The x402 certificate is a working **pay-per-document API**: no account and no subscription, and AI agents or contest organizers can call it machine-to-machine. Revenue goes straight to the Kicau treasury in USDC, and settlement costs the payer no gas. Planned extensions (not built): paid organizer onboarding and per-call pedigree lookups.
