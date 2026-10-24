@@ -46,7 +46,7 @@ Peta setiap butir rubrik dari hackathon brief ke bukti nyata di project ini. Sta
 |---|---|---|---|---|
 | Kontrak di Monad Mainnet | 25 | Panitia | Kontrak final siap; deploy dari keystore milik tim (`--account mainnet --rpc-url monad`), verifikasi chain 143 | ⏳ menunggu wallet mainnet |
 | Public page di custom domain | 15 | Panitia | Vercel mendukung custom domain; perlu domain | ❌ belum |
-| Product-market fit | ≤20 | Juri | Kicau mania = hobi jutaan orang Indonesia dengan lomba gantangan mingguan. Kicau memberi versi digital (koleksi, game, lomba skor) + **daftarkan burung asli** dengan silsilah, prestasi, sertifikat yang tersimpan on-chain — menjawab kebutuhan pamer & bukti prestasi | argumen pitch |
+| Product-market fit | ≤20 | Juri | Kicau mania = hobi nasional di Indonesia dengan lomba gantangan mingguan. Kicau memberi versi digital (koleksi, game, lomba skor) + **daftarkan burung asli** dengan silsilah, prestasi, sertifikat yang tersimpan on-chain — menjawab kebutuhan pamer & bukti prestasi | argumen pitch |
 | Revenue potential & strategy | ≤20 | Juri | 70% hasil adopsi ke treasury, biaya register burung, ke depan: entry fee turnamen, sponsor lomba, verifikasi sertifikat oleh panitia lomba (attestation berbayar) | argumen pitch |
 | Innovation & originality | ≤20 | Juri | Lihat bagian 5 | argumen pitch |
 
