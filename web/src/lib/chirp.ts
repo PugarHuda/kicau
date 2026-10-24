@@ -3,9 +3,16 @@ import { BIRDS } from "./birds";
 // ponytail: synthesized chirps, no audio assets or licensing. Swap for xeno-canto recordings (CC, with attribution) later.
 let ctx: AudioContext | null = null;
 
+/** Safari/old iOS only ship webkitAudioContext; some embedded browsers have neither. */
+export function audioContext(): AudioContext | null {
+  if (typeof window === "undefined") return null;
+  const AC = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+  return AC ? new AC() : null;
+}
+
 export function chirp(speciesId: number, volume = 0.15) {
-  if (typeof window === "undefined") return;
-  ctx ??= new AudioContext();
+  ctx ??= audioContext();
+  if (!ctx) return;
   let t = ctx.currentTime;
   for (const [from, to, dur] of BIRDS[speciesId]?.song ?? BIRDS[0].song) {
     const osc = ctx.createOscillator();
@@ -28,8 +35,8 @@ let songNodes: OscillatorNode[] = [];
 /** Long song for the bird card (~4–5 s): the species phrase three times with pitch variation, trills in between,
  *  and a closing flourish. Calling again restarts it. */
 export function singSong(speciesId: number, volume = 0.14) {
-  if (typeof window === "undefined") return;
-  ctx ??= new AudioContext();
+  ctx ??= audioContext();
+  if (!ctx) return;
   const c = ctx;
   songNodes.forEach((o) => {
     try {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { audioContext } from "./chirp";
 
 // Generative chiptune in a gamelan-like slendro pentatonic scale. WebAudio only: no audio files, no licensing.
 // ponytail: tiny step sequencer with fixed patterns; swap for composed tracks if the game ever needs real music.
@@ -81,7 +82,8 @@ export function isMusicMuted() {
 
 export function startMusic(theme: Theme) {
   if (typeof window === "undefined" || isMusicMuted()) return;
-  ctx ??= new AudioContext();
+  ctx ??= audioContext();
+  if (!ctx) return;
   if (!master) {
     master = ctx.createGain();
     master.gain.value = 0.6;
