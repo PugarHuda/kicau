@@ -34,7 +34,6 @@ Built at **Monad Blitz Jogja 2026**. Brief and mechanics: [docs/BRIEF.md](docs/B
 contracts/   Foundry: src/Kicau.sol, test/Kicau.t.sol, script/Deploy.s.sol
 web/         Next.js 15 + wagmi v3 + viem + Tailwind v4 (frontend, game, metadata route)
 docs/        BRIEF.md (concept, mechanics, game interface for Unity)
-unity/       Unity WebGL integration kit (optional)
 ```
 
 ## Running

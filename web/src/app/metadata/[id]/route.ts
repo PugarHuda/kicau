@@ -31,13 +31,13 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
           ...(bird.profile.titles ?? []).map((t) => ({ trait_type: "Title", value: t })),
         ],
       },
-      { headers: { "Cache-Control": "public, max-age=31536000, immutable" } },
+      { headers: { "Cache-Control": "public, max-age=31536000, s-maxage=31536000, immutable" } },
     );
   }
 
-  const id = Number.parseInt(raw, 10);
-  const bird = BIRDS[id];
+  const bird = /^\d+$/.test(raw) ? BIRDS[Number(raw)] : undefined;
   if (!bird) return Response.json({ error: "unknown species" }, { status: 404 });
+  const id = Number(raw);
   return Response.json({
     name: `Kicau · ${bird.name}`,
     description: bird.description,
@@ -47,5 +47,5 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       { trait_type: "IUCN", value: bird.iucn },
       { trait_type: "Rarity", value: bird.rarity },
     ],
-  });
+  }, { headers: { "Cache-Control": "public, max-age=3600, s-maxage=86400" } });
 }

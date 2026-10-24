@@ -30,7 +30,7 @@ Peta setiap butir rubrik dari hackathon brief ke bukti nyata di project ini. Sta
 | Semua fungsi yang diumumkan jalan | 25 | Tidak ada fitur "coming soon" yang diklaim | QA Playwright 10/10 skenario lolos dengan tx asli: Shelter → card → video, Quick Play + faucet, Adopsi, Support, Flappy + submit skor, Register burung sendiri, metadata NFT, mobile 375 px | ✅ |
 | Live transaction on chain saat demo | 25 | Tx sungguhan terjadi di panggung | Alur demo: ⚡ Quick Play → Adopsi (banner "terkonfirmasi dalam ~800 ms") → item muncul di LIVE KICAU dan berubah Proposed → Finalized → main → **Kirim skor on-chain** | ✅ (siapkan burner terisi) |
 | Kontrak verified di explorer | 25 | Source terpublikasi | Verified "perfect match" di MonadVision + "Pass - Verified" di Monadscan via API devnads | ✅ |
-| Bisa di-run orang lain dari README | 25 | Tanpa bantuan tim | Tanpa backend/DB; hanya `npm install`, `.env.local` 1 baris, `npm run dev`. Kontrak: `forge test` (15 test) + script deploy dengan keystore | ✅ |
+| Bisa di-run orang lain dari README | 25 | Tanpa bantuan tim | Tanpa backend/DB; hanya `npm install`, `.env.local` 1 baris, `npm run dev`. Kontrak: `forge test` (30 test) + script deploy dengan keystore | ✅ |
 
 ## 3. Advance — Did anyone see it / Build in public (100)
 

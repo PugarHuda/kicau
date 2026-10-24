@@ -221,7 +221,7 @@ function slides(wing: boolean, stats: LiveStats | null): { dark?: boolean; body:
           <ul className="pd-p pd-checks">
             {stats && <li>Numbers above read live from Monad testnet when this page rendered</li>}
             <li>Contract verified on MonadVision + Monadscan</li>
-            <li>15 Foundry tests · QA 10/10 Playwright E2E with real transactions</li>
+            <li>30 Foundry tests · QA 10/10 Playwright E2E with real transactions</li>
             <li>Build in public on X: @BangDropID</li>
           </ul>
         </>
@@ -231,10 +231,10 @@ function slides(wing: boolean, stats: LiveStats | null): { dark?: boolean; body:
       body: (
         <>
           <Kicker>07 · Business model</Kicker>
-          <h2 className="font-display pd-h1">Hobbyists already pay to compete.</h2>
+          <h2 className="font-display pd-h1">Hobbyists pay to compete.</h2>
           <div className="pd-grid pd-g2">
             <div className="pd-stack">
-              <Card title="70% of adoptions → treasury">30% always to conservation, enforced by the contract.</Card>
+              <Card title="70% of adoptions → treasury">30% to conservation, split by the contract in the same tx.</Card>
               <Card title="Registration fee">Mint your real bird&apos;s on-chain profile.</Card>
               <Card title="Tournament entry fees">Weekly on-chain contests with prize pools.</Card>
             </div>
@@ -257,10 +257,10 @@ function slides(wing: boolean, stats: LiveStats | null): { dark?: boolean; body:
           <Kicker>08 · Roadmap</Kicker>
           <h2 className="font-display pd-h1">Next flights.</h2>
           <div className="pd-grid pd-g4">
-            <Card title="Today" tone="leafbg">Live on Monad testnet. Adopt, support, play, register.</Card>
+            <Card title="Today" tone="leafbg">Live on Monad testnet. Adopt, support, play, register. Contract also on mainnet.</Card>
             <Card title="Next">Organizer attestations for titles → verified pedigree.</Card>
             <Card title="Then">Weekly on-chain tournaments with entry fees.</Card>
-            <Card title="Later">Unity version (web ↔ game JSON interface defined). Mainnet + conservation partner wallet.</Card>
+            <Card title="Later">Unity version (web ↔ game JSON interface defined). Mainnet app + conservation partner wallet.</Card>
           </div>
         </>
       ),
@@ -312,7 +312,17 @@ export function Deck({ stats }: { stats: LiveStats | null }) {
   }, [go]);
 
   useEffect(() => {
-    history.replaceState(null, "", `#${i + 1}`);
+    const onHash = () => {
+      const s = parseInt(location.hash.slice(1), 10);
+      if (s >= 1) go(s - 1);
+    };
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
+  }, [go]);
+
+  useEffect(() => {
+    // drop ?s= so a reload keeps the current slide
+    history.replaceState(null, "", `${location.pathname}#${i + 1}`);
   }, [i]);
 
   useEffect(() => {
@@ -401,7 +411,7 @@ const CSS = `
 .pd-stage[data-active]{display:block}
 .pd-dark{background-color:var(--ink);color:var(--paper)}
 .pd-inner{display:flex;flex-direction:column;gap:14px;height:100%}
-.pd-kicker{font-size:.7rem;color:var(--clay);text-transform:uppercase}
+.pd-kicker{font-size:.7rem;color:var(--clay);text-transform:uppercase;padding-right:3rem}
 .pd-dark .pd-kicker{color:var(--sun)}
 .pd-hero{font-size:3rem;line-height:1.1!important}
 .pd-h1{font-size:1.3rem}
