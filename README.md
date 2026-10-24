@@ -7,6 +7,7 @@ Built at **Monad Blitz Jogja 2026** · [docs/JUDGING.md](docs/JUDGING.md) (rubri
 | | |
 |---|---|
 | **Live app** | **https://kicau.xyz** (custom domain) · https://kicau-theta.vercel.app |
+| **Mainnet app** | **https://mainnet.kicau.xyz** — same code on Monad mainnet (chain 143), MetaMask + real MON (no Quick Play). Seeded: 3 birds + contest #0 in Judging (verified organizer). Toggle "Testnet | Mainnet" in every header |
 | Pages | [Home](https://kicau.xyz) · [Contests `/lomba`](https://kicau.xyz/lomba) · result page `/lomba/<id>` · [Kicau Garden `/taman`](https://kicau.xyz/taman) · [Pitch deck `/pitch`](https://kicau.xyz/pitch) |
 | **Testnet** (chain 10143, used by the app) | [`0x947929841Ba8154BB6E9BDeb35137d159c6A0F58`](https://testnet.monadvision.com/address/0x947929841Ba8154BB6E9BDeb35137d159c6A0F58) · verified on MonadVision + [Monadscan](https://testnet.monadscan.com/address/0x947929841Ba8154BB6E9BDeb35137d159c6A0F58) · deploy tx [`0x2d3980a3…5efb69d`](https://testnet.monadvision.com/tx/0x2d3980a35125711b90e1d3b6972c8991ce6bb22fc21d89975d4dae1a15efb69d) (block 73741359) |
 | **Mainnet** (chain 143) | [`0xA98CeE28C6EB35b6Ee7440b7490e265f23975d61`](https://monadvision.com/address/0xA98CeE28C6EB35b6Ee7440b7490e265f23975d61) · verified on MonadVision + [Monadscan](https://monadscan.com/address/0xA98CeE28C6EB35b6Ee7440b7490e265f23975d61) · deploy tx [`0x34c0b085…a3bb01`](https://monadvision.com/tx/0x34c0b0859000f0a8c99e04d1b5f705626951714bb81faef3d37640c4c2a3bb01) · weekly pool funded 0.5 MON |
