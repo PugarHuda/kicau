@@ -121,4 +121,42 @@ contract KicauTest is Test {
         assertEq(conservation.balance + treasury.balance, 0.1 ether);
         assertEq(address(kicau).balance, 0);
     }
+
+    function test_RegisterBird() public {
+        bytes memory img = hex"89504e470d0a1a0a";
+        vm.recordLogs();
+        vm.prank(alice);
+        uint256 id = kicau.registerBird{value: 0.005 ether}("Si Jambul", img);
+
+        assertEq(kicau.ownerOf(id), alice);
+        assertEq(kicau.speciesOf(id), kicau.CUSTOM_SPECIES());
+        assertEq(kicau.customName(id), "Si Jambul");
+        assertEq(kicau.registeredAt(id), block.number);
+        assertEq(conservation.balance, 0.0015 ether);
+        assertEq(kicau.tokenURI(id), "https://kicau.example/metadata/c0.json");
+        (uint16 g, uint16 f, uint16 h) = kicau.statsOf(id);
+        assertEq(g + f + h, 300);
+
+        vm.prank(alice);
+        kicau.submitScore(id, 3, 1);
+        assertEq(kicau.bestByToken(id), 3);
+    }
+
+    function test_RevertRegisterInvalid() public {
+        vm.startPrank(alice);
+        vm.expectRevert(Kicau.InvalidBird.selector);
+        kicau.registerBird{value: 0.005 ether}("", hex"01");
+        vm.expectRevert(Kicau.InvalidBird.selector);
+        kicau.registerBird{value: 0.005 ether}("x", new bytes(4097));
+        vm.expectRevert(Kicau.WrongPayment.selector);
+        kicau.registerBird{value: 0.001 ether}("x", hex"01");
+        vm.stopPrank();
+    }
+
+    function test_StatsOfSpecies() public {
+        vm.prank(alice);
+        uint256 id = kicau.buy{value: 0.05 ether}(2);
+        (, uint16 f,) = kicau.statsOf(id);
+        assertEq(f, 125);
+    }
 }

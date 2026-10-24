@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
-import { Bricolage_Grotesque, Geist } from "next/font/google";
+import { Pixelify_Sans, Press_Start_2P } from "next/font/google";
 import { Providers } from "./providers";
 import "./globals.css";
 
-const display = Bricolage_Grotesque({ variable: "--font-display", subsets: ["latin"] });
-const sans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
+// Variable names kept so globals.css and the game canvas keep working.
+const display = Press_Start_2P({ variable: "--font-display", weight: "400", subsets: ["latin"] });
+const sans = Pixelify_Sans({ variable: "--font-geist-sans", subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "Kicau — Koleksi burung, main, selamatkan",
@@ -14,7 +15,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="id">
-      <body className={`${display.variable} ${sans.variable} antialiased`}>
+      <body className={`${display.variable} ${sans.variable}`}>
         <Providers>{children}</Providers>
       </body>
     </html>

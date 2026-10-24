@@ -7,9 +7,9 @@ Built at **Monad Blitz Jogja 2026**. Brief lengkap dan mekanisme: [docs/BRIEF.md
 | | |
 |---|---|
 | Network | **Monad Testnet** (chain 10143) |
-| Contract | [`0xDea6Da93265871d828B20cace2BADd5F5e70209d`](https://testnet.monadvision.com/address/0xDea6Da93265871d828B20cace2BADd5F5e70209d) (verified on MonadVision + Monadscan) |
+| Contract | [`0xE9DC8a36e8f14c85E687eEe26978692dA98cbeab`](https://testnet.monadvision.com/address/0xE9DC8a36e8f14c85E687eEe26978692dA98cbeab) (verified on MonadVision + Monadscan) |
 | Live app | **https://kicau-theta.vercel.app** |
-| Deploy tx | [`0x27f983ba…2942d`](https://testnet.monadvision.com/tx/0x27f983baa2af0d51e6a91b6d6d16e51ffdcc9d2410a9e9112663f7538ab2942d) |
+| Deploy tx | [`0x3a11dc52…2c002`](https://testnet.monadvision.com/tx/0x3a11dc52d390a174a768991de654e9f127978d92af0d687cd4b33288eea2c002) |
 
 ## Apa yang dilakukan
 
@@ -17,13 +17,15 @@ Built at **Monad Blitz Jogja 2026**. Brief lengkap dan mekanisme: [docs/BRIEF.md
 2. **Adopsi (mint NFT).** `buy(speciesId)` mint ERC-721 dan langsung membagi pembayaran di tx yang sama: 30% ke dana konservasi, 70% ke treasury. Kontrak tidak pernah menahan saldo.
 3. **Main.** Game Flappy di HTML5 Canvas. Fisikanya mengikuti stats spesies yang tersimpan on-chain (gravitasi, kepakan, hitbox).
 4. **Skor on-chain.** `submitScore()` dikirim lewat `eth_sendRawTransactionSync` (wagmi `useWriteContractSync`), jadi receipt langsung kembali dan leaderboard ter-update instan.
-5. **Transparansi.** Total dana konservasi dibaca langsung dari kontrak (`totalConservation()`).
+5. **⚡ Quick Play.** Tanpa MetaMask: browser membuat burner wallet lokal, mengisinya otomatis dari faucet testnet (`/api/faucet` → devnads agent faucet), lalu setiap tx ditandatangani di browser dan dikirim dengan `eth_sendRawTransactionSync`. Tidak ada popup, dan receipt kembali dalam satu panggilan. Waktu konfirmasi ditampilkan di UI.
+6. **Transparansi.** Total dana konservasi dibaca langsung dari kontrak (`totalConservation()`).
 
 ## Kenapa Monad
 
 - Finality 600 ms + `eth_sendRawTransactionSync`: submit skor tiap game terasa seperti game biasa.
 - Storage per pemain / per token, tanpa counter global yang diperebutkan, sehingga ramah parallel execution.
 - Gas murah, sehingga micro-action (skor per game) masuk akal.
+- Quick Play memakai akun lokal, sehingga benar-benar memakai `eth_sendRawTransactionSync`. Wallet extension (MetaMask) tetap didukung, tapi lewat `eth_sendTransaction` + polling receipt.
 
 ## Struktur
 

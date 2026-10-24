@@ -25,6 +25,10 @@ contract Kicau is ERC721Enumerable, Ownable, ReentrancyGuard {
     }
 
     uint16 public constant MAX_BPS = 10_000;
+    /// @notice speciesOf value for user-registered birds (real bird photo → pixel character).
+    uint256 public constant CUSTOM_SPECIES = 999;
+    uint256 public constant MAX_NAME_BYTES = 32;
+    uint256 public constant MAX_IMAGE_BYTES = 4096;
 
     Species[] internal _species;
     mapping(uint256 tokenId => uint256) public speciesOf;
@@ -38,12 +42,18 @@ contract Kicau is ERC721Enumerable, Ownable, ReentrancyGuard {
     uint16 public conservationBps = 3_000;
     uint256 public totalConservation;
     uint256 public nextTokenId;
+    uint256 public registerFee = 0.005 ether;
+    /// @dev Custom bird images live in the BirdRegistered event (cheap log data, not storage).
+    ///      Frontends fetch the log from exactly this block, so no wide getLogs range is needed.
+    mapping(uint256 tokenId => uint256) public registeredAt;
+    mapping(uint256 tokenId => string) public customName;
     string public baseURI;
 
     event BirdBought(address indexed buyer, uint256 indexed tokenId, uint256 indexed speciesId, uint256 conservation);
     event ScoreSubmitted(
         address indexed player, uint256 indexed tokenId, uint256 indexed speciesId, uint256 score, uint8 gameVersion
     );
+    event BirdRegistered(address indexed owner, uint256 indexed tokenId, string name, bytes image);
     event SpeciesAdded(uint256 indexed speciesId, string name, uint256 price, uint256 maxSupply);
 
     error UnknownSpecies();
@@ -53,6 +63,7 @@ contract Kicau is ERC721Enumerable, Ownable, ReentrancyGuard {
     error InvalidBps();
     error ZeroAddress();
     error TransferFailed();
+    error InvalidBird();
 
     constructor(address treasury_, address conservationWallet_, string memory baseURI_) ERC721("Kicau", "KICAU") Ownable(msg.sender) {
         if (treasury_ == address(0) || conservationWallet_ == address(0)) revert ZeroAddress();
@@ -80,13 +91,34 @@ contract Kicau is ERC721Enumerable, Ownable, ReentrancyGuard {
         speciesOf[tokenId] = speciesId;
         _safeMint(msg.sender, tokenId);
 
-        uint256 conservation = msg.value * conservationBps / MAX_BPS;
-        totalConservation += conservation;
-        // Rounding dust goes to treasury.
-        _send(conservationWallet, conservation);
-        _send(treasury, msg.value - conservation);
-
+        uint256 conservation = _split(msg.value);
         emit BirdBought(msg.sender, tokenId, speciesId, conservation);
+    }
+
+    // ----------------------------------------------------------- register
+
+    /// @notice Register your own bird: `image` is a small pixel-art PNG made from its photo.
+    function registerBird(string calldata name, bytes calldata image)
+        external
+        payable
+        nonReentrant
+        returns (uint256 tokenId)
+    {
+        uint256 nameLen = bytes(name).length;
+        if (nameLen == 0 || nameLen > MAX_NAME_BYTES || image.length == 0 || image.length > MAX_IMAGE_BYTES) {
+            revert InvalidBird();
+        }
+        if (msg.value != registerFee) revert WrongPayment();
+
+        tokenId = nextTokenId++;
+        speciesOf[tokenId] = CUSTOM_SPECIES;
+        customName[tokenId] = name;
+        registeredAt[tokenId] = block.number;
+        _safeMint(msg.sender, tokenId);
+
+        uint256 conservation = _split(msg.value);
+        emit BirdRegistered(msg.sender, tokenId, name, image);
+        emit BirdBought(msg.sender, tokenId, CUSTOM_SPECIES, conservation);
     }
 
     // -------------------------------------------------------------- score
@@ -137,9 +169,19 @@ contract Kicau is ERC721Enumerable, Ownable, ReentrancyGuard {
         }
     }
 
-    /// @notice Metadata is per species: `<baseURI><speciesId>.json`.
+    /// @notice Game stats for a token. Registered birds play with balanced 100/100/100.
+    function statsOf(uint256 tokenId) external view returns (uint16 gravity, uint16 flapPower, uint16 hitbox) {
+        _requireOwned(tokenId);
+        uint256 sid = speciesOf[tokenId];
+        if (sid == CUSTOM_SPECIES) return (100, 100, 100);
+        Species storage s = _species[sid];
+        return (s.gravity, s.flapPower, s.hitbox);
+    }
+
+    /// @notice Metadata: `<baseURI><speciesId>.json`, or `<baseURI>c<tokenId>.json` for registered birds.
     function tokenURI(uint256 tokenId) public view override returns (string memory) {
         _requireOwned(tokenId);
+        if (speciesOf[tokenId] == CUSTOM_SPECIES) return string.concat(baseURI, "c", tokenId.toString(), ".json");
         return string.concat(baseURI, speciesOf[tokenId].toString(), ".json");
     }
 
@@ -167,6 +209,10 @@ contract Kicau is ERC721Enumerable, Ownable, ReentrancyGuard {
         conservationBps = bps;
     }
 
+    function setRegisterFee(uint256 fee) external onlyOwner {
+        registerFee = fee;
+    }
+
     function setBaseURI(string calldata uri) external onlyOwner {
         baseURI = uri;
     }
@@ -178,6 +224,14 @@ contract Kicau is ERC721Enumerable, Ownable, ReentrancyGuard {
     {
         _species.push(Species(name, price, maxSupply, 0, gravity, flapPower, hitbox));
         emit SpeciesAdded(_species.length - 1, name, price, maxSupply);
+    }
+
+    /// @dev Pass-through split; rounding dust goes to treasury. Returns the conservation share.
+    function _split(uint256 amount) internal returns (uint256 conservation) {
+        conservation = amount * conservationBps / MAX_BPS;
+        totalConservation += conservation;
+        _send(conservationWallet, conservation);
+        _send(treasury, amount - conservation);
     }
 
     function _send(address to, uint256 amount) internal {

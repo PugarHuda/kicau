@@ -7,6 +7,7 @@ export type GameStart = {
   species: number;
   stats: GameStats;
   gameVersion: number; // 1 = canvas, 2 = unity
+  spriteUrl?: string; // registered birds: pixel sprite made from the owner's photo
 };
 
 export type GameOver = { tokenId: number; score: number; durationMs: number };

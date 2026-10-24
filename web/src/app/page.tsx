@@ -1,32 +1,58 @@
 "use client";
 
-import { useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
-import { formatEther } from "viem";
-import { useAccount, useConnect, useDisconnect, useReadContract, useReadContracts, useSwitchChain, useWriteContractSync } from "wagmi";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useMemo, useState } from "react";
+import { bytesToHex, formatEther } from "viem";
+import { writeContractSync } from "viem/actions";
+import {
+  useAccount,
+  useBalance,
+  useConnect,
+  useDisconnect,
+  useReadContract,
+  useReadContracts,
+  useSwitchChain,
+  usePublicClient,
+  useWriteContractSync,
+} from "wagmi";
 import { monadTestnet } from "wagmi/chains";
 import { FlappyGame } from "@/components/FlappyGame";
+import { RegisterBird } from "@/components/RegisterBird";
 import { BirdArt, BirdCard, IucnBadge, Modal, TxLink, short, type Species } from "@/components/ui";
 import { kicauAbi } from "@/lib/abi";
 import { BIRDS } from "@/lib/birds";
+import { type BurnerClient, createBurner, forgetBurner, fundBurner, loadBurner } from "@/lib/burner";
 import { KICAU_ADDRESS } from "@/lib/config";
+import { CUSTOM_SPECIES, fetchCustomBird } from "@/lib/customBirds";
 import { GAME_VERSION_CANVAS, type GameOver, type GameStart } from "@/lib/game";
 
 const kicau = { address: KICAU_ADDRESS, abi: kicauAbi } as const;
 
 export default function Home() {
   const qc = useQueryClient();
-  const { address, chainId, isConnected } = useAccount();
+  const { address: walletAddress, chainId, isConnected } = useAccount();
   const { connect, connectors, isPending: connecting } = useConnect();
   const { disconnect } = useDisconnect();
   const { switchChain } = useSwitchChain();
   const wrongChain = isConnected && chainId !== monadTestnet.id;
 
-  const { writeContractSyncAsync, isPending: txBusy } = useWriteContractSync();
+  // Quick Play: local burner signs in-browser → eth_sendRawTransactionSync, no wallet popup.
+  const [burner, setBurner] = useState<BurnerClient | null>(null);
+  const [funding, setFunding] = useState(false);
+  useEffect(() => setBurner(loadBurner()), []);
+  const address = burner?.account.address ?? walletAddress;
+  const { data: balance } = useBalance({ address, query: { enabled: !!address, refetchInterval: 5000 } });
+
+  const { writeContractSyncAsync, isPending: walletBusy } = useWriteContractSync();
+  const [burnerBusy, setBurnerBusy] = useState(false);
+  const txBusy = walletBusy || burnerBusy;
   const [lastTx, setLastTx] = useState<string>();
+  const [lastMs, setLastMs] = useState<number>();
   const [error, setError] = useState<string>();
 
   const [openSpecies, setOpenSpecies] = useState<number | null>(null);
+  const [registering, setRegistering] = useState(false);
+  const publicClient = usePublicClient();
   const [game, setGame] = useState<GameStart | null>(null);
   const [result, setResult] = useState<GameOver | null>(null);
 
@@ -36,6 +62,7 @@ export default function Home() {
   const species = (speciesRaw ?? []) as readonly Species[];
   const { data: totalConservation } = useReadContract({ ...kicau, functionName: "totalConservation", query: { enabled } });
   const { data: board } = useReadContract({ ...kicau, functionName: "getLeaderboard", query: { enabled } });
+  const { data: registerFee } = useReadContract({ ...kicau, functionName: "registerFee", query: { enabled } });
   const { data: tokenIds } = useReadContract({
     ...kicau,
     functionName: "tokensOf",
@@ -50,10 +77,25 @@ export default function Home() {
     query: { enabled: !!tokenIds?.length },
   });
 
-  const myBirds = (tokenIds ?? []).map((id, i) => ({
+  const baseBirds = (tokenIds ?? []).map((id, i) => ({
     tokenId: Number(id),
     species: Number(tokenInfo?.[i * 2]?.result ?? 0n),
     best: Number(tokenInfo?.[i * 2 + 1]?.result ?? 0n),
+  }));
+  const customIds = baseBirds.filter((b) => b.species === CUSTOM_SPECIES).map((b) => b.tokenId);
+  // Registered birds: sprite + name come from their BirdRegistered log (one block per token).
+  const { data: customBirds } = useQuery({
+    queryKey: ["customBirds", KICAU_ADDRESS, customIds],
+    enabled: !!publicClient && customIds.length > 0,
+    staleTime: Infinity,
+    queryFn: async () =>
+      Object.fromEntries(
+        await Promise.all(customIds.map(async (id) => [id, await fetchCustomBird(publicClient!, KICAU_ADDRESS, BigInt(id))] as const)),
+      ),
+  });
+  const myBirds = baseBirds.map((b) => ({
+    ...b,
+    custom: b.species === CUSTOM_SPECIES ? (customBirds?.[b.tokenId] ?? null) : undefined,
   }));
 
   const leaderboard = useMemo(() => {
@@ -65,11 +107,24 @@ export default function Home() {
       .slice(0, 10);
   }, [board]);
 
-  // ---- writes (eth_sendRawTransactionSync on Monad → receipt in one call)
-  async function send(fn: () => Promise<{ transactionHash: string }>) {
+  // ---- writes. Burner: eth_sendRawTransactionSync (receipt in one call). Wallet: send + wait.
+  type Write =
+    | { functionName: "buy"; args: readonly [bigint]; value: bigint }
+    | { functionName: "submitScore"; args: readonly [bigint, bigint, number] }
+    | { functionName: "registerBird"; args: readonly [string, `0x${string}`]; value: bigint };
+
+  async function send(req: Write) {
     setError(undefined);
+    const t0 = performance.now();
     try {
-      const receipt = await fn();
+      let receipt: { transactionHash: string };
+      if (burner) {
+        setBurnerBusy(true);
+        receipt = await writeContractSync(burner, { ...kicau, ...req } as unknown as Parameters<typeof writeContractSync>[1]);
+      } else {
+        receipt = await writeContractSyncAsync({ ...kicau, ...req } as unknown as Parameters<typeof writeContractSyncAsync>[0]);
+      }
+      setLastMs(Math.round(performance.now() - t0));
       setLastTx(receipt.transactionHash);
       await qc.invalidateQueries();
       return true;
@@ -77,43 +132,71 @@ export default function Home() {
       const err = e as { shortMessage?: string; message?: string };
       setError(err.shortMessage ?? err.message ?? "Transaksi gagal");
       return false;
+    } finally {
+      setBurnerBusy(false);
     }
   }
 
+  async function quickPlay() {
+    setError(undefined);
+    const b = burner ?? createBurner();
+    setBurner(b);
+    setFunding(true);
+    try {
+      await fundBurner(b.account.address);
+    } catch (e) {
+      setError(`${(e as Error).message}. Isi manual dari faucet.monad.xyz ke ${b.account.address}`);
+    } finally {
+      setFunding(false);
+      await qc.invalidateQueries();
+    }
+  }
+
+  function leaveBurner() {
+    forgetBurner();
+    setBurner(null);
+  }
+
   async function buy(id: number) {
-    const ok = await send(() =>
-      writeContractSyncAsync({ ...kicau, functionName: "buy", args: [BigInt(id)], value: species[id].price }),
-    );
+    const ok = await send({ functionName: "buy", args: [BigInt(id)], value: species[id].price });
     if (ok) setOpenSpecies(null);
   }
 
   async function submitScore(r: GameOver) {
-    const ok = await send(() =>
-      writeContractSyncAsync({
-        ...kicau,
-        functionName: "submitScore",
-        args: [BigInt(r.tokenId), BigInt(r.score), GAME_VERSION_CANVAS],
-      }),
-    );
+    const ok = await send({
+      functionName: "submitScore",
+      args: [BigInt(r.tokenId), BigInt(r.score), GAME_VERSION_CANVAS],
+    });
     if (ok) {
       setResult(null);
       setGame(null);
     }
   }
 
-  function play(tokenId: number, speciesId: number) {
-    const s = species[speciesId];
-    if (!s) return;
+  async function register(name: string, image: Uint8Array) {
+    if (registerFee === undefined) return;
+    const ok = await send({ functionName: "registerBird", args: [name, bytesToHex(image)], value: registerFee });
+    if (ok) setRegistering(false);
+  }
+
+  function play(bird: (typeof myBirds)[number]) {
+    const s = species[bird.species];
+    const stats = s ? { gravity: s.gravity, flapPower: s.flapPower, hitbox: s.hitbox } : { gravity: 100, flapPower: 100, hitbox: 100 };
+    if (!s && !bird.custom) return;
     setResult(null);
     setGame({
-      tokenId,
-      species: speciesId,
-      stats: { gravity: s.gravity, flapPower: s.flapPower, hitbox: s.hitbox },
+      tokenId: bird.tokenId,
+      species: bird.species,
+      stats,
       gameVersion: GAME_VERSION_CANVAS,
+      spriteUrl: bird.custom?.image,
     });
   }
 
-  const ready = isConnected && !wrongChain;
+  const birdName = (b: (typeof myBirds)[number]) => (b.custom ? b.custom.name : BIRDS[b.species]?.name);
+
+  const ready = !!burner || (isConnected && !wrongChain);
+  const bal = balance ? Number(formatEther(balance.value)).toFixed(3) : "…";
 
   return (
     <main className="mx-auto max-w-6xl px-4 pb-24 sm:px-6">
@@ -123,11 +206,26 @@ export default function Home() {
           <BirdArt id={0} className="h-9 w-auto" />
           <span className="font-display text-2xl font-extrabold tracking-tight">Kicau</span>
         </div>
-        <div className="flex items-center gap-2">
-          {!isConnected ? (
-            <button className="btn-primary" disabled={connecting} onClick={() => connect({ connector: connectors[0] })}>
-              {connecting ? "Menghubungkan…" : "Connect wallet"}
-            </button>
+        <div className="flex flex-wrap items-center gap-2">
+          {burner ? (
+            <>
+              <span className="text-sm text-muted tabular-nums">{bal} MON</span>
+              <button className="btn-ghost" disabled={funding} onClick={quickPlay} title="Minta MON testnet dari faucet">
+                {funding ? "Mengisi…" : "+ Faucet"}
+              </button>
+              <button className="btn-ghost" onClick={leaveBurner} title="Keluar dari Quick Play">
+                ⚡ {short(burner.account.address)}
+              </button>
+            </>
+          ) : !isConnected ? (
+            <>
+              <button className="btn-primary" disabled={funding} onClick={quickPlay}>
+                {funding ? "Menyiapkan…" : "⚡ Quick Play"}
+              </button>
+              <button className="btn-ghost" disabled={connecting} onClick={() => connect({ connector: connectors[0] })}>
+                {connecting ? "Menghubungkan…" : "Connect wallet"}
+              </button>
+            </>
           ) : wrongChain ? (
             <button className="btn-primary bg-clay" onClick={() => switchChain({ chainId: monadTestnet.id })}>
               Pindah ke Monad Testnet
@@ -169,15 +267,28 @@ export default function Home() {
       )}
       {(error || lastTx) && (
         <div className="mb-6 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-line bg-paper p-4 text-sm">
-          {error ? <span className="text-clay">{error}</span> : <span className="font-semibold">✓ Transaksi terkonfirmasi</span>}
+          {error ? (
+            <span className="text-clay">{error}</span>
+          ) : (
+            <span className="font-semibold">
+              ✓ Transaksi terkonfirmasi{lastMs !== undefined && ` dalam ${lastMs} ms`}
+            </span>
+          )}
           {!error && <TxLink hash={lastTx} />}
         </div>
       )}
 
       {/* shelter */}
       <section className="mb-12">
-        <h2 className="mb-1 font-display text-3xl font-bold">Shelter</h2>
-        <p className="mb-5 text-muted">Klik burung untuk mendengar kicaunya dan melihat statsnya.</p>
+        <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 className="mb-1 font-display text-3xl font-bold">Shelter</h2>
+            <p className="text-muted">Klik burung untuk mendengar kicaunya dan melihat statsnya.</p>
+          </div>
+          <button className="btn-ghost" onClick={() => setRegistering(true)}>
+            + Daftarkan burungmu
+          </button>
+        </div>
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
           {BIRDS.map((b, id) => {
             const s = species[id];
@@ -206,20 +317,27 @@ export default function Home() {
         {/* my birds */}
         <section>
           <h2 className="mb-4 font-display text-3xl font-bold">Burungku</h2>
-          {!isConnected ? (
-            <p className="text-muted">Hubungkan wallet untuk melihat koleksimu.</p>
+          {!address ? (
+            <p className="text-muted">Klik ⚡ Quick Play atau hubungkan wallet untuk melihat koleksimu.</p>
           ) : myBirds.length === 0 ? (
             <p className="text-muted">Belum punya burung. Adopsi satu dari Shelter.</p>
           ) : (
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
               {myBirds.map((b) => (
                 <div key={b.tokenId} className="rounded-3xl border border-line bg-paper p-4">
-                  <BirdArt id={b.species} className="mx-auto mb-2 h-16 w-auto" />
+                  {b.custom ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={b.custom.image} alt={b.custom.name} className="mx-auto mb-2 h-16 w-auto [image-rendering:pixelated]" />
+                  ) : b.species === CUSTOM_SPECIES ? (
+                    <div className="mx-auto mb-2 h-16 animate-pulse bg-cream" />
+                  ) : (
+                    <BirdArt id={b.species} className="mx-auto mb-2 h-16 w-auto" />
+                  )}
                   <div className="font-semibold">
-                    {BIRDS[b.species]?.name} <span className="text-muted">#{b.tokenId}</span>
+                    {birdName(b) ?? "…"} <span className="text-muted">#{b.tokenId}</span>
                   </div>
                   <div className="mb-3 text-sm text-muted">Best: {b.best}</div>
-                  <button className="btn-primary w-full !py-2" disabled={!ready} onClick={() => play(b.tokenId, b.species)}>
+                  <button className="btn-primary w-full !py-2" disabled={!ready} onClick={() => play(b)}>
                     Terbang
                   </button>
                 </div>
@@ -246,6 +364,19 @@ export default function Home() {
         </section>
       </div>
 
+      {/* register own bird */}
+      {registering && (
+        <Modal onClose={() => setRegistering(false)}>
+          <RegisterBird
+            fee={registerFee !== undefined ? formatEther(registerFee) : "…"}
+            busy={txBusy}
+            canRegister={ready}
+            onRegister={register}
+          />
+          {!ready && <p className="mt-3 text-sm text-clay">Klik ⚡ Quick Play atau hubungkan wallet dulu.</p>}
+        </Modal>
+      )}
+
       {/* bird card */}
       {openSpecies !== null && species[openSpecies] && (
         <Modal onClose={() => setOpenSpecies(null)}>
@@ -256,7 +387,7 @@ export default function Home() {
             canBuy={ready}
             onBuy={() => buy(openSpecies)}
           />
-          {!ready && <p className="mt-3 text-sm text-clay">Hubungkan wallet ke Monad Testnet untuk adopsi.</p>}
+          {!ready && <p className="mt-3 text-sm text-clay">Klik ⚡ Quick Play atau hubungkan wallet ke Monad Testnet untuk adopsi.</p>}
         </Modal>
       )}
 
@@ -264,7 +395,7 @@ export default function Home() {
       {game && (
         <Modal onClose={() => setGame(null)}>
           <div className="mb-3 font-display text-xl font-bold">
-            {BIRDS[game.species]?.name} #{game.tokenId}
+            {myBirds.find((b) => b.tokenId === game.tokenId) ? birdName(myBirds.find((b) => b.tokenId === game.tokenId)!) : ""} #{game.tokenId}
           </div>
           <div className="relative">
             <FlappyGame key={result ? "over" : "play"} start={game} onGameOver={setResult} />

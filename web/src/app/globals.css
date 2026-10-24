@@ -4,12 +4,13 @@
   --cream: #f6f1e4;
   --paper: #fffdf7;
   --ink: #1e2a1f;
-  --muted: #5b6a5c;
+  --muted: #4f5d50;
   --leaf: #2f6b3a;
   --leaf-dark: #24552e;
   --sun: #e8a33d;
   --clay: #b5532a;
-  --line: #e2dccb;
+  --line: #d6cdb4;
+  --px: 4px; /* one "pixel" of the UI */
 }
 
 @theme inline {
@@ -26,18 +27,120 @@
   --font-display: var(--font-display);
 }
 
-body {
-  background: var(--cream);
-  color: var(--ink);
-  font-family: var(--font-geist-sans), system-ui, sans-serif;
+/* ---------- Pixel-art overrides (unlayered on purpose: they beat Tailwind's layers) ---------- */
+
+*,
+*::before,
+*::after {
+  border-radius: 0 !important;
 }
 
+body {
+  color: var(--ink);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-size: 1.0625rem;
+  /* subtle 8px checker */
+  background-color: var(--cream);
+  background-image: conic-gradient(#efe7d3 25%, transparent 0 50%, #efe7d3 0 75%, transparent 0);
+  background-size: 16px 16px;
+}
+
+::selection {
+  background: var(--sun);
+  color: var(--ink);
+}
+
+img,
+canvas,
+svg {
+  image-rendering: pixelated;
+}
+
+:focus-visible {
+  outline: 3px dashed var(--sun);
+  outline-offset: 3px;
+}
+
+/* Press Start 2P only ships 400: no faux-bold, sane line-height, sizes tamed so it fits at 360px */
+.font-display {
+  font-weight: 400 !important;
+  font-synthesis: none;
+  line-height: 1.35 !important;
+  letter-spacing: 0 !important;
+}
+.font-display.text-6xl { font-size: clamp(1.5rem, 6vw, 2.75rem); }
+.font-display.text-4xl { font-size: clamp(1.25rem, 5vw, 2rem); }
+.font-display.text-3xl { font-size: clamp(1rem, 4.2vw, 1.5rem); }
+.font-display.text-2xl { font-size: clamp(0.875rem, 3.6vw, 1.15rem); }
+.font-display.text-xl { font-size: 0.95rem; }
+.font-display.text-lg { font-size: 0.75rem; }
+@media (min-width: 40rem) {
+  .font-display.sm\:text-6xl { font-size: clamp(2rem, 4.5vw, 2.75rem); }
+}
+
+/* hard ink borders */
+.border { border-width: 3px; }
+.border-line,
+.hover\:border-ink:hover { border-color: var(--ink); }
+
+/* stepped hard shadows, never blurred */
+.rounded-3xl.border,
+.rounded-2xl.border {
+  box-shadow: var(--px) var(--px) 0 var(--ink);
+}
+.shadow-lg,
+.hover\:shadow-lg:hover {
+  box-shadow: 6px 6px 0 var(--ink);
+}
+.shadow-2xl {
+  box-shadow: 8px 8px 0 var(--ink);
+}
+
+/* hero banner and modal get the full chunky frame */
+.rounded-\[2rem\] {
+  border: 4px solid var(--ink);
+  box-shadow: 6px 6px 0 var(--ink);
+  background-image: repeating-linear-gradient(0deg, rgb(0 0 0 / 0.06) 0 2px, transparent 2px 4px);
+}
+[role="dialog"] > div {
+  border: 4px solid var(--ink);
+}
+[role="dialog"].backdrop-blur-sm {
+  backdrop-filter: none;
+  background-image: repeating-linear-gradient(0deg, rgb(0 0 0 / 0.15) 0 2px, transparent 2px 4px);
+}
+
+/* bird display wells: inset pixel bevel */
+.rounded-2xl.bg-cream {
+  box-shadow: inset 3px 3px 0 rgb(30 42 31 / 0.14), inset -3px -3px 0 #fffdf7;
+}
+
+/* stat bars: segmented like an HP meter */
+.h-2.bg-line {
+  height: 12px;
+  border: 2px solid var(--ink);
+  background-color: var(--paper);
+}
+.h-2.bg-leaf {
+  height: 100%;
+  background-image: repeating-linear-gradient(90deg, transparent 0 6px, rgb(0 0 0 / 0.3) 6px 8px);
+}
+
+/* game canvas frame */
+canvas.touch-none {
+  border: 4px solid var(--ink);
+  box-shadow: 6px 6px 0 var(--ink);
+}
+
+/* ---------- Buttons ---------- */
+
 @utility btn {
-  @apply inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 font-semibold transition active:scale-[0.97] disabled:opacity-50 disabled:pointer-events-none;
+  @apply inline-flex items-center justify-center gap-2 px-4 py-3 font-display text-[0.7rem] leading-snug uppercase border-[3px] border-ink transition-[translate,box-shadow,background-color] duration-75 shadow-[4px_4px_0_var(--ink)] hover:-translate-y-px active:translate-x-[3px] active:translate-y-[3px] active:shadow-[1px_1px_0_var(--ink)] disabled:opacity-50 disabled:pointer-events-none;
+  font-synthesis: none;
 }
 @utility btn-primary {
   @apply btn bg-leaf text-paper hover:bg-leaf-dark;
 }
 @utility btn-ghost {
-  @apply btn border border-line bg-paper hover:border-ink;
+  @apply btn bg-paper text-ink hover:bg-cream;
 }
