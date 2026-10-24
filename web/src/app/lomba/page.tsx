@@ -103,7 +103,8 @@ export default function Lomba() {
           <section>
             <h1 className="mb-1 font-display text-3xl">Songbird contests</h1>
             <p className="mb-4 text-muted">
-              Gantangan judging on-chain: every judge&apos;s score per aspect is public the moment it&apos;s cast, and prizes pay out
+              The official record for real-life gantangan contests. Judges score at the venue from their phones; every score per
+              aspect is public on-chain the moment it&apos;s cast, the live scoreboard updates for the crowd, and prizes pay out
               automatically to the winners&apos; keepers.
             </p>
             {count === undefined ? (

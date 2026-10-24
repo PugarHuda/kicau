@@ -46,7 +46,6 @@ export const SPAWN = { x: 21 * TILE, y: (PATH_R + 1) * TILE };
 export const LABELS: Label[] = [
   { x: (SIGN.c + SIGN.w / 2) * TILE, y: (SIGN.r + 0.55) * TILE, text: "KICAU GARDEN" },
   { x: (GATE.c + 3) * TILE, y: (YARD.r + YARD.h + 0.5) * TILE, text: "SHELTER" },
-  { x: (GAZEBO.c + 1.5) * TILE, y: (GAZEBO.r - 0.45) * TILE, text: "SONG CONTEST" },
 ];
 
 const yb = YARD.r + YARD.h - 1; // fence bottom row
