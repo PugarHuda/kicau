@@ -38,7 +38,7 @@ Peta setiap butir rubrik dari hackathon brief ke bukti nyata di project ini. Sta
 
 | Butir | Poin | Syarat | Rencana / bukti | Status |
 |---|---|---|---|---|
-| Post di X atau LinkedIn dengan tag | 25 | Tag **@monad @monad_dev @geeky_kartikey** | Thread @BangDropID 11:41 WIB: [post 1](https://x.com/BangDropID/status/2113853488170156259) (apa itu Kicau + live + screenshot) · [reply](https://x.com/BangDropID/status/2113853615941284205) (sisi Monad + repo + kontrak) · [update 2](https://x.com/BangDropID/status/2113869717429789043) | ✅ |
+| Post di X atau LinkedIn dengan tag | 25 | Tag **@monad @monad_dev @geeky_kartikey** | Thread @BangDropID 11:41 WIB: [post 1](https://x.com/BangDropID/status/2113853488170156259) (apa itu Kicau + live + screenshot) · [reply](https://x.com/BangDropID/status/2113853615941284205) (sisi Monad + repo + kontrak) · [update 2](https://x.com/BangDropID/status/2113869717429789043) · [update 3 (quote)](https://x.com/BangDropID/status/2113885785019798003) | ✅ |
 | Video demo ≥30 detik di sosial | 25 | Produk berjalan, ≥30 detik | Rekam layar alur demo di atas (≤60 detik) | ⏳ setelah post teks |
 | Video iklan kreatif di sosial | 25 | Bebas, kreatif | Mis. sprite pixel burung + kicau asli + "Pelihara kicaunya, bukan sangkarnya" | ⏳ |
 | 5K+ views kolektif | 25 | Total semua post selama Blitz | Sebar ke grup kicau mania, Dev Web3 Jogja, Monad Developers Indonesia | ⏳ |
