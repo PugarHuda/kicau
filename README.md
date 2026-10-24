@@ -2,7 +2,7 @@
 
 **Keep the song, not the cage.** GameFi + ReFi with a real-world provenance layer — on-chain pedigree and organizer-attested championship records for real songbirds. Adopt Indonesian songbirds as NFTs, fly them in a Flappy-style pixel game, and every adoption funds bird conservation. All on-chain on Monad.
 
-Built at **Monad Blitz Jogja 2026**. Brief and mechanics: [docs/BRIEF.md](docs/BRIEF.md) · Judging rubric mapping: [docs/JUDGING.md](docs/JUDGING.md).
+Built at **Monad Blitz Jogja 2026**. Brief and mechanics: [docs/BRIEF.md](docs/BRIEF.md) · Judging rubric mapping: [docs/JUDGING.md](docs/JUDGING.md) · Monad integrations: [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md).
 
 | | |
 |---|---|
