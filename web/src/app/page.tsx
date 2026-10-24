@@ -141,7 +141,7 @@ export default function Home() {
       return true;
     } catch (e) {
       const err = e as { shortMessage?: string; message?: string };
-      setError(err.shortMessage ?? err.message ?? "Transaksi gagal");
+      setError(err.shortMessage ?? err.message ?? "Transaction failed");
       return false;
     } finally {
       setBurnerBusy(false);
@@ -156,7 +156,7 @@ export default function Home() {
     try {
       await fundBurner(b.account.address);
     } catch (e) {
-      setError(`${(e as Error).message}. Isi manual dari faucet.monad.xyz ke ${b.account.address}`);
+      setError(`${(e as Error).message}. Top up manually at faucet.monad.xyz → ${b.account.address}`);
     } finally {
       setFunding(false);
       await qc.invalidateQueries();
@@ -239,34 +239,34 @@ export default function Home() {
           {burner ? (
             <>
               <span className="text-sm text-muted tabular-nums">{bal} MON</span>
-              <button className="btn-ghost" disabled={funding} onClick={quickPlay} title="Minta MON testnet dari faucet">
-                {funding ? "Mengisi…" : "+ Faucet"}
+              <button className="btn-ghost" disabled={funding} onClick={quickPlay} title="Get testnet MON from the faucet">
+                {funding ? "Funding…" : "+ Faucet"}
               </button>
-              <button className="btn-ghost" onClick={leaveBurner} title="Keluar dari Quick Play">
+              <button className="btn-ghost" onClick={leaveBurner} title="Leave Quick Play">
                 ⚡ {short(burner.account.address)}
               </button>
             </>
           ) : !isConnected ? (
             <>
               <button className="btn-primary" disabled={funding} onClick={quickPlay}>
-                {funding ? "Menyiapkan…" : "⚡ Quick Play"}
+                {funding ? "Setting up…" : "⚡ Quick Play"}
               </button>
               <button className="btn-ghost" disabled={connecting} onClick={() =>
                   connect(
                     { connector: connectors[0] },
                     {
                       onError: (e) =>
-                        setError(e.message.startsWith("Provider not found") ? "Wallet tidak terdeteksi. Pasang MetaMask, atau pakai ⚡ Quick Play." : e.message),
+                        setError(e.message.startsWith("Provider not found") ? "No wallet detected. Install MetaMask, or use ⚡ Quick Play." : e.message),
                     },
                   )
                 }
               >
-                {connecting ? "Menghubungkan…" : "Connect wallet"}
+                {connecting ? "Connecting…" : "Connect wallet"}
               </button>
             </>
           ) : wrongChain ? (
             <button className="btn-primary bg-clay" onClick={() => switchChain({ chainId: monadTestnet.id })}>
-              Pindah ke Monad Testnet
+              Switch to Monad Testnet
             </button>
           ) : (
             <button className="btn-ghost" onClick={() => disconnect()} title="Disconnect">
@@ -280,26 +280,26 @@ export default function Home() {
       <section className="mb-10 grid gap-6 rounded-[2rem] bg-leaf px-6 py-10 text-paper sm:grid-cols-[1.4fr_1fr] sm:px-10">
         <div>
           <h1 className="mb-3 font-display text-4xl font-extrabold leading-[1.05] sm:text-6xl">
-            Pelihara kicaunya,
+            Keep the song,
             <br />
-            bukan sangkarnya.
+            not the cage.
           </h1>
           <p className="max-w-md text-paper/85">
-            Adopsi burung kicau Nusantara sebagai NFT, terbangkan di game, dan setiap adopsi langsung mendanai konservasi.
-            Semua tercatat on-chain di Monad.
+            Adopt Indonesian songbirds as NFTs, fly them in a pixel game, and every adoption funds bird conservation —
+            all on-chain on Monad.
           </p>
           <div className="mt-5 flex flex-wrap gap-3">
             <button className="btn bg-sun text-ink" onClick={playNow}>
-              ▶ Main Flappy
+              ▶ Play Flappy
             </button>
           </div>
         </div>
         <div className="self-end rounded-3xl bg-paper/10 p-5">
-          <div className="text-sm uppercase tracking-wider text-paper/70">Dana konservasi terkumpul</div>
+          <div className="text-sm uppercase tracking-wider text-paper/70">Conservation funds raised</div>
           <div className="font-display text-4xl font-extrabold tabular-nums">
             {totalConservation !== undefined ? Number(formatEther(totalConservation)).toFixed(3) : "—"} MON
           </div>
-          <div className="text-sm text-paper/70">Dikirim otomatis di tiap transaksi, kontrak tidak menahan saldo.</div>
+          <div className="text-sm text-paper/70">Forwarded automatically with every transaction — the contract holds no balance.</div>
         </div>
       </section>
 
@@ -307,7 +307,7 @@ export default function Home() {
 
       {!enabled && (
         <p className="mb-6 rounded-2xl border border-clay/40 bg-clay/10 p-4 text-sm">
-          Kontrak belum dikonfigurasi. Set <code>NEXT_PUBLIC_KICAU_ADDRESS</code> di <code>web/.env.local</code>.
+          Contract not configured. Set <code>NEXT_PUBLIC_KICAU_ADDRESS</code> in <code>web/.env.local</code>.
         </p>
       )}
       {(error || lastTx) && (
@@ -319,7 +319,7 @@ export default function Home() {
             <span className="text-clay">{error}</span>
           ) : (
             <span className="font-semibold">
-              ✓ Transaksi terkonfirmasi{lastMs !== undefined && ` dalam ${lastMs} ms`}
+              ✓ Transaction confirmed{lastMs !== undefined && ` in ${lastMs} ms`}
             </span>
           )}
           {!error && <TxLink hash={lastTx} />}
@@ -331,11 +331,11 @@ export default function Home() {
         <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
           <div>
             <h2 className="mb-1 font-display text-3xl font-bold">Shelter</h2>
-            <p className="text-muted">Klik burung untuk mendengar kicaunya dan melihat statsnya.</p>
+            <p className="text-muted">Tap a bird to hear its song and see its stats.</p>
           </div>
           <div className="flex flex-wrap gap-2">
             <button className="btn-ghost" onClick={() => setRegistering(true)}>
-              + Daftarkan burungmu
+              + Register your bird
             </button>
           </div>
         </div>
@@ -356,11 +356,11 @@ export default function Home() {
       <div className="grid gap-8 lg:grid-cols-[1.4fr_1fr]">
         {/* my birds */}
         <section>
-          <h2 className="mb-4 font-display text-3xl font-bold">Burungku</h2>
+          <h2 className="mb-4 font-display text-3xl font-bold">My Birds</h2>
           {!address ? (
-            <p className="text-muted">Klik ⚡ Quick Play atau hubungkan wallet untuk melihat koleksimu.</p>
+            <p className="text-muted">Hit ⚡ Quick Play or connect a wallet to see your collection.</p>
           ) : myBirds.length === 0 ? (
-            <p className="text-muted">Belum punya burung. Adopsi satu dari Shelter.</p>
+            <p className="text-muted">No birds yet. Adopt one from the Shelter.</p>
           ) : (
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
               {myBirds.map((b) => (
@@ -379,7 +379,7 @@ export default function Home() {
                   {b.custom && <Badges bird={b.custom} />}
                   <div className="mb-3 text-sm text-muted">Best: {b.best}</div>
                   <button className="btn-primary w-full !py-2" disabled={!ready} onClick={() => play(b)}>
-                    Terbang
+                    Fly
                   </button>
                 </div>
               ))}
@@ -391,7 +391,7 @@ export default function Home() {
         <section>
           <h2 className="mb-4 font-display text-3xl font-bold">Leaderboard</h2>
           <ol className="divide-y divide-line rounded-3xl border border-line bg-paper">
-            {leaderboard.length === 0 && <li className="p-4 text-muted">Belum ada skor. Jadilah yang pertama.</li>}
+            {leaderboard.length === 0 && <li className="p-4 text-muted">No scores yet. Be the first.</li>}
             {leaderboard.map((r, i) => (
               <li key={r.player} className={`flex items-center justify-between p-4 ${r.player === address ? "bg-sun/15" : ""}`}>
                 <span className="flex items-center gap-3">
@@ -416,7 +416,7 @@ export default function Home() {
             canRegister={ready}
             onRegister={register}
           />
-          {!ready && <p className="mt-3 text-sm text-clay">Klik ⚡ Quick Play atau hubungkan wallet dulu.</p>}
+          {!ready && <p className="mt-3 text-sm text-clay">Hit ⚡ Quick Play or connect a wallet first.</p>}
         </Modal>
       )}
 
@@ -432,7 +432,7 @@ export default function Home() {
             onSupport={(amount) => support(openSpecies, amount)}
             supported={supportedRaw}
           />
-          {!ready && <p className="mt-3 text-sm text-clay">Klik ⚡ Quick Play atau hubungkan wallet ke Monad Testnet untuk adopsi.</p>}
+          {!ready && <p className="mt-3 text-sm text-clay">Hit ⚡ Quick Play or connect a wallet on Monad Testnet to adopt.</p>}
         </Modal>
       )}
 
@@ -441,7 +441,7 @@ export default function Home() {
         <Modal onClose={() => setGame(null)}>
           <div className="mb-3 font-display text-xl font-bold">
             {game.tokenId === GUEST_TOKEN
-              ? "Kenari (tamu)"
+              ? "Kenari (guest)"
               : `${myBirds.find((b) => b.tokenId === game.tokenId) ? birdName(myBirds.find((b) => b.tokenId === game.tokenId)!) : ""} #${game.tokenId}`}
           </div>
           <div className="relative">
@@ -449,18 +449,18 @@ export default function Home() {
             {result && (
               <div className="absolute inset-0 grid place-items-center rounded-2xl bg-ink/60 p-6 text-center text-paper">
                 <div>
-                  <div className="text-sm uppercase tracking-wider text-paper/70">Skor</div>
+                  <div className="text-sm uppercase tracking-wider text-paper/70">Score</div>
                   <div className="mb-4 font-display text-6xl font-extrabold">{result.score}</div>
                   <div className="flex flex-col gap-2">
                     {result.tokenId < 0 ? (
-                      <p className="max-w-[16rem] text-sm text-paper/85">Main sebagai tamu. Adopsi burung di Shelter untuk menyimpan skor on-chain.</p>
+                      <p className="max-w-[16rem] text-sm text-paper/85">Playing as a guest. Adopt a bird in the Shelter to save your score on-chain.</p>
                     ) : (
                       <button className="btn bg-sun text-ink" disabled={txBusy} onClick={() => submitScore(result)}>
-                        {txBusy ? "Mengirim…" : "Kirim skor on-chain"}
+                        {txBusy ? "Submitting…" : "Submit score on-chain"}
                       </button>
                     )}
                     <button className="btn border border-paper/40" onClick={() => setResult(null)}>
-                      Main lagi
+                      Play again
                     </button>
                   </div>
                 </div>

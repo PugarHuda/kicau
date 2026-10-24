@@ -145,7 +145,7 @@ export function ShelterScene({ birds, onSelect }: { birds: SceneBird[]; onSelect
         {/* sign */}
         <div className="absolute left-[44.5%] top-[64%] h-[12%] w-[1.5%] bg-[#5e3d24]" />
         <div className="absolute left-[38%] top-[56%] grid w-[15%] min-w-[64px] place-items-center border-[3px] border-ink bg-[#c99a5b] px-1 py-[0.6%] text-center font-display text-[clamp(6px,1.1vw,11px)] leading-tight text-ink shadow-[3px_3px_0_var(--ink)]">
-          TAMAN KICAU
+          KICAU GARDEN
         </div>
       </div>
 

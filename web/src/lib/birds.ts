@@ -19,7 +19,7 @@ export const BIRDS: BirdInfo[] = [
     iucn: "LC",
     rarity: "Common",
     description:
-      "Si kuning mungil yang jadi pintu masuk banyak kicau mania. Lagunya bergulung panjang dan riang. Di game: hitbox kecil, mudah menyelip di celah sempit.",
+      "The Canary: a tiny yellow singer and the gateway bird for many kicau mania (songbird hobby) fans. Its song rolls on, long and cheerful. In game: small hitbox, slips through tight gaps.",
     colors: { body: "#F4C430", belly: "#FBE38A", head: "#F4C430", wing: "#D9A21B", beak: "#E9895B", tail: "#D9A21B" },
     song: [[2600, 3400, 0.08], [3400, 2800, 0.08], [2800, 3600, 0.08], [3600, 3000, 0.12]],
   },
@@ -29,7 +29,7 @@ export const BIRDS: BirdInfo[] = [
     iucn: "NT",
     rarity: "Common",
     description:
-      "Burung cinta asal Afrika Timur dengan wajah jingga menyala. Populasi liarnya menurun akibat perdagangan. Di game: jatuh lebih pelan, kepakan lembut.",
+      "Fischer's lovebird from East Africa, with a blazing orange face. Its wild population is shrinking due to the pet trade. In game: falls slower, gentle flaps.",
     colors: { body: "#4FA35A", belly: "#9BD07A", head: "#FF7A3D", wing: "#2F7D3E", beak: "#D7263D", tail: "#3A6EA5" },
     song: [[3800, 4200, 0.05], [4200, 3600, 0.05], [3900, 4400, 0.06]],
   },
@@ -39,7 +39,7 @@ export const BIRDS: BirdInfo[] = [
     iucn: "LC",
     rarity: "Rare",
     description:
-      "Raja gantangan dengan ekor panjang dan suara variatif. Status global LC, tapi populasi liar di Sumatra dan Kalimantan terkuras perburuan. Di game: kepakan paling kuat, tapi berat.",
+      "The White-rumped shama, king of the gantangan (songbird contest), with a long tail and a varied voice. Globally LC, but wild populations in Sumatra and Borneo are drained by poaching. In game: strongest flap, but heavy.",
     colors: { body: "#1E1E24", belly: "#B5532A", head: "#1E1E24", wing: "#2A2A33", beak: "#111111", tail: "#1E1E24" },
     song: [[1800, 2600, 0.12], [2600, 1600, 0.1], [2200, 3200, 0.14], [3200, 2000, 0.18]],
   },
@@ -49,7 +49,7 @@ export const BIRDS: BirdInfo[] = [
     iucn: "CR",
     rarity: "Epic",
     description:
-      "Cucak rawa, pemilik suara bariton paling dicari. Kini kritis di alam karena permintaan pasar burung. Di game: kepakan kuat, tapi badan besar.",
+      "The Straw-headed bulbul, owner of the most sought-after baritone song. Now critically endangered in the wild due to bird-market demand. In game: strong flap, but a big body.",
     colors: { body: "#7D8238", belly: "#C7C27A", head: "#E9D27C", wing: "#5E6229", beak: "#2B2B2B", tail: "#5E6229" },
     song: [[900, 1400, 0.16], [1400, 1100, 0.14], [1200, 1700, 0.2]],
   },
@@ -59,7 +59,7 @@ export const BIRDS: BirdInfo[] = [
     iucn: "CR",
     rarity: "Legendary",
     description:
-      "Jalak Bali, satu-satunya burung endemik Bali, putih bersih dengan topeng biru. Sempat tersisa belasan ekor di alam liar. Di game: paling seimbang.",
+      "The Bali myna, Bali's only endemic bird: pure white with a blue mask. Once down to a dozen or so in the wild. In game: the most balanced.",
     colors: { body: "#F5F5F0", belly: "#FFFFFF", head: "#F5F5F0", wing: "#E6E6DE", beak: "#9C8E6B", tail: "#1E1E24" },
     song: [[2000, 2800, 0.1], [2800, 2400, 0.08], [2400, 3000, 0.1], [3000, 2200, 0.14]],
   },

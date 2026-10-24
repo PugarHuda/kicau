@@ -20,12 +20,12 @@ export function RegisteredBirds({ me }: { me?: string }) {
 
   return (
     <section className="mt-12">
-      <h2 className="mb-1 font-display text-3xl font-bold">Burung Terdaftar</h2>
-      <p className="mb-5 text-muted">Burung kicau asli milik komunitas, lengkap dengan prestasi dan silsilahnya. Semua tercatat on-chain.</p>
+      <h2 className="mb-1 font-display text-3xl font-bold">Community Birds</h2>
+      <p className="mb-5 text-muted">Real songbirds from the community, complete with titles and pedigree. All recorded on-chain.</p>
       {isLoading ? (
-        <p className="text-muted">Memuat dari chain…</p>
+        <p className="text-muted">Loading from chain…</p>
       ) : !birds?.length ? (
-        <p className="text-muted">Belum ada. Jadilah yang pertama lewat “+ Daftarkan burungmu”.</p>
+        <p className="text-muted">None yet. Be the first via “+ Register your bird”.</p>
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {birds.map((b) => (
@@ -41,7 +41,7 @@ export function RegisteredBirds({ me }: { me?: string }) {
                 <div className="truncate text-sm text-muted">
                   {b.profile.owner ? `${b.profile.owner} · ` : ""}
                   {short(b.owner)}
-                  {me && b.owner.toLowerCase() === me.toLowerCase() && " (kamu)"}
+                  {me && b.owner.toLowerCase() === me.toLowerCase() && " (you)"}
                 </div>
                 <Badges bird={b} />
               </div>
@@ -64,9 +64,9 @@ export function Badges({ bird }: { bird: CustomBird }) {
   if (!titles?.length && !certificate && !lineage) return null;
   return (
     <div className="mt-1 flex flex-wrap gap-1 text-xs">
-      {!!titles?.length && <span className="bg-sun px-1.5 py-0.5 font-semibold text-ink">🏆 {titles.length}× juara</span>}
-      {certificate && <span className="bg-leaf px-1.5 py-0.5 text-paper">✔ bersertifikat</span>}
-      {lineage && <span className="bg-clay px-1.5 py-0.5 text-paper">trah juara</span>}
+      {!!titles?.length && <span className="bg-sun px-1.5 py-0.5 font-semibold text-ink">🏆 {titles.length}× champion</span>}
+      {certificate && <span className="bg-leaf px-1.5 py-0.5 text-paper">✔ certified</span>}
+      {lineage && <span className="bg-clay px-1.5 py-0.5 text-paper">champion bloodline</span>}
     </div>
   );
 }
@@ -81,7 +81,7 @@ export function BirdProfileCard({ bird }: { bird: CustomBird }) {
       </div>
       <h2 className="mb-1 font-display text-2xl">{bird.name}</h2>
       <p className="mb-3 text-sm text-muted">
-        Milik {p.owner ? <b className="text-ink">{p.owner}</b> : "pemilik"} ·{" "}
+        Owned by {p.owner ? <b className="text-ink">{p.owner}</b> : "owner"} ·{" "}
         <a href={`${EXPLORER}/address/${bird.owner}`} target="_blank" rel="noreferrer" className="font-mono underline">
           {short(bird.owner)}
         </a>{" "}
@@ -91,7 +91,7 @@ export function BirdProfileCard({ bird }: { bird: CustomBird }) {
       <dl className="mt-4 space-y-3 text-sm">
         {!!p.titles?.length && (
           <div>
-            <dt className="font-display text-xs">Prestasi</dt>
+            <dt className="font-display text-xs">Titles</dt>
             <dd>
               <ul className="mt-1 list-inside list-disc">
                 {p.titles.map((t) => (
@@ -103,26 +103,26 @@ export function BirdProfileCard({ bird }: { bird: CustomBird }) {
         )}
         {p.certificate && (
           <div>
-            <dt className="font-display text-xs">Sertifikat</dt>
+            <dt className="font-display text-xs">Certificate</dt>
             <dd className="mt-1">{p.certificate}</dd>
           </div>
         )}
         {p.lineage && (
           <div>
-            <dt className="font-display text-xs">Keturunan</dt>
+            <dt className="font-display text-xs">Lineage</dt>
             <dd className="mt-1">{p.lineage}</dd>
           </div>
         )}
         {p.story && (
           <div>
-            <dt className="font-display text-xs">Cerita</dt>
+            <dt className="font-display text-xs">Story</dt>
             <dd className="mt-1 whitespace-pre-line leading-relaxed">{p.story}</dd>
           </div>
         )}
       </dl>
       <p className="mt-4 text-xs text-muted">
-        Data ini self-declared oleh pemilik dan tersimpan permanen di event on-chain. Roadmap: verifikasi prestasi oleh panitia lomba
-        (attestation).
+        This data is self-declared by the owner and stored permanently in an on-chain event. Roadmap: titles verified by contest
+        organizers (attestations).
       </p>
     </div>
   );

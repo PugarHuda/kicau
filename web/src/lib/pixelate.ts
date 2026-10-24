@@ -15,7 +15,7 @@ type Px = RGB & { y: number };
 
 export async function extractBirdColors(file: Blob, bgTolerance = DEFAULT_TOLERANCE): Promise<BirdColors> {
   const px = await cutout(file, bgTolerance);
-  if (px.length < 40) throw new Error("Burung tidak terdeteksi. Coba foto dengan latar polos atau ubah slider.");
+  if (px.length < 40) throw new Error("No bird detected. Try a photo with a plain background or adjust the slider.");
 
   const lum = (p: { r: number; g: number; b: number }) => 0.3 * p.r + 0.59 * p.g + 0.11 * p.b;
   const clusters = kmeans(px, 4);

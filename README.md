@@ -1,8 +1,8 @@
 # Kicau
 
-**Pelihara kicaunya, bukan sangkarnya.** Adopsi burung kicau Nusantara sebagai NFT, terbangkan di game Flappy, dan setiap adopsi langsung mendanai konservasi burung. Semuanya on-chain di Monad.
+**Keep the song, not the cage.** Adopt Indonesian songbirds as NFTs, fly them in a Flappy-style pixel game, and every adoption funds bird conservation. All on-chain on Monad.
 
-Built at **Monad Blitz Jogja 2026**. Brief dan mekanisme: [docs/BRIEF.md](docs/BRIEF.md) · Pemetaan rubrik juri: [docs/JUDGING.md](docs/JUDGING.md).
+Built at **Monad Blitz Jogja 2026**. Brief and mechanics: [docs/BRIEF.md](docs/BRIEF.md) · Judging rubric mapping: [docs/JUDGING.md](docs/JUDGING.md).
 
 | | |
 |---|---|
@@ -11,46 +11,46 @@ Built at **Monad Blitz Jogja 2026**. Brief dan mekanisme: [docs/BRIEF.md](docs/B
 | Live app | **https://kicau-theta.vercel.app** |
 | Deploy tx | [`0xbc190b63…4a794`](https://testnet.monadvision.com/tx/0xbc190b63991354d67859ec17f26601755e00a66e59c2404f7af76a62be44a794) |
 
-## Apa yang dilakukan
+## What it does
 
-1. **Shelter.** Lima spesies burung kicau (Kenari → Jalak Bali). Klik untuk melihat card: ilustrasi, suara kicau, deskripsi, status IUCN, dan stats game.
-2. **Adopsi (mint NFT).** `buy(speciesId)` mint ERC-721 dan langsung membagi pembayaran di tx yang sama: 30% ke dana konservasi, 70% ke treasury. Kontrak tidak pernah menahan saldo.
-3. **Main.** Game Flappy di HTML5 Canvas. Fisikanya mengikuti stats spesies yang tersimpan on-chain (gravitasi, kepakan, hitbox).
-4. **Skor on-chain.** `submitScore()` dikirim lewat `eth_sendRawTransactionSync` (wagmi `useWriteContractSync`), jadi receipt langsung kembali dan leaderboard ter-update instan.
-5. **⚡ Quick Play.** Tanpa MetaMask: browser membuat burner wallet lokal, mengisinya otomatis dari faucet testnet (`/api/faucet` → devnads agent faucet), lalu setiap tx ditandatangani di browser dan dikirim dengan `eth_sendRawTransactionSync`. Tidak ada popup, dan receipt kembali dalam satu panggilan. Waktu konfirmasi ditampilkan di UI.
-6. **Transparansi.** Total dana konservasi dibaca langsung dari kontrak (`totalConservation()`).
+1. **Shelter.** Five songbird species (Kenari → Jalak Bali). Tap one to open its card: illustration, song, description, IUCN status, and game stats.
+2. **Adopt (mint NFT).** `buy(speciesId)` mints an ERC-721 and splits the payment in the same tx: 30% to the conservation fund, 70% to the treasury. The contract never holds a balance.
+3. **Play.** A Flappy game on HTML5 Canvas. Its physics follow the species stats stored on-chain (gravity, flap power, hitbox).
+4. **On-chain scores.** `submitScore()` is sent via `eth_sendRawTransactionSync` (wagmi `useWriteContractSync`), so the receipt comes straight back and the leaderboard updates instantly.
+5. **⚡ Quick Play.** No MetaMask needed: the browser creates a local burner wallet, funds it automatically from the testnet faucet (`/api/faucet` → devnads agent faucet), then signs every tx in-browser and sends it with `eth_sendRawTransactionSync`. No popups, and the receipt returns in a single call. Confirmation time is shown in the UI.
+6. **Transparency.** Total conservation funds are read directly from the contract (`totalConservation()`).
 
-## Kenapa Monad
+## Why Monad
 
-- Finality 600 ms + `eth_sendRawTransactionSync`: submit skor tiap game terasa seperti game biasa.
-- Storage per pemain / per token, tanpa counter global yang diperebutkan, sehingga ramah parallel execution.
-- Gas murah, sehingga micro-action (skor per game) masuk akal.
-- Quick Play memakai akun lokal, sehingga benar-benar memakai `eth_sendRawTransactionSync`. Wallet extension (MetaMask) tetap didukung, tapi lewat `eth_sendTransaction` + polling receipt.
+- 600 ms finality + `eth_sendRawTransactionSync`: submitting a score after every game feels like a normal game.
+- Per-player / per-token storage with no contended global counter, so it plays well with parallel execution.
+- Cheap gas makes micro-actions (one score per game) sensible.
+- Quick Play uses a local account, so it genuinely uses `eth_sendRawTransactionSync`. Wallet extensions (MetaMask) are still supported, via `eth_sendTransaction` + receipt polling.
 
-## Struktur
+## Structure
 
 ```
 contracts/   Foundry: src/Kicau.sol, test/Kicau.t.sol, script/Deploy.s.sol
 web/         Next.js 15 + wagmi v3 + viem + Tailwind v4 (frontend, game, metadata route)
-docs/        BRIEF.md (konsep, mekanisme, game interface untuk Unity)
-unity/       Kit integrasi Unity WebGL (opsional)
+docs/        BRIEF.md (concept, mechanics, game interface for Unity)
+unity/       Unity WebGL integration kit (optional)
 ```
 
-## Menjalankan
+## Running
 
-**Prasyarat:** Node 20+ dan [Foundry](https://getfoundry.sh). Wallet browser (MetaMask/Rabby) dengan MON testnet dari [faucet.monad.xyz](https://faucet.monad.xyz).
+**Prerequisites:** Node 20+ and [Foundry](https://getfoundry.sh). A browser wallet (MetaMask/Rabby) with testnet MON from [faucet.monad.xyz](https://faucet.monad.xyz).
 
-### 1. Kontrak
+### 1. Contract
 
 ```bash
 cd contracts
-forge install --no-git foundry-rs/forge-std OpenZeppelin/openzeppelin-contracts@v5.4.0   # jika lib/ kosong
+forge install --no-git foundry-rs/forge-std OpenZeppelin/openzeppelin-contracts@v5.4.0   # if lib/ is empty
 forge test
 
-# deploy: key disimpan terenkripsi, tidak pernah di file
+# deploy: key stored encrypted, never in a file
 cast wallet import deployer --interactive
 forge script script/Deploy.s.sol --rpc-url monad_testnet --account deployer --broadcast
-# opsional env: TREASURY, CONSERVATION (default: deployer), BASE_URI (https://<host>/metadata/)
+# optional env: TREASURY, CONSERVATION (default: deployer), BASE_URI (https://<host>/metadata/)
 ```
 
 ### 2. Frontend
@@ -58,36 +58,36 @@ forge script script/Deploy.s.sol --rpc-url monad_testnet --account deployer --br
 ```bash
 cd web
 npm install
-echo NEXT_PUBLIC_KICAU_ADDRESS=0xAlamatKontrak > .env.local
+echo NEXT_PUBLIC_KICAU_ADDRESS=0xYourContractAddress > .env.local
 npm run dev        # http://localhost:3000
 ```
 
-Setelah kontrak diubah: `cd contracts && forge build`, lalu `cd web && npm run abi`.
+After changing the contract: `cd contracts && forge build`, then `cd web && npm run abi`.
 
-### 3. Metadata NFT
+### 3. NFT metadata
 
-`tokenURI` = `<baseURI><speciesId>.json`, dilayani oleh route `web/src/app/metadata/[id]`. Setelah web live, panggil:
+`tokenURI` = `<baseURI><speciesId>.json`, served by the `web/src/app/metadata/[id]` route. Once the web app is live, call:
 
 ```bash
 cast send <KICAU> "setBaseURI(string)" "https://<host>/metadata/" --account deployer --rpc-url monad_testnet
 ```
 
-## Kontrak: ringkas
+## Contract at a glance
 
-| Fungsi | Keterangan |
+| Function | Description |
 |---|---|
-| `buy(speciesId)` payable | Bayar persis `price`, mint NFT, split ke konservasi + treasury |
-| `submitScore(tokenId, score, gameVersion)` | Hanya pemilik token. Menyimpan best per token & per pemain |
-| `getAllSpecies()` | Nama, harga, supply, stats game |
-| `tokensOf(owner)` / `getLeaderboard()` | Dibaca frontend tanpa indexer |
-| `totalConservation()` | Total wei yang sudah dikirim ke dana konservasi |
+| `buy(speciesId)` payable | Pay exactly `price`, mint the NFT, split to conservation + treasury |
+| `submitScore(tokenId, score, gameVersion)` | Token owner only. Stores best per token & per player |
+| `getAllSpecies()` | Name, price, supply, game stats |
+| `tokensOf(owner)` / `getLeaderboard()` | Read by the frontend without an indexer |
+| `totalConservation()` | Total wei sent to the conservation fund so far |
 
-## Batasan yang diakui
+## Known limitations
 
-- Skor dikirim dari client. Roadmap: replay yang ditandatangani server, atau verifikasi seed+input.
-- Suara kicau masih disintesis (WebAudio). Roadmap: rekaman xeno-canto (CC, dengan atribusi).
-- Status IUCN ditampilkan untuk edukasi. Silakan verifikasi di iucnredlist.org.
+- Scores are submitted from the client. Roadmap: server-signed replays, or seed+input verification.
+- Bird songs are still synthesized (WebAudio). Roadmap: xeno-canto recordings (CC, with attribution).
+- IUCN status is shown for education. Please verify at iucnredlist.org.
 
-## Lisensi
+## License
 
 MIT

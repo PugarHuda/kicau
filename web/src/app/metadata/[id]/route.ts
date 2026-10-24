@@ -21,14 +21,14 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
         name: `Kicau · ${bird.name}`,
         description:
           bird.profile.story ||
-          "Burung kicau asli milik pemiliknya, digambar ulang dengan gaya pixel Kicau. Karakter dan silsilahnya tersimpan on-chain di Monad.",
+          "A real songbird owned by its keeper, redrawn in Kicau pixel style. Its character and pedigree are stored on-chain on Monad.",
         image: bird.image,
         attributes: [
           { trait_type: "Type", value: "Registered" },
-          ...(bird.profile.owner ? [{ trait_type: "Pemilik", value: bird.profile.owner }] : []),
-          ...(bird.profile.certificate ? [{ trait_type: "Sertifikat", value: bird.profile.certificate }] : []),
-          ...(bird.profile.lineage ? [{ trait_type: "Keturunan", value: bird.profile.lineage }] : []),
-          ...(bird.profile.titles ?? []).map((t) => ({ trait_type: "Prestasi", value: t })),
+          ...(bird.profile.owner ? [{ trait_type: "Owner", value: bird.profile.owner }] : []),
+          ...(bird.profile.certificate ? [{ trait_type: "Certificate", value: bird.profile.certificate }] : []),
+          ...(bird.profile.lineage ? [{ trait_type: "Lineage", value: bird.profile.lineage }] : []),
+          ...(bird.profile.titles ?? []).map((t) => ({ trait_type: "Title", value: t })),
         ],
       },
       { headers: { "Cache-Control": "public, max-age=31536000, immutable" } },

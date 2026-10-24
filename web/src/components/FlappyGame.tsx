@@ -425,19 +425,19 @@ export function FlappyGame({ start, onGameOver }: { start: GameStart; onGameOver
       g.textAlign = "center";
 
       if (state === "ready") {
-        text("SIAP?", W / 2, H / 2 - 70, FONT_BIG, CREAM, 4);
+        text("READY?", W / 2, H / 2 - 70, FONT_BIG, CREAM, 4);
         g.font = FONT_SM;
         g.fillStyle = INK;
-        g.fillText("TAP / SPACE UNTUK TERBANG", W / 2, H / 2 + 80);
+        g.fillText("TAP / SPACE TO FLY", W / 2, H / 2 + 80);
       } else if (state === "paused") {
         g.globalAlpha = 0.45;
         g.fillStyle = INK;
         g.fillRect(0, 0, W, H);
         g.globalAlpha = 1;
-        text("JEDA", W / 2, H / 2 - 20, FONT_BIG, CREAM, 4);
-        text("TAP UNTUK LANJUT", W / 2, H / 2 + 20, FONT_SM, CREAM, 2);
+        text("PAUSED", W / 2, H / 2 - 20, FONT_BIG, CREAM, 4);
+        text("TAP TO CONTINUE", W / 2, H / 2 + 20, FONT_SM, CREAM, 2);
       } else if ((state === "dying" || state === "over") && newBest) {
-        text("REKOR BARU!", W / 2, 110, FONT_MD, "#f4c430", 3);
+        text("NEW BEST!", W / 2, 110, FONT_MD, "#f4c430", 3);
       }
     };
 
@@ -490,7 +490,7 @@ export function FlappyGame({ start, onGameOver }: { start: GameStart; onGameOver
     <canvas
       ref={canvasRef}
       className="block w-full max-w-[400px] aspect-[2/3] rounded-2xl touch-none select-none cursor-pointer"
-      aria-label="Flappy game. Tekan spasi atau tap untuk terbang."
+      aria-label="Flappy game. Press space or tap to fly."
     />
   );
 }

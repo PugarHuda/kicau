@@ -47,14 +47,14 @@ type RawLog = {
 };
 
 const RANK: Record<Status, number> = { Abandoned: -1, Proposed: 0, Voted: 1, Finalized: 2, Verified: 3 };
-const speciesName = (id: bigint) => (id === 999n ? "burung custom" : (BIRDS[Number(id)]?.name ?? `spesies #${id}`));
+const speciesName = (id: bigint) => (id === 999n ? "custom bird" : (BIRDS[Number(id)]?.name ?? `species #${id}`));
 
 export function describe(topics: Hex[], data: Hex): { kind: Kind; label: string; actor: Hex } | null {
   try {
     const ev = decodeEventLog({ abi: kicauAbi, topics: topics as [Hex, ...Hex[]], data });
     switch (ev.eventName) {
       case "BirdBought":
-        return { kind: ev.eventName, actor: ev.args.buyer, label: `adopsi ${speciesName(ev.args.speciesId)}` };
+        return { kind: ev.eventName, actor: ev.args.buyer, label: `adopted ${speciesName(ev.args.speciesId)}` };
       case "Supported":
         return {
           kind: ev.eventName,
@@ -62,9 +62,9 @@ export function describe(topics: Hex[], data: Hex): { kind: Kind; label: string;
           label: `support ${formatEther(ev.args.amount)} MON → ${speciesName(ev.args.speciesId)}`,
         };
       case "ScoreSubmitted":
-        return { kind: ev.eventName, actor: ev.args.player, label: `skor ${ev.args.score} · ${speciesName(ev.args.speciesId)}` };
+        return { kind: ev.eventName, actor: ev.args.player, label: `score ${ev.args.score} · ${speciesName(ev.args.speciesId)}` };
       case "BirdRegistered":
-        return { kind: ev.eventName, actor: ev.args.owner, label: `daftar burung '${ev.args.name}'` };
+        return { kind: ev.eventName, actor: ev.args.owner, label: `registered '${ev.args.name}'` };
     }
   } catch {}
   return null;

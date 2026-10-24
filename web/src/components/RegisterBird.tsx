@@ -63,14 +63,14 @@ export function RegisterBird({
 
   return (
     <div>
-      <h2 className="mb-1 font-display text-2xl font-bold">Daftarkan burungmu</h2>
+      <h2 className="mb-1 font-display text-2xl font-bold">Register your bird</h2>
       <p className="mb-4 text-sm text-muted">
-        Upload foto burung kicau milikmu. Warnanya kami ambil dari foto dan digambar ulang dengan gaya pixel Kicau.
-        Karakter, silsilah, dan ceritanya tersimpan on-chain di Monad.
+        Upload a photo of your own songbird. We pick its colors from the photo and redraw it in Kicau pixel style.
+        Its character, pedigree, and story are stored on-chain on Monad.
       </p>
 
       <label className="btn-ghost mb-4 w-full cursor-pointer">
-        {file ? "Ganti foto" : "Pilih foto burung"}
+        {file ? "Change photo" : "Choose a bird photo"}
         <input type="file" accept="image/*" className="sr-only" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
       </label>
 
@@ -78,31 +78,31 @@ export function RegisterBird({
         <div className="mb-3 grid grid-cols-2 gap-3">
           <figure className="rounded-2xl border border-line bg-cream p-2">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={photoUrl} alt="Foto asli" className="aspect-[4/3] w-full object-cover" />
-            <figcaption className="mt-1 text-center text-xs text-muted">Foto asli</figcaption>
+            <img src={photoUrl} alt="Original photo" className="aspect-[4/3] w-full object-cover" />
+            <figcaption className="mt-1 text-center text-xs text-muted">Original photo</figcaption>
           </figure>
           <figure className="rounded-2xl border border-line bg-cream p-2">
             {colors && (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={birdDataUri(0, false, colors)} alt="Karakter pixel" className="aspect-[4/3] w-full object-contain" />
+              <img src={birdDataUri(0, false, colors)} alt="Pixel character" className="aspect-[4/3] w-full object-contain" />
             )}
-            <figcaption className="mt-1 text-center text-xs text-muted">Karakter Kicau</figcaption>
+            <figcaption className="mt-1 text-center text-xs text-muted">Kicau character</figcaption>
           </figure>
         </div>
       )}
 
       {colors && (
-        <div className="mb-3 flex flex-wrap items-center gap-1" aria-label="Palet dari foto">
+        <div className="mb-3 flex flex-wrap items-center gap-1" aria-label="Palette from photo">
           {Object.entries(colors).map(([k, v]) => (
             <span key={k} title={`${k} ${v}`} className="h-5 w-5 border-2 border-ink" style={{ background: v }} />
           ))}
-          <span className="ml-1 text-xs text-muted">palet dari foto</span>
+          <span className="ml-1 text-xs text-muted">palette from photo</span>
         </div>
       )}
 
       {file && (
         <label className="mb-4 block text-sm">
-          <span className="text-muted">Pisahkan latar: {tolerance}</span>
+          <span className="text-muted">Background cutoff: {tolerance}</span>
           <input
             type="range"
             min={10}
@@ -116,53 +116,53 @@ export function RegisterBird({
 
       <div className="mb-4 grid gap-3 sm:grid-cols-2">
         <label className="block text-sm">
-          <span className="text-muted">Nama burung *</span>
+          <span className="text-muted">Bird name *</span>
           <input value={name} maxLength={32} onChange={(e) => setName(e.target.value)} placeholder="Si Jambul" className={field} />
         </label>
         <label className="block text-sm">
-          <span className="text-muted">Nama pemilik</span>
-          <input value={owner} maxLength={40} onChange={(e) => setOwner(e.target.value)} placeholder="Pak Budi, Jogja" className={field} />
+          <span className="text-muted">Owner name</span>
+          <input value={owner} maxLength={40} onChange={(e) => setOwner(e.target.value)} placeholder="Pak Budi, Yogyakarta" className={field} />
         </label>
         <label className="block text-sm sm:col-span-2">
-          <span className="text-muted">Prestasi (satu per baris)</span>
+          <span className="text-muted">Titles (one per line)</span>
           <textarea
             value={titles}
             rows={2}
             onChange={(e) => setTitles(e.target.value)}
-            placeholder={"Juara 1 Piala Raja 2025\nJuara 2 Kicau Mania Cup Jogja"}
+            placeholder={"Champion — Piala Raja Jogja 2025\n2nd place — Kicau Mania Cup Jogja"}
             className={field}
           />
         </label>
         <label className="block text-sm">
-          <span className="text-muted">Sertifikat / nomor ring</span>
+          <span className="text-muted">Certificate / ring number</span>
           <input value={certificate} maxLength={60} onChange={(e) => setCertificate(e.target.value)} placeholder="Ring BF-2024-0187" className={field} />
         </label>
         <label className="block text-sm">
-          <span className="text-muted">Keturunan</span>
-          <input value={lineage} maxLength={80} onChange={(e) => setLineage(e.target.value)} placeholder="Trah juara 'Gladiator'" className={field} />
+          <span className="text-muted">Lineage</span>
+          <input value={lineage} maxLength={80} onChange={(e) => setLineage(e.target.value)} placeholder="Champion bloodline 'Gladiator'" className={field} />
         </label>
         <label className="block text-sm sm:col-span-2">
-          <span className="text-muted">Cerita</span>
+          <span className="text-muted">Story</span>
           <textarea
             value={story}
             rows={3}
             maxLength={600}
             onChange={(e) => setStory(e.target.value)}
-            placeholder="Ditangkar sejak piyik, rajin gacor tiap pagi…"
+            placeholder="Captive-bred since a chick, sings loud (gacor) every morning…"
             className={field}
           />
         </label>
       </div>
 
       {error && <p className="mb-3 text-sm text-clay">{error}</p>}
-      {tooBig && <p className="mb-3 text-sm text-clay">Data terlalu panjang ({bytes?.length} B, maks {MAX_BYTES} B). Persingkat ceritanya.</p>}
+      {tooBig && <p className="mb-3 text-sm text-clay">Too much data ({bytes?.length} B, max {MAX_BYTES} B). Shorten the story.</p>}
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <span className="text-sm text-muted">
-          Biaya {fee} MON · 30% ke konservasi{bytes && ` · ${bytes.length} B on-chain`}
+          Fee {fee} MON · 30% to conservation{bytes && ` · ${bytes.length} B on-chain`}
         </span>
         <button className="btn-primary" disabled={!valid || busy || !canRegister} onClick={() => bytes && onRegister(name.trim(), bytes)}>
-          {busy ? "Memproses…" : "Daftarkan"}
+          {busy ? "Processing…" : "Register"}
         </button>
       </div>
     </div>

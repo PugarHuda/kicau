@@ -21,7 +21,7 @@ const BADGE: Record<Status, string> = {
 };
 
 const MODE_LABEL: Record<Mode, string> = {
-  connecting: "menyambung…",
+  connecting: "connecting…",
   monadLogs: "monadLogs · speculative",
   "eth logs": "eth logs",
   polling: "polling",
@@ -54,7 +54,7 @@ export function LiveFeed() {
       </div>
 
       {items.length === 0 ? (
-        <p className="text-sm text-muted">Menunggu kicauan on-chain… adopsi, support, atau main game untuk muncul di sini.</p>
+        <p className="text-sm text-muted">Waiting for on-chain chirps… adopt, support, or play a game to show up here.</p>
       ) : (
         <ul className="grid gap-2">
           {items.map((it) => (
@@ -88,7 +88,7 @@ export function LiveFeed() {
         </ul>
       )}
       <p className="mt-3 text-xs text-muted">
-        Muncul saat blok masih <b>Proposed</b>; angka ms = waktu sampai <b>Finalized</b>.
+        Shows up while the block is still <b>Proposed</b>; ms = time until <b>Finalized</b>.
       </p>
     </section>
   );

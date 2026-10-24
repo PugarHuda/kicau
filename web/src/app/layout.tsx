@@ -8,13 +8,13 @@ const display = Press_Start_2P({ variable: "--font-display", weight: "400", subs
 const sans = Pixelify_Sans({ variable: "--font-geist-sans", subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Kicau — Koleksi burung, main, selamatkan",
+  title: "Kicau — Collect birds, play, save them",
   description: "Bird NFTs that power a flappy game and fund bird conservation, fully on-chain on Monad.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="id">
+    <html lang="en">
       <body className={`${display.variable} ${sans.variable}`}>
         <Providers>{children}</Providers>
       </body>

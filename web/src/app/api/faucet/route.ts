@@ -4,7 +4,7 @@ import { isAddress } from "viem";
 export async function POST(req: Request) {
   const { address } = await req.json().catch(() => ({}));
   if (typeof address !== "string" || !isAddress(address)) {
-    return Response.json({ error: "Alamat tidak valid" }, { status: 400 });
+    return Response.json({ error: "Invalid address" }, { status: 400 });
   }
   const res = await fetch("https://agents.devnads.com/v1/faucet", {
     method: "POST",

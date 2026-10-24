@@ -43,6 +43,6 @@ export async function fundBurner(address: string) {
     body: JSON.stringify({ address }),
   });
   const body = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(body.error ?? "Faucet gagal");
+  if (!res.ok) throw new Error(body.error ?? "Faucet failed");
   return body as { txHash: string; amount: string };
 }

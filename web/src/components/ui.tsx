@@ -27,7 +27,7 @@ const IUCN_COLOR: Record<string, string> = {
 
 export function BirdArt({ id, className = "" }: { id: number; className?: string }) {
   // eslint-disable-next-line @next/next/no-img-element
-  return <img src={birdDataUri(id)} alt={BIRDS[id]?.name ?? "burung"} className={className} />;
+  return <img src={birdDataUri(id)} alt={BIRDS[id]?.name ?? "bird"} className={className} />;
 }
 
 export function IucnBadge({ id }: { id: number }) {
@@ -70,7 +70,7 @@ export function Modal({ onClose, children }: { onClose: () => void; children: Re
         className="relative max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-3xl bg-paper p-6 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <button onClick={onClose} className="absolute right-4 top-4 text-2xl leading-none text-muted hover:text-ink" aria-label="Tutup">
+        <button onClick={onClose} className="absolute right-4 top-4 text-2xl leading-none text-muted hover:text-ink" aria-label="Close">
           ×
         </button>
         {children}
@@ -113,26 +113,26 @@ export function BirdCard({
       <BirdVideo id={id} />
       <p className="mb-5 leading-relaxed">{bird?.description}</p>
       <div className="mb-5 space-y-2 rounded-2xl border border-line p-4">
-        <StatBar label="Gravitasi" value={species.gravity} />
-        <StatBar label="Kepakan" value={species.flapPower} />
+        <StatBar label="Gravity" value={species.gravity} />
+        <StatBar label="Flap" value={species.flapPower} />
         <StatBar label="Hitbox" value={species.hitbox} />
       </div>
       <div className="flex items-center justify-between gap-4">
         <div>
           <div className="font-display text-2xl font-bold">{formatEther(species.price)} MON</div>
           <div className="text-sm text-muted">
-            {species.minted}/{species.maxSupply} terjual · 30% ke konservasi
+            {species.minted}/{species.maxSupply} sold · 30% to conservation
           </div>
         </div>
         <button onClick={onBuy} disabled={busy || soldOut || !canBuy} className="btn-primary">
-          {soldOut ? "Sold out" : busy ? "Memproses…" : "Adopsi NFT"}
+          {soldOut ? "Sold out" : busy ? "Processing…" : "Adopt NFT"}
         </button>
       </div>
       <div className="mt-5 border-t-[3px] border-dashed border-ink pt-4">
         <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
-          <span className="font-display text-xs">Support tanpa adopsi</span>
+          <span className="font-display text-xs">Support without adopting</span>
           <span className="text-sm text-muted">
-            Terkumpul {supported !== undefined ? formatEther(supported) : "…"} MON · 100% ke konservasi
+            Raised {supported !== undefined ? formatEther(supported) : "…"} MON · 100% to conservation
           </span>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -156,11 +156,11 @@ function BirdVideo({ id }: { id: number }) {
       <div className="mb-2 flex flex-wrap gap-2">
         {v && (
           <button onClick={() => setOpen((o) => !o)} className="btn-primary !py-2" aria-expanded={open}>
-            {open ? "Tutup video" : "Lihat video asli"}
+            {open ? "Close video" : "Watch real video"}
           </button>
         )}
         <button onClick={() => chirp(id)} className="btn-ghost !py-2">
-          Kicau pixel
+          Pixel chirp
         </button>
       </div>
       {open && v && (
@@ -172,7 +172,7 @@ function BirdVideo({ id }: { id: number }) {
               <iframe
                 className="h-full w-full"
                 src={`https://www.youtube-nocookie.com/embed/${v.id}?autoplay=1&rel=0`}
-                title="Video kicau burung"
+                title="Songbird video"
                 allow="autoplay; encrypted-media; picture-in-picture"
                 allowFullScreen
               />
@@ -195,7 +195,7 @@ export function TxLink({ hash }: { hash?: string }) {
   if (!hash) return null;
   return (
     <a href={`${EXPLORER}/tx/${hash}`} target="_blank" rel="noreferrer" className="text-sm font-semibold text-leaf underline">
-      Lihat tx di explorer ↗
+      View tx on explorer ↗
     </a>
   );
 }
