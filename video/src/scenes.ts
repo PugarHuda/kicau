@@ -30,7 +30,7 @@ const sped = (f: number, sc: Scene): Scene => ({
 
 // Callouts/SFX tuned against the 24 Oct recordings (fresh contest #2 on 0x9479…0F58). Clips are pre-cut/sped in
 // public/recordings so each starts at frame 0 of its scene.
-export const SCENES: Scene[] = [
+const RECORDED: Scene[] = [
   {
     id: "contest-live",
     title: "Live judging at the gantangan",
@@ -131,6 +131,10 @@ export const SCENES: Scene[] = [
     sfx: [{ frame: s(0.5), name: "ui-click" }],
   }),
 ];
+
+// Story order: home first (register → value → pedigree → dashboard → play → garden → mainnet), contests + trophy last.
+const ORDER = ["register", "kicau-value", "pedigree", "dashboard", "sponsor-adopt", "flappy", "garden", "mainnet", "contest-live", "contest-podium", "proof"];
+export const SCENES: Scene[] = ORDER.map((id) => RECORDED.find((sc) => sc.id === id)!);
 
 export const sceneFrames = (sc: Scene) => s(sc.durationSec);
 export const demoFrames = () => s(INTRO_SEC) + SCENES.reduce((a, sc) => a + sceneFrames(sc), 0) + s(OUTRO_SEC);
