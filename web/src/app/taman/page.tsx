@@ -13,7 +13,7 @@ import { BirdCard, Modal, TxLink, short, type Species } from "@/components/ui";
 import { BIRDS, birdDataUri } from "@/lib/birds";
 import { chirp } from "@/lib/chirp";
 import { KICAU_ADDRESS } from "@/lib/config";
-import { CUSTOM_SPECIES, type CustomBird, fetchCustomBird, fetchRegisteredBirds } from "@/lib/customBirds";
+import { CUSTOM_SPECIES, type CustomBird, fetchCustomBird, fetchRegisteredBirds, isTestEntity } from "@/lib/customBirds";
 import { GAME_VERSION_CANVAS, GAME_VERSION_RUN, type GameOver, type GameStart } from "@/lib/game";
 import { useMusic } from "@/lib/music";
 import { kicau, useKicau } from "@/lib/useKicau";
@@ -109,7 +109,7 @@ export default function Taman() {
         zone: "shelter" as const,
       })),
       ...(registered ?? [])
-        .filter((b) => Number(b.tokenId) !== current?.tokenId)
+        .filter((b) => Number(b.tokenId) !== current?.tokenId && (!isTestEntity(b.name) || b.owner.toLowerCase() === me))
         .map((b) => ({
           key: `r${b.tokenId}`,
           label: b.name,
@@ -127,7 +127,7 @@ export default function Taman() {
         zone: "park" as const,
       })),
     ],
-    [species, registered, others, current?.tokenId],
+    [species, registered, others, current?.tokenId, me],
   );
 
   // ---- modals

@@ -6,6 +6,7 @@ import { useReadContract } from "wagmi";
 import { useBirdHistory } from "@/components/BirdProof";
 import { TxLink } from "@/components/ui";
 import { fmtMon, freshnessPct } from "@/lib/birdHistory";
+import { fmtUsd, useMonUsd } from "@/lib/price";
 import { kicau, useKicau } from "@/lib/useKicau";
 
 const DAY = 86400;
@@ -17,7 +18,9 @@ export function OwnerDashboard({ tokenId }: { tokenId: bigint }) {
   const isOwner = !!k.address && !!owner && owner.toLowerCase() === k.address.toLowerCase();
   const { data: owed } = useReadContract({ ...kicau, functionName: "owed", args: k.address ? [k.address] : undefined, query: { enabled: isOwner } });
   const { data: h } = useBirdHistory(tokenId);
+  const monUsd = useMonUsd();
   if (!isOwner) return null;
+  const usd = (wei: bigint) => fmtUsd(Number(wei) / 1e18, monUsd) ?? "";
 
   const me = k.address!.toLowerCase();
   const v = h?.onchain;
@@ -78,7 +81,7 @@ export function OwnerDashboard({ tokenId }: { tokenId: bigint }) {
                 <tr className="border-t-2 border-ink font-bold">
                   <td>Kicau Value</td>
                   <td className="text-right">
-                    {String(v.points)} pts ≈ {formatEther(v.priceWei)} MON
+                    {String(v.points)} pts ≈ {formatEther(v.priceWei)} MON {usd(v.priceWei)}
                   </td>
                 </tr>
               </tbody>
@@ -86,7 +89,7 @@ export function OwnerDashboard({ tokenId }: { tokenId: bigint }) {
           </div>
           <div>
             <div className="font-semibold">How to raise it</div>
-            <ul className="mt-1 list-inside list-disc space-y-0.5 text-xs">
+            <ul className="mt-1 list-inside list-disc space-y-0.5 text-xs tabular-nums">
               {tips.map((t) => (
                 <li key={t} className={t.startsWith("Value decaying") ? "font-bold text-clay" : ""}>
                   {t}
@@ -96,13 +99,18 @@ export function OwnerDashboard({ tokenId }: { tokenId: bigint }) {
           </div>
           <div>
             <div className="font-semibold">Earned as keeper</div>
-            <p className="text-xs">
-              <b>{fmtMon(supportEarned + prizeEarned)} MON</b> — {fmtMon(supportEarned)} from {supportsToMe.length} support
+            {monUsd && <div className="text-[0.65rem] text-muted">USD (Chainlink MON/USD)</div>}
+            <p className="text-xs tabular-nums">
+              <b>
+                {fmtMon(supportEarned + prizeEarned)} MON {usd(supportEarned + prizeEarned)}
+              </b> — {fmtMon(supportEarned)} from {supportsToMe.length} support
               {supportsToMe.length === 1 ? "" : "s"} (70% share) + {fmtMon(prizeEarned)} in contest prizes. Paid straight to your
               address in the same tx.
             </p>
             <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
-              <span>Claimable (failed pushes): {owed !== undefined ? formatEther(owed) : "…"} MON</span>
+              <span className="tabular-nums">
+                Claimable (failed pushes): {owed !== undefined ? formatEther(owed) : "…"} MON {owed ? usd(owed) : ""}
+              </span>
               {!!owed && owed > 0n && (
                 <button className="btn-primary !px-2 !py-1 !text-[0.6rem]" disabled={k.txBusy || !k.ready} onClick={() => k.send({ functionName: "withdrawOwed", args: [] })}>
                   {k.txBusy ? "Sending…" : "Withdraw"}
@@ -117,7 +125,7 @@ export function OwnerDashboard({ tokenId }: { tokenId: bigint }) {
             {!results.length ? (
               <p className="text-xs text-muted">No finished contests yet.</p>
             ) : (
-              <ul className="mt-1 space-y-0.5 text-xs">
+              <ul className="mt-1 space-y-0.5 text-xs tabular-nums">
                 {results.map((e) => (
                   <li key={e.txHash}>
                     <Link href={`/lomba#${e.contestId}`} className="underline">

@@ -82,7 +82,7 @@ export function LiveFeed() {
                 <div className="truncate font-semibold">{it.label}</div>
                 <div className="flex flex-wrap gap-x-2 text-xs text-muted">
                   {!/^0x0+$/.test(it.actor) && <span className="font-mono">{short(it.actor)}</span>}
-                  <span>#{it.blockNumber.toString()}</span>
+                  <span className="tabular-nums">#{it.blockNumber.toString()}</span>
                   <a href={`${EXPLORER}/tx/${it.txHash}`} target="_blank" rel="noreferrer" className="text-leaf underline">
                     tx ↗
                   </a>

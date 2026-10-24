@@ -207,7 +207,7 @@ export function Leaderboards({
                 {mon(cur.pool)} MON
                 {cur.pool !== undefined &&
                   fmtUsd(Number(formatEther(cur.pool)), price) && (
-                    <span className="ml-2 text-sm font-normal text-muted">
+                    <span className="ml-2 text-sm font-normal tabular-nums text-muted" title="USD (Chainlink MON/USD)">
                       {fmtUsd(Number(formatEther(cur.pool)), price)}
                     </span>
                   )}
@@ -232,7 +232,7 @@ export function Leaderboards({
                 }
               >
                 {isMe(cur.leader.player) ? "you" : short(cur.leader.player)} ·{" "}
-                {cur.leader.score}
+                <span className="tabular-nums">{cur.leader.score}</span>
               </span>
             ) : (
               <span className="text-muted">
@@ -266,7 +266,7 @@ export function Leaderboards({
               className={`flex items-center justify-between p-4 ${isMe(r.player) ? "bg-sun/15" : ""}`}
             >
               <span className="flex items-center gap-3">
-                <span className="w-6 font-display text-lg font-bold text-muted">
+                <span className="w-6 font-display text-lg font-bold tabular-nums text-muted">
                   {i + 1}
                 </span>
                 <span className="font-mono text-sm">{short(r.player)}</span>
@@ -315,7 +315,7 @@ export function Leaderboards({
                         }
                       >
                         👑 {mine ? "you" : short(p.leader.player)} ·{" "}
-                        {p.leader.score}
+                        <span className="tabular-nums">{p.leader.score}</span>
                       </span>
                     ) : (
                       <span className="text-muted">no players</span>

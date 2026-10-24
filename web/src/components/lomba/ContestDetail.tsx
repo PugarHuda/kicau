@@ -10,6 +10,7 @@ import { EXPLORER, KICAU_ADDRESS } from "@/lib/config";
 import { ASPECTS, payouts, rankEntries, STATUS, watchContest } from "@/lib/contestLive";
 import { CUSTOM_SPECIES, type CustomBird, fetchCustomBird } from "@/lib/customBirds";
 import type { Mode } from "@/lib/live";
+import { fmtUsd, useMonUsd } from "@/lib/price";
 import { type BirdColors, encodeBird } from "@/lib/pixelate";
 import { kicau, type Kicau } from "@/lib/useKicau";
 
@@ -63,6 +64,8 @@ export function ContestDetail({ id, k }: { id: number; k: Kicau }) {
 
   // ---- reads
   const { data: c } = useReadContract({ ...kicau, functionName: "getContest", args: [cid], query: { refetchInterval: poll } });
+  const monUsd = useMonUsd();
+  const usd = (wei: bigint) => fmtUsd(Number(formatEther(wei)), monUsd);
   const { data: entries, dataUpdatedAt } = useReadContract({ ...kicau, functionName: "entriesOf", args: [cid], query: { refetchInterval: poll } });
   const ids = entries?.[0] ?? [];
   const judges = c?.judges ?? [];
@@ -168,16 +171,21 @@ export function ContestDetail({ id, k }: { id: number; k: Kicau }) {
         <div className="mb-2 flex flex-wrap items-center gap-2">
           <StatusChip status={status!} />
           <span className="border-[3px] border-ink bg-cream px-2 py-0.5 text-xs font-bold">{c.class_}</span>
-          <span className="text-xs text-muted">Contest #{id}</span>
+          <span className="text-xs tabular-nums text-muted">Contest #{id}</span>
           <ShareLinks id={id} name={c.name} />
         </div>
         <h1 className="mb-3 break-words font-display text-3xl">{c.name}</h1>
         <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm sm:grid-cols-4">
-          <Stat label="Prize pool" value={`${formatEther(status === "Finalized" || status === "Cancelled" ? pool : c.pool)} MON`} />
-          <Stat label="Entry fee" value={`${formatEther(c.entryFee)} MON`} />
+          <Stat
+            label="Prize pool"
+            value={`${formatEther(status === "Finalized" || status === "Cancelled" ? pool : c.pool)} MON`}
+            sub={usd(status === "Finalized" || status === "Cancelled" ? pool : c.pool)}
+          />
+          <Stat label="Entry fee" value={`${formatEther(c.entryFee)} MON`} sub={usd(c.entryFee)} />
           <Stat label="Entries" value={`${c.entryCount} / 32`} />
           <Stat label="Entries close" value={deadline.toLocaleString([], { dateStyle: "short", timeStyle: "short" })} />
         </dl>
+        {monUsd && <p className="mt-1 text-[0.65rem] text-muted">USD (Chainlink MON/USD)</p>}
         <p className="mt-3 break-words text-sm text-muted">
           Host{" "}
           <a className="underline" href={addrLink(c.host)} target="_blank" rel="noreferrer">
@@ -212,8 +220,9 @@ export function ContestDetail({ id, k }: { id: number; k: Kicau }) {
                   <div className="text-3xl">{MEDAL[place]}</div>
                   <BirdImg bird={r.bird} className="mx-auto h-16 w-20" />
                   <div className="truncate font-display text-xs">{r.bird?.name ?? `#${r.tokenId}`}</div>
-                  <div className="text-sm">{String(r.total)} pts</div>
-                  <div className="font-display text-sm text-leaf">+{formatEther(prizes[place])} MON</div>
+                  <div className="text-sm tabular-nums">{String(r.total)} pts</div>
+                  <div className="font-display text-sm tabular-nums text-leaf">+{formatEther(prizes[place])} MON</div>
+                  {usd(prizes[place]) && <div className="text-xs tabular-nums text-muted">{usd(prizes[place])}</div>}
                   {r.keeper && (
                     <a className="text-xs underline" href={addrLink(r.keeper)} target="_blank" rel="noreferrer">
                       to {short(r.keeper)} ↗
@@ -234,7 +243,10 @@ export function ContestDetail({ id, k }: { id: number; k: Kicau }) {
             })}
           </div>
           <p className="mt-3 text-sm text-muted">
-            {formatEther(conservation)} MON went to the conservation wallet (10% + rounding{top.length < 3 ? " + unfilled places" : ""}).
+            <span className="tabular-nums">
+              {formatEther(conservation)} MON{usd(conservation) && ` ${usd(conservation)}`}
+            </span>{" "}
+            went to the conservation wallet (10% + rounding{top.length < 3 ? " + unfilled places" : ""}).
           </p>
         </section>
       )}
@@ -249,7 +261,7 @@ export function ContestDetail({ id, k }: { id: number; k: Kicau }) {
         </div>
         {fresh && (
           <p className="mb-3 border-[3px] border-ink bg-cream px-3 py-2 text-sm" aria-live="polite">
-            ⚡ {fresh.ms !== undefined ? <b>updated in {fresh.ms} ms</b> : <b>live update</b>} · {fresh.label}
+            ⚡ {fresh.ms !== undefined ? <b className="tabular-nums">updated in {fresh.ms} ms</b> : <b>live update</b>} · {fresh.label}
             {fresh.state && <span className="text-muted"> · {fresh.state}</span>}
           </p>
         )}
@@ -263,7 +275,7 @@ export function ContestDetail({ id, k }: { id: number; k: Kicau }) {
               return (
                 <li key={key} className="border-[3px] border-ink bg-paper">
                   <button className="flex w-full items-center gap-3 p-2 text-left" onClick={() => setOpenRow(openRow === key ? null : key)} aria-expanded={openRow === key}>
-                    <span className="w-7 shrink-0 text-center font-display text-sm">{rank < 3 ? MEDAL[rank] : rank + 1}</span>
+                    <span className="w-7 shrink-0 text-center font-display text-sm tabular-nums">{rank < 3 ? MEDAL[rank] : rank + 1}</span>
                     <BirdImg bird={r.bird} className="h-10 w-12 shrink-0" />
                     <span className="min-w-0 flex-1">
                       <span className="block truncate font-display text-xs">{r.bird?.name ?? `#${key}`}</span>
@@ -341,7 +353,7 @@ export function ContestDetail({ id, k }: { id: number; k: Kicau }) {
                     ))}
                   </select>
                   <button className="btn-primary !py-2" disabled={busy} onClick={enter}>
-                    Enter · {formatEther(c.entryFee)} MON
+                    Enter · <span className="tabular-nums">{formatEther(c.entryFee)} MON</span>
                   </button>
                 </>
               )}
@@ -435,11 +447,12 @@ export function StatusChip({ status }: { status: (typeof STATUS)[number] }) {
   return <span className={`border-[3px] border-ink px-2 py-0.5 font-display text-[0.6rem] uppercase ${cls}`}>{status}</span>;
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function Stat({ label, value, sub }: { label: string; value: string; sub?: string | null }) {
   return (
     <div className="min-w-0">
       <dt className="text-xs text-muted">{label}</dt>
-      <dd className="truncate font-semibold">{value}</dd>
+      <dd className="truncate font-semibold tabular-nums">{value}</dd>
+      {sub && <dd className="truncate text-xs tabular-nums text-muted">{sub}</dd>}
     </div>
   );
 }

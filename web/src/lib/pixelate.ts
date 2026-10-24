@@ -115,21 +115,69 @@ function kmeans(px: Px[], k: number): Cluster[] {
 
 const ORDER = ["head", "body", "belly", "wing", "tail", "beak"] as const;
 
+export type CertificateType = "breeder_ring" | "bksda_permit" | "contest_certificate" | "other";
+export type Certificate = { type: CertificateType; issuer: string; number: string; date: string; note?: string; docHash?: string /* SHA-256 hex of the document; the file itself is never uploaded */ };
+
+/** Organizer attestation title that verifies a certificate (fits the contract's 64-byte title limit). */
+export const certAttestTitle = (c: Pick<Certificate, "type" | "number">) => `CERT:${c.type}:${c.number.trim()}`.slice(0, 64);
+
+export async function sha256Hex(file: Blob) {
+  const d = await crypto.subtle.digest("SHA-256", await file.arrayBuffer());
+  return [...new Uint8Array(d)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+export type Parent = { name?: string; ring?: string };
+export type Lineage = { sire?: Parent; dam?: Parent; breeder?: string; breederRing?: string };
+export type Win = { event: string; organizer?: string; class?: string; rank?: string; date?: string; location?: string };
+
+export const CERT_LABELS: Record<CertificateType, string> = {
+  breeder_ring: "Breeder ring",
+  bksda_permit: "BKSDA / captive-breeding permit",
+  contest_certificate: "Contest certificate",
+  other: "Other",
+};
+
+// All claims below are self-declared by the owner. Verified facts come from organizer attestations and on-chain contest results.
 export type BirdProfile = {
   owner?: string; // owner's display name; the address comes from ownerOf()
   story?: string;
-  titles?: string[]; // e.g. "Juara 1 Piala Raja 2025"
-  certificate?: string; // ring / certificate number
-  lineage?: string; // e.g. "Trah juara Murai 'Gladiator'"
   species?: string; // AI-identified (or owner-corrected) Indonesian name, e.g. "Murai Batu"
   latin?: string;
-  aiConfidence?: number; // 0..1, absent when the owner overrode the species
+  aiConfidence?: number; // 0..1
+  speciesSource?: "ai" | "owner";
+  certificates?: Certificate[];
+  lineage?: Lineage | string; // string = legacy v2 free text
+  wins?: Win[];
+  // legacy v2 fields (still decoded and shown)
+  titles?: string[];
+  certificate?: string;
 };
 
+/** Drops empty strings / arrays / objects recursively so the on-chain JSON stays small. */
+function prune(v: unknown): unknown {
+  if (typeof v === "string") return v.trim() ? v.trim() : undefined;
+  if (typeof v === "number") return Number.isFinite(v) ? v : undefined;
+  if (Array.isArray(v)) {
+    const a = v.map(prune).filter((x) => x !== undefined);
+    return a.length ? a : undefined;
+  }
+  if (v && typeof v === "object") {
+    const o = Object.fromEntries(Object.entries(v).map(([k, x]) => [k, prune(x)]).filter(([, x]) => x !== undefined));
+    return Object.keys(o).length ? o : undefined;
+  }
+  return undefined;
+}
+
+/** Rows that only carry a type/default are not real claims. */
+export function cleanProfile(p: BirdProfile): BirdProfile {
+  return {
+    ...p,
+    certificates: p.certificates?.filter((c) => c.issuer?.trim() || c.number?.trim()),
+    wins: p.wins?.filter((w) => w.event?.trim()),
+  };
+}
+
 export function encodeBird(c: BirdColors, profile: BirdProfile = {}): Uint8Array {
-  const clean = Object.fromEntries(
-    Object.entries(profile).filter(([, v]) => (Array.isArray(v) ? v.length : typeof v === "number" ? Number.isFinite(v) : typeof v === "string" && v.trim())),
-  );
+  const clean = (prune(cleanProfile(profile)) ?? {}) as Record<string, unknown>;
   const json = Object.keys(clean).length ? new TextEncoder().encode(JSON.stringify(clean)) : new Uint8Array();
   const out = new Uint8Array(21 + json.length);
   out.set([0x4b, 0x43, json.length ? 0x02 : 0x01]);
@@ -165,4 +213,13 @@ export function bytesToDataUrl(bytes: Uint8Array) {
   let bin = "";
   for (const byte of bytes) bin += String.fromCharCode(byte);
   return `data:image/png;base64,${btoa(bin)}`;
+}
+
+/** One-line lineage for text outputs (certificate image, NFT metadata). */
+export function lineageText(l: BirdProfile["lineage"]): string {
+  if (typeof l === "string") return l;
+  if (!l || typeof l !== "object") return "";
+  const par = (x?: Parent) => [x?.name, x?.ring && `ring ${x.ring}`].filter(Boolean).join(" ");
+  const parents = l.sire || l.dam ? `${par(l.sire) || "?"} × ${par(l.dam) || "?"}` : "";
+  return [parents, l.breeder && `breeder ${l.breeder}`, l.breederRing && `code ${l.breederRing}`].filter(Boolean).join(" · ");
 }

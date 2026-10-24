@@ -4,18 +4,22 @@ import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { kicauAbi } from "@/lib/abi";
 import { KICAU_ADDRESS } from "@/lib/config";
+import { isTestEntity } from "@/lib/customBirds";
+import { fmtUsd, useMonUsd } from "@/lib/price";
 import { client, readContest } from "@/lib/publicData";
 
 const base = { address: KICAU_ADDRESS, abi: kicauAbi } as const;
 
-/** Latest contest in Judging (else the newest one), with a live top-3 read straight from chain. */
+/** Latest non-test contest in Judging (else the newest non-test one), with a live top-3 read straight from chain. */
 async function readFeatured() {
   const count = Number(await client.readContract({ ...base, functionName: "contestCount" }));
   if (!count) return null;
   const ids = Array.from({ length: Math.min(count, 20) }, (_, i) => BigInt(count - 1 - i)); // ponytail: newest 20 only
   const res = await client.multicall({ contracts: ids.map((id) => ({ ...base, functionName: "getContest", args: [id] }) as const), allowFailure: true });
-  const judging = ids.find((_, i) => res[i].result?.status === 1);
-  return readContest(judging ?? ids[0]);
+  const real = ids.filter((_, i) => res[i].result && !isTestEntity(res[i].result?.name)); // curation: skip QA/test contests
+  if (!real.length) return null;
+  const judging = real.find((id) => res[ids.indexOf(id)].result?.status === 1);
+  return readContest(judging ?? real[0]);
 }
 
 const STATUS_STYLE: Record<string, string> = {
@@ -31,6 +35,8 @@ export function useFeaturedContest() {
 
 export function FeaturedContest() {
   const { data: c, isLoading } = useFeaturedContest();
+  const monUsd = useMonUsd();
+  const poolUsd = c ? fmtUsd(Number(c.poolMon), monUsd) : null;
 
   return (
     <section className="band band-leaf py-14 text-paper">
@@ -47,13 +53,15 @@ export function FeaturedContest() {
                 </span>
                 <span className="border-2 border-paper/40 px-2 py-0.5">{c.class}</span>
                 <span className="border-2 border-paper/40 px-2 py-0.5 tabular-nums">{c.judges.length} {c.judges.length === 1 ? "judge" : "judges"}</span>
-                <span className="border-2 border-paper/40 px-2 py-0.5 tabular-nums">Pool {Number(c.poolMon).toFixed(3)} MON</span>
+                <span className="border-2 border-paper/40 px-2 py-0.5 tabular-nums" title={poolUsd ? "USD (Chainlink MON/USD)" : undefined}>
+                  Pool {Number(c.poolMon).toFixed(3)} MON{poolUsd && ` ${poolUsd}`}
+                </span>
               </div>
               <p className="mb-6 max-w-md text-paper/85">
                 Each judge scores melody, volume, duration and style. Every score is a transaction, so the ranking below is read live from Monad.
               </p>
               <Link href={`/lomba#${c.id}`} className="btn bg-sun text-ink">
-                Watch contest #{c.id} live →
+                Watch contest #<span className="tabular-nums">{c.id}</span> live →
               </Link>
             </>
           ) : (
@@ -76,7 +84,7 @@ export function FeaturedContest() {
           <ol className="flex flex-col gap-2">
             {(c?.entries.slice(0, 3) ?? []).map((e) => (
               <li key={e.tokenId} className="flex items-center gap-3 bg-[#2a3a2b] p-2">
-                <span className={`grid h-8 w-8 shrink-0 place-items-center font-display text-xs text-ink ${["bg-sun", "bg-paper", "bg-[#d9a06b]"][e.rank - 1]}`}>{e.rank}</span>
+                <span className={`grid h-8 w-8 shrink-0 place-items-center font-display text-xs tabular-nums text-ink ${["bg-sun", "bg-paper", "bg-[#d9a06b]"][e.rank - 1]}`}>{e.rank}</span>
                 {e.image ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={e.image} alt="" className="h-9 w-12 shrink-0 object-contain" />
@@ -85,7 +93,7 @@ export function FeaturedContest() {
                 )}
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-paper">
-                    {e.name} <span className="text-paper/50">#{e.tokenId}</span>
+                    {e.name} <span className="tabular-nums text-paper/50">#{e.tokenId}</span>
                   </div>
                   <div className="mt-1 h-2 bg-paper/15">
                     <div className="h-full bg-sun" style={{ width: `${c && c.maxTotal ? Math.min(100, (e.total / c.maxTotal) * 100) : 0}%` }} />

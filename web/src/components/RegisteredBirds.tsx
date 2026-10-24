@@ -5,13 +5,16 @@ import { useState } from "react";
 import { formatEther, parseEther } from "viem";
 import { usePublicClient, useReadContract, useReadContracts } from "wagmi";
 import { kicauAbi } from "@/lib/abi";
-import { BirdProof } from "@/components/BirdProof";
+import { BirdProof, useBirdHistory } from "@/components/BirdProof";
 import { CertificateButton } from "@/components/CertificateButton";
 import { OwnerDashboard } from "@/components/OwnerDashboard";
 import { KicauValue } from "@/components/lomba/KicauValue";
 import { Modal, short } from "@/components/ui";
 import { EXPLORER, KICAU_ADDRESS } from "@/lib/config";
 import { type CustomBird, fetchCommunityBirds } from "@/lib/customBirds";
+import { fmtMon } from "@/lib/birdHistory";
+import { CERT_LABELS, certAttestTitle, sha256Hex, type Certificate, type Lineage, type Win } from "@/lib/pixelate";
+import { fmtUsd, useMonUsd } from "@/lib/price";
 
 type AttestFn = (tokenId: bigint, title: string) => Promise<boolean>;
 type SupportFn = (tokenId: bigint, amount: bigint) => Promise<boolean>;
@@ -27,7 +30,7 @@ export function RegisteredBirds({ me, busy = false, onAttest, onSupport }: Actio
     <section className="mt-12">
       <h2 className="mb-1 font-display text-3xl font-bold">Community Birds</h2>
       <p className="mb-5 text-muted">
-        Real songbirds from the community, complete with titles and pedigree. All recorded on-chain.{" "}
+        Real songbirds from the community. Species from AI analysis, pedigree as declared by the owner, wins verified on-chain.{" "}
         <span className="text-xs">Sorted by Kicau Value.</span>
       </p>
       {isLoading ? (
@@ -106,25 +109,63 @@ function useAttestations(tokenId: bigint) {
 /** "Murai Batu · Copsychus malabaricus · AI 92%" (on-chain profile is untrusted: check types). */
 function speciesLine(p: CustomBird["profile"]) {
   if (typeof p.species !== "string" || !p.species) return null;
-  const ai = typeof p.aiConfidence === "number" ? `AI ${Math.round(p.aiConfidence * 100)}%` : "owner-declared";
+  const ai = p.speciesSource !== "owner" && typeof p.aiConfidence === "number" ? `AI ${Math.round(p.aiConfidence * 100)}%` : "owner-declared";
   return [p.species, typeof p.latin === "string" ? p.latin : "", ai].filter(Boolean).join(" · ");
 }
 
+const arr = <T,>(v: unknown): T[] => (Array.isArray(v) ? (v.filter((x) => x && typeof x === "object") as T[]) : []);
+const str = (v: unknown) => (typeof v === "string" ? v : "");
+
 export function Badges({ bird }: { bird: CustomBird }) {
-  const { titles, certificate, lineage } = bird.profile;
+  const p = bird.profile;
+  const titles = arr<string>([]).concat(Array.isArray(p.titles) ? p.titles.filter((t) => typeof t === "string") : []);
+  const certs = arr<Certificate>(p.certificates).length + (str(p.certificate) ? 1 : 0);
+  const wins = arr<Win>(p.wins).length + titles.length;
   const verified = useAttestations(bird.tokenId).length;
-  if (!titles?.length && !certificate && !lineage && !verified) return null;
+  if (!certs && !wins && !verified) return null;
   return (
     <div className="mt-1 flex flex-wrap gap-1 text-xs">
-      {verified > 0 && <span className="bg-leaf-dark px-1.5 py-0.5 font-semibold text-paper">🏅 {verified}× verified</span>}
-      {!!titles?.length && (
-        <span className="bg-sun px-1.5 py-0.5 font-semibold text-ink" title="Self-declared by the owner">
-          🏆 {titles.length}× champion (self-declared)
+      {verified > 0 && <span className="bg-leaf-dark px-1.5 py-0.5 font-semibold text-paper">✔ <span className="tabular-nums">{verified}</span>× verified on-chain</span>}
+      {wins > 0 && (
+        <span className="border-2 border-dashed border-ink px-1.5 py-0.5 text-ink" title="Self-declared by the owner">
+          🏆 <span className="tabular-nums">{wins}</span>× win (self-declared)
         </span>
       )}
-      {certificate && <span className="bg-leaf px-1.5 py-0.5 text-paper">✔ certified</span>}
-      {lineage && <span className="bg-clay px-1.5 py-0.5 text-paper">champion bloodline</span>}
+      {certs > 0 && (
+        <span className="border-2 border-dashed border-ink px-1.5 py-0.5 text-ink" title="Self-declared by the owner; not checked by Kicau">
+          📄 <span className="tabular-nums">{certs}</span>× certificate (self-declared)
+        </span>
+      )}
     </div>
+  );
+}
+
+/** "Sire × Dam → this bird" (+ breeder). Accepts legacy free-text lineage. */
+function LineageTree({ lineage, name }: { lineage: unknown; name: string }) {
+  if (typeof lineage === "string") return lineage ? <dd className="mt-1">{lineage}</dd> : null;
+  if (!lineage || typeof lineage !== "object") return null;
+  const l = lineage as Lineage;
+  const parent = (x: Lineage["sire"], role: string) => (
+    <span className="border-2 border-ink bg-cream px-2 py-1">
+      <span className="block text-[0.65rem] text-muted">{role}</span>
+      {str(x?.name) || "unknown"}
+      {str(x?.ring) && <span className="block font-mono text-[0.65rem] tabular-nums">ring {str(x?.ring)}</span>}
+    </span>
+  );
+  return (
+    <dd className="mt-1 space-y-1">
+      {(l.sire || l.dam) && (
+        <div className="flex flex-wrap items-center gap-1 text-xs">
+          {parent(l.sire, "Sire ♂")} × {parent(l.dam, "Dam ♀")} → <b>{name}</b>
+        </div>
+      )}
+      {(str(l.breeder) || str(l.breederRing)) && (
+        <div className="text-xs">
+          Breeder: {str(l.breeder) || "—"}
+          {str(l.breederRing) && <span className="font-mono tabular-nums"> · code {str(l.breederRing)}</span>}
+        </div>
+      )}
+    </dd>
   );
 }
 
@@ -157,6 +198,15 @@ export function BirdProfileCard({ bird, me, busy = false, onAttest, onSupport }:
   const minSupport = raised?.[3].result ? raised[3].result[1] / 10n : 0n;
   const presets = minSupport > 0n ? [1n, 2n, 5n].map((k) => minSupport * k) : ["0.005", "0.01", "0.05"].map((v) => parseEther(v));
   const [title, setTitle] = useState("");
+  const price = useMonUsd();
+  const { data: history } = useBirdHistory(bird.tokenId);
+  const onchainWins = (history?.events ?? []).filter((e) => e.kind === "contest");
+  const wins = arr<Win>(p.wins);
+  const certs = arr<Certificate>(p.certificates);
+  const titleAtts = attestations.filter((a) => !a.title.startsWith("CERT:"));
+  const certBy = (c: Certificate) => attestations.find((a) => a.title === certAttestTitle(c));
+  const [docCheck, setDocCheck] = useState<string>();
+  const legacyTitles = Array.isArray(p.titles) ? p.titles.filter((t): t is string => typeof t === "string") : [];
   const titleBytes = new TextEncoder().encode(title.trim()).length;
   return (
     <div>
@@ -165,7 +215,14 @@ export function BirdProfileCard({ bird, me, busy = false, onAttest, onSupport }:
         <img src={bird.image} alt={bird.name} className="h-36 w-auto" />
       </div>
       <h2 className="mb-1 font-display text-2xl">{bird.name}</h2>
-      {speciesLine(p) && <p className="mb-1 text-sm font-semibold">🔎 {speciesLine(p)}</p>}
+      {typeof p.species === "string" && p.species && (
+        <p className="mb-2 border-[3px] border-ink bg-cream px-2 py-1 text-sm">
+          <span className="block font-display text-[0.65rem] text-muted">{p.speciesSource === "owner" || typeof p.aiConfidence !== "number" ? "Species (set by owner)" : "Species (AI analysis)"}</span>
+          <b>{p.species}</b>
+          {str(p.latin) && <i className="text-muted"> · {str(p.latin)}</i>}
+          {p.speciesSource !== "owner" && typeof p.aiConfidence === "number" && <span className="tabular-nums text-muted"> · {Math.round(p.aiConfidence * 100)}%</span>}
+        </p>
+      )}
       <p className="mb-3 text-sm text-muted">
         Owned by {p.owner ? <b className="text-ink">{p.owner}</b> : "owner"} ·{" "}
         <a href={`${EXPLORER}/address/${bird.owner}`} target="_blank" rel="noreferrer" className="font-mono underline">
@@ -177,48 +234,138 @@ export function BirdProfileCard({ bird, me, busy = false, onAttest, onSupport }:
       <KicauValue tokenId={bird.tokenId} className="mt-2" />
       <OwnerDashboard tokenId={bird.tokenId} />
       <dl className="mt-4 space-y-3 text-sm">
-        {attestations.length > 0 && (
+        {titleAtts.length > 0 && (
           <div>
-            <dt className="font-display text-xs">Verified titles</dt>
+            <dt className="font-display text-xs">Titles (✔ verified on-chain by organizer)</dt>
             <dd>
               <ul className="mt-1 space-y-1">
-                {attestations.map((a, i) => (
+                {titleAtts.map((a, i) => (
                   <li key={i}>
-                    🏅 <b>{a.title}</b> — verified by {orgName(a.organizer)}
+                    ✔ <b>{a.title}</b> — attested on-chain by {orgName(a.organizer)}
                   </li>
                 ))}
               </ul>
             </dd>
           </div>
         )}
-        {!!p.titles?.length && (
+        {onchainWins.length > 0 && (
           <div>
-            <dt className="font-display text-xs">Titles (self-declared)</dt>
+            <dt className="font-display text-xs">Contest results (✔ verified on-chain)</dt>
+            <dd>
+              <ul className="mt-1 space-y-1">
+                {onchainWins.map((e) => (
+                  <li key={e.txHash}>
+                    ✔ <b>{e.label}</b>
+                    {e.prizeWei ? <span className="tabular-nums"> · prize {fmtMon(e.prizeWei)} MON</span> : null}{" "}
+                    <a href={`${EXPLORER}/tx/${e.txHash}`} target="_blank" rel="noreferrer" className="text-xs underline">
+                      tx
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </dd>
+          </div>
+        )}
+        {(wins.length > 0 || legacyTitles.length > 0) && (
+          <div>
+            <dt className="font-display text-xs">Wins (self-declared by owner)</dt>
             <dd>
               <ul className="mt-1 list-inside list-disc">
-                {p.titles.map((t) => (
+                {wins.map((w, i) => (
+                  <li key={i}>
+                    {w.rank && <span className="tabular-nums">#{str(w.rank)} </span>}
+                    <b>{str(w.event)}</b>
+                    {[str(w.class), str(w.organizer), str(w.location), str(w.date)].filter(Boolean).map((x) => ` · ${x}`)}
+                  </li>
+                ))}
+                {legacyTitles.map((t) => (
                   <li key={t}>{t}</li>
                 ))}
               </ul>
             </dd>
           </div>
         )}
-        {p.certificate && (
+        {(certs.length > 0 || str(p.certificate)) && (
           <div>
-            <dt className="font-display text-xs">Certificate</dt>
-            <dd className="mt-1">{p.certificate}</dd>
+            <dt className="font-display text-xs">Certificates (self-declared, not checked by Kicau)</dt>
+            <dd className="mt-1 overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="text-muted">
+                  <tr>
+                    <th className="pr-2">Type</th>
+                    <th className="pr-2">Issuer</th>
+                    <th className="pr-2">Number</th>
+                    <th className="pr-2">Date</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {certs.map((c, i) => (
+                    <tr key={i} className="border-t border-line">
+                      <td className="pr-2">{CERT_LABELS[c.type] ?? "Other"}</td>
+                      <td className="pr-2">{str(c.issuer)}</td>
+                      <td className="pr-2 font-mono tabular-nums">{str(c.number)}</td>
+                      <td className="pr-2 tabular-nums">{str(c.date)}</td>
+                      <td>
+                        {certBy(c) ? (
+                          <span className="font-semibold text-leaf-dark">✔ verified by {orgName(certBy(c)!.organizer)}</span>
+                        ) : (
+                          <span className="text-muted">self-declared</span>
+                        )}
+                        {str(c.docHash) && (
+                          <span className="block font-mono text-[0.65rem] tabular-nums text-muted" title={str(c.docHash)}>
+                            doc sha256 {str(c.docHash).slice(0, 12)}…
+                          </span>
+                        )}
+                        {!certBy(c) && meOrg?.[1] && onAttest && str(c.number) && (
+                          <button className="btn-ghost mt-1 !px-2 !py-0.5 text-[0.65rem]" disabled={busy} onClick={() => onAttest(bird.tokenId, certAttestTitle(c))}>
+                            Verify this certificate
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                  {str(p.certificate) && (
+                    <tr className="border-t border-line">
+                      <td className="pr-2">Ring / certificate</td>
+                      <td className="pr-2">—</td>
+                      <td className="pr-2 font-mono tabular-nums">{str(p.certificate)}</td>
+                      <td className="pr-2">—</td>
+                      <td className="text-muted">self-declared</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+              {certs.some((c) => str(c.docHash)) && (
+                <label className="mt-2 block text-xs">
+                  <span className="text-muted">Check a document (hashed locally, never uploaded): </span>
+                  <input
+                    type="file"
+                    accept="image/*,application/pdf"
+                    className="text-xs"
+                    onChange={async (e) => {
+                      const f = e.target.files?.[0];
+                      if (!f) return setDocCheck(undefined);
+                      const h = await sha256Hex(f);
+                      setDocCheck(certs.some((c) => c.docHash === h) ? "✔ match — same file as the fingerprint on-chain" : "✖ no match");
+                    }}
+                  />
+                  {docCheck && <b className={docCheck.startsWith("✔") ? "text-leaf-dark" : "text-clay"}> {docCheck}</b>}
+                </label>
+              )}
+            </dd>
           </div>
         )}
         {p.lineage && (
           <div>
-            <dt className="font-display text-xs">Lineage</dt>
-            <dd className="mt-1">{p.lineage}</dd>
+            <dt className="font-display text-xs">Lineage (self-declared)</dt>
+            <LineageTree lineage={p.lineage} name={bird.name} />
           </div>
         )}
         {p.story && (
           <div>
             <dt className="font-display text-xs">Story</dt>
-            <dd className="mt-1 whitespace-pre-line leading-relaxed">{p.story}</dd>
+            <dd className="mt-1 whitespace-pre-line break-words leading-relaxed">{p.story}</dd>
           </div>
         )}
       </dl>
@@ -250,20 +397,28 @@ export function BirdProfileCard({ bird, me, busy = false, onAttest, onSupport }:
         <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
           <span className="font-display text-xs">Support this bird</span>
           <span className="text-sm text-muted">
-            Raised {raised?.[0].result !== undefined ? formatEther(raised[0].result) : "…"} MON from {raised?.[1].result?.toString() ?? "…"}{" "}
-            supporters · 70% to keeper, 30% conservation
+            Raised{" "}
+            <span className="tabular-nums">
+              {raised?.[0].result !== undefined ? formatEther(raised[0].result) : "…"} MON
+              {raised?.[0].result !== undefined && fmtUsd(Number(formatEther(raised[0].result)), price) && ` ${fmtUsd(Number(formatEther(raised[0].result)), price)}`}
+            </span>{" "}
+            from <span className="tabular-nums">{raised?.[1].result?.toString() ?? "…"}</span> supporters · 70% to keeper, 30% conservation
           </span>
         </div>
         <div className="flex flex-wrap gap-2">
           {presets.map((amt) => (
             <button key={String(amt)} onClick={() => onSupport?.(bird.tokenId, amt)} disabled={busy || !onSupport} className="btn-ghost !py-2">
-              {Number(formatEther(amt)).toFixed(4).replace(/0+$/, "").replace(/\.$/, "")} MON
+              <span className="tabular-nums">
+                {Number(formatEther(amt)).toFixed(4).replace(/0+$/, "").replace(/\.$/, "")} MON
+                {fmtUsd(Number(formatEther(amt)), price) && <span className="text-xs text-muted"> {fmtUsd(Number(formatEther(amt)), price)}</span>}
+              </span>
             </button>
           ))}
         </div>
         {minSupport > 0n && (
-          <p className="mt-2 text-xs text-muted">Minimum sponsorship = 10% of Kicau Value ({formatEther(minSupport)} MON) — rises as the bird wins.</p>
+          <p className="mt-2 text-xs text-muted">Minimum sponsorship = 10% of Kicau Value (<span className="tabular-nums">{formatEther(minSupport)} MON</span>) — rises as the bird wins.</p>
         )}
+        {price && <p className="mt-1 text-[0.65rem] text-muted">USD (Chainlink MON/USD)</p>}
         {!onSupport && <p className="mt-2 text-sm text-clay">Hit ⚡ Quick Play or connect a wallet to support.</p>}
       </div>
       <CertificateButton tokenId={bird.tokenId} />
@@ -290,8 +445,8 @@ export function BirdProfileCard({ bird, me, busy = false, onAttest, onSupport }:
         </form>
       )}
       <p className="mt-4 text-xs text-muted">
-        Profile data is self-declared by the owner and stored permanently in an on-chain event. 🏅 titles are attested
-        on-chain by registered contest organizers.
+        Profile data (certificates, lineage, self-declared wins) is the owner&apos;s claim, stored permanently in an on-chain
+        event; Kicau does not check paper documents. ✔ verified items are organizer attestations and on-chain contest results.
       </p>
     </div>
   );

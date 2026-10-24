@@ -6,6 +6,7 @@ import { bytesToHex } from "viem";
 import { usePublicClient, useReadContract, useReadContracts } from "wagmi";
 import { KicauValue } from "@/components/lomba/KicauValue";
 import { BirdProfileCard } from "@/components/RegisteredBirds";
+import { emptyPedigree, PedigreeFields, pedigreeFrom } from "@/components/PedigreeFields";
 import { Modal } from "@/components/ui";
 import { birdDataUri } from "@/lib/birds";
 import { KICAU_ADDRESS } from "@/lib/config";
@@ -37,7 +38,8 @@ export function MyBirds({ k }: { k: Kicau }) {
   const [err, setErr] = useState<string>();
   const [owner, setOwner] = useState("");
   const [story, setStory] = useState("");
-  const [titles, setTitles] = useState("");
+  const [species, setSpecies] = useState("");
+  const [pedigree, setPedigree] = useState(emptyPedigree);
   const [proof, setProof] = useState<string | null>(null);
   const proofBird = birds?.find((b) => String(b.tokenId) === proof);
 
@@ -51,7 +53,8 @@ export function MyBirds({ k }: { k: Kicau }) {
     if (!bird) return;
     setOwner(bird.profile.owner ?? "");
     setStory(bird.profile.story ?? "");
-    setTitles((bird.profile.titles ?? []).join("\n"));
+    setSpecies(bird.profile.species ?? "");
+    setPedigree(pedigreeFrom(bird.profile));
     setFile(null);
     setColors(null);
   }, [bird]);
@@ -69,12 +72,17 @@ export function MyBirds({ k }: { k: Kicau }) {
   if (!k.address || !custom.length) return null;
 
   async function publish() {
-    if (!bird || !colors) return;
-    const bytes = encodeBird(colors, {
-      ...bird.profile,
+    const pal = colors ?? (bird && "colors" in bird ? bird.colors : null);
+    if (!bird || !pal) return setErr("Upload a photo first (this bird has no palette on-chain).");
+    const p = bird.profile;
+    const speciesChanged = species.trim() !== (p.species ?? "");
+    const bytes = encodeBird(pal, {
+      ...p,
+      ...pedigree,
       owner: owner.trim(),
       story: story.trim(),
-      titles: titles.split("\n").map((t) => t.trim()).filter(Boolean),
+      species: species.trim(),
+      ...(speciesChanged && { speciesSource: "owner" as const, aiConfidence: undefined }),
     });
     if (bytes.length > 4096) return setErr("Profile too long (max 4096 bytes).");
     if (await k.send({ functionName: "updateBird", args: [bird.tokenId, bytesToHex(bytes)] })) setSel(null);
@@ -124,14 +132,18 @@ export function MyBirds({ k }: { k: Kicau }) {
             <input className={field} value={owner} onChange={(e) => setOwner(e.target.value)} />
           </label>
           <label className="text-sm font-semibold">
-            Titles (one per line)
-            <textarea className={field} rows={2} value={titles} onChange={(e) => setTitles(e.target.value)} />
+            Species {bird.profile.speciesSource === "owner" || species.trim() !== (bird.profile.species ?? "") ? "(set by owner)" : "(AI analysis)"}
+            <input className={field} value={species} maxLength={60} onChange={(e) => setSpecies(e.target.value)} />
           </label>
+          <div className="sm:col-span-2">
+            <PedigreeFields value={pedigree} onChange={setPedigree} />
+            {!!bird.profile.titles?.length && <p className="text-xs text-muted">Older titles are kept as-is.</p>}
+          </div>
           <label className="text-sm font-semibold sm:col-span-2">
             Story
             <textarea className={field} rows={2} value={story} onChange={(e) => setStory(e.target.value)} />
           </label>
-          <button className="btn-primary sm:col-span-2" disabled={!colors || !k.ready || k.txBusy} onClick={publish}>
+          <button className="btn-primary sm:col-span-2" disabled={!k.ready || k.txBusy} onClick={publish}>
             {k.txBusy ? "Sending…" : "Publish new version on-chain"}
           </button>
         </div>

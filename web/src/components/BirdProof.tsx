@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePublicClient } from "wagmi";
 import { type BirdHistory, type ValuePoint, fetchBirdHistory } from "@/lib/birdHistory";
 import { EXPLORER, KICAU_ADDRESS } from "@/lib/config";
+import { fmtUsd, useMonUsd } from "@/lib/price";
 
 /** Shared react-query hook: one scan per bird, reused by BirdProof and OwnerDashboard. */
 export function useBirdHistory(tokenId: bigint) {
@@ -28,7 +29,7 @@ export function BirdProof({ tokenId }: { tokenId: bigint }) {
       <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
         <span className="font-display text-xs">Proof &amp; value history</span>
         {h && (
-          <span className={`text-xs font-bold ${h.matches ? "text-leaf" : "text-clay"}`} title={`Reconstructed ${h.reconstructed} pts vs valueOf ${h.onchain.points} pts at block ${h.headBlock}`}>
+          <span className={`text-xs font-bold tabular-nums ${h.matches ? "text-leaf" : "text-clay"}`} title={`Reconstructed ${h.reconstructed} pts vs valueOf ${h.onchain.points} pts at block ${h.headBlock}`}>
             {h.matches ? "✓ matches contract" : `⚠ reconstructed ${h.reconstructed} ≠ contract ${h.onchain.points}`}
           </span>
         )}
@@ -41,8 +42,11 @@ export function BirdProof({ tokenId }: { tokenId: bigint }) {
         <>
           <ValueChart h={h} />
           <p className="mb-3 mt-1 text-xs text-muted">
-            Kicau Value, reconstructed from on-chain events with the contract&apos;s own formula ({h.chunks} log windows scanned, block{" "}
-            {String(h.scannedFrom)} → {String(h.headBlock)}).
+            Kicau Value, reconstructed from on-chain events with the contract&apos;s own formula (<span className="tabular-nums">{h.chunks}</span> log windows scanned, block{" "}
+            <span className="tabular-nums">
+              {String(h.scannedFrom)} → {String(h.headBlock)}
+            </span>
+            ). 1 pt = 0.0001 MON · USD (Chainlink MON/USD).
           </p>
           <ol className="max-h-72 space-y-1 overflow-y-auto pr-1">
             {[...h.events].reverse().map((e) => (
@@ -54,12 +58,12 @@ export function BirdProof({ tokenId }: { tokenId: bigint }) {
                       {e.label}
                     </a>
                     {e.pointsDelta !== 0 && (
-                      <span className={`text-xs font-bold ${e.pointsDelta > 0 ? "text-leaf" : "text-clay"}`}>
+                      <span className={`text-xs font-bold tabular-nums ${e.pointsDelta > 0 ? "text-leaf" : "text-clay"}`}>
                         {e.pointsDelta > 0 ? `▲ +${e.pointsDelta}` : `▼ ${e.pointsDelta}`}
                       </span>
                     )}
                   </div>
-                  <div className="break-words text-xs text-muted">
+                  <div className="break-words text-xs tabular-nums text-muted">
                     {e.details} · {when(e.timestamp)}
                     {e.contestId !== undefined && (
                       <>
@@ -103,6 +107,9 @@ function ValueChart({ h }: { h: BirdHistory }) {
   for (let i = 1; i < pts.length; i++) d += ` H${x(i)} V${y(pts[i].points)}`;
   const first = pts[0]?.points ?? 0;
   const last = pts.at(-1)?.points ?? 0;
+  const monUsd = useMonUsd();
+  const lastMon = last * 0.0001; // contract: 1 pt = 0.0001 MON
+  const usd = fmtUsd(lastMon, monUsd);
   return (
     <figure>
       <svg viewBox={`0 0 ${W} ${H}`} className="h-24 w-full border-2 border-ink bg-cream" role="img" aria-label={`Kicau Value from ${first} to ${last} points`} shapeRendering="crispEdges">
@@ -118,8 +125,8 @@ function ValueChart({ h }: { h: BirdHistory }) {
             </text>
           );
         })}
-        <text x={W - pad} y={12} textAnchor="end" fontSize={10} fill="var(--ink)" fontWeight="bold">
-          {last} pts
+        <text x={W - pad} y={12} textAnchor="end" fontSize={11} fill="var(--ink)" className="tabular-nums">
+          {last} pts · {+lastMon.toFixed(4)} MON{usd ? ` ${usd}` : ""}
         </text>
       </svg>
       <figcaption className="sr-only">Step chart of the bird&apos;s Kicau Value at each on-chain event and now.</figcaption>

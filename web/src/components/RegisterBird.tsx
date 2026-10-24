@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { birdDataUri } from "@/lib/birds";
 import { type BirdColors, DEFAULT_TOLERANCE, encodeBird, extractBirdColors } from "@/lib/pixelate";
+import { emptyPedigree, PedigreeFields } from "./PedigreeFields";
 import { type IdentifyResult, SpeciesCheck } from "./SpeciesCheck";
 
 const MAX_BYTES = 4096;
@@ -28,9 +29,7 @@ export function RegisterBird({
   const [name, setName] = useState("");
   const [owner, setOwner] = useState("");
   const [story, setStory] = useState("");
-  const [titles, setTitles] = useState("");
-  const [certificate, setCertificate] = useState("");
-  const [lineage, setLineage] = useState("");
+  const [pedigree, setPedigree] = useState(emptyPedigree);
   const [species, setSpecies] = useState<IdentifyResult | null>(null);
   const [speciesOverride, setSpeciesOverride] = useState<string>();
 
@@ -60,17 +59,25 @@ export function RegisterBird({
   const profile = {
     owner: owner.trim(),
     story: story.trim(),
-    titles: titles.split("\n").map((t) => t.trim()).filter(Boolean),
-    certificate: certificate.trim(),
-    lineage: lineage.trim(),
+    ...pedigree,
     ...(speciesOverride !== undefined
-      ? { species: speciesOverride.trim() }
-      : species && { species: species.indonesianName || species.commonName, latin: species.latinName, aiConfidence: Math.round(species.confidence * 100) / 100 }),
+      ? { species: speciesOverride.trim(), latin: species?.latinName, speciesSource: "owner" as const }
+      : species && {
+          species: species.indonesianName || species.commonName,
+          latin: species.latinName,
+          aiConfidence: Math.round(species.confidence * 100) / 100,
+          speciesSource: "ai" as const,
+        }),
   };
   const bytes = colors ? encodeBird(colors, profile) : null;
   const nameBytes = new TextEncoder().encode(name.trim()).length;
   const tooBig = !!bytes && bytes.length > MAX_BYTES;
-  const valid = !!bytes && !tooBig && nameBytes > 0 && nameBytes <= 32;
+  // optional rows: only rows the user started filling are validated (untouched rows are dropped by encodeBird)
+  const started = (o: object) => Object.entries(o).some(([k, v]) => k !== "type" && typeof v === "string" && v.trim());
+  const incomplete =
+    pedigree.certificates.some((c) => started(c) && !(c.issuer.trim() && c.number.trim())) ||
+    pedigree.wins.some((w) => started(w) && !w.event.trim());
+  const valid = !!bytes && !tooBig && !incomplete && nameBytes > 0 && nameBytes <= 32;
 
   return (
     <div>
@@ -110,14 +117,15 @@ export function RegisterBird({
         }}
       />
       {file && (
-        <label className="mb-4 block text-sm">
-          <span className="text-muted">
-            {speciesOverride !== undefined
-              ? "Species (entered by owner)"
-              : species
-                ? "Species (AI-identified) — edit if it's wrong"
-                : "Species"}
+        <label className="mb-4 block border-[3px] border-ink bg-cream p-3 text-sm">
+          <span className="font-display text-sm">
+            {speciesOverride !== undefined ? "Species (set by owner)" : "Species (AI analysis)"}
           </span>
+          {species && speciesOverride === undefined && (
+            <span className="block text-xs text-muted">
+              <i>{species.latinName}</i> · <span className="tabular-nums">{Math.round(species.confidence * 100)}%</span> confidence — edit if it&apos;s wrong
+            </span>
+          )}
           <input
             value={speciesOverride ?? species?.indonesianName ?? species?.commonName ?? ""}
             maxLength={60}
@@ -153,31 +161,16 @@ export function RegisterBird({
 
       <div className="mb-4 grid gap-3 sm:grid-cols-2">
         <label className="block text-sm">
-          <span className="text-muted">Bird name *</span>
+          <span className="text-muted">Bird name * (your choice)</span>
           <input value={name} maxLength={32} onChange={(e) => setName(e.target.value)} placeholder="Si Jambul" className={field} />
         </label>
         <label className="block text-sm">
           <span className="text-muted">Owner name</span>
           <input value={owner} maxLength={40} onChange={(e) => setOwner(e.target.value)} placeholder="Pak Budi, Yogyakarta" className={field} />
         </label>
-        <label className="block text-sm sm:col-span-2">
-          <span className="text-muted">Titles (one per line)</span>
-          <textarea
-            value={titles}
-            rows={2}
-            onChange={(e) => setTitles(e.target.value)}
-            placeholder={"Champion — Piala Raja Jogja 2025\n2nd place — Kicau Mania Cup Jogja"}
-            className={field}
-          />
-        </label>
-        <label className="block text-sm">
-          <span className="text-muted">Certificate / ring number</span>
-          <input value={certificate} maxLength={60} onChange={(e) => setCertificate(e.target.value)} placeholder="Ring BF-2024-0187" className={field} />
-        </label>
-        <label className="block text-sm">
-          <span className="text-muted">Lineage</span>
-          <input value={lineage} maxLength={80} onChange={(e) => setLineage(e.target.value)} placeholder="Champion bloodline 'Gladiator'" className={field} />
-        </label>
+        <div className="sm:col-span-2">
+          <PedigreeFields value={pedigree} onChange={setPedigree} />
+        </div>
         <label className="block text-sm sm:col-span-2">
           <span className="text-muted">Story</span>
           <textarea
@@ -192,12 +185,21 @@ export function RegisterBird({
       </div>
 
       {error && <p className="mb-3 text-sm text-clay">{error}</p>}
+      {incomplete && <p className="mb-3 text-sm text-clay">Finish or remove the started row: a certificate needs issuer + number, a win needs the event name.</p>}
       {nameBytes > 32 && <p className="mb-3 text-sm text-clay">Name too long ({nameBytes} bytes, max 32). Emoji and accents take 2–4 bytes each.</p>}
-      {tooBig && <p className="mb-3 text-sm text-clay">Too much data ({bytes?.length} B, max {MAX_BYTES} B). Shorten the story.</p>}
+      {tooBig && <p className="mb-3 text-sm text-clay">Too much data ({bytes?.length} B, max {MAX_BYTES} B). Shorten the story or remove rows.</p>}
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <span className="text-sm text-muted">
-          Fee {fee} MON · 30% to conservation{bytes && ` · ${bytes.length} B on-chain`}
+          Fee {fee} MON · 30% to conservation{bytes && (
+            <>
+              {" · "}
+              <span className={`tabular-nums ${tooBig ? "text-clay" : ""}`}>
+                {bytes.length} / {MAX_BYTES} B
+              </span>{" "}
+              on-chain
+            </>
+          )}
         </span>
         <button className="btn-primary" disabled={!valid || busy || !canRegister} onClick={() => bytes && onRegister(name.trim(), bytes)}>
           {busy ? "Processing…" : "Register"}

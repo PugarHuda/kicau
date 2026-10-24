@@ -9,6 +9,7 @@ import { HostForm } from "@/components/lomba/HostForm";
 import { MyBirds } from "@/components/lomba/MyBirds";
 import { TxLink, short } from "@/components/ui";
 import { KICAU_ADDRESS } from "@/lib/config";
+import { isTestEntity } from "@/lib/customBirds";
 import { STATUS } from "@/lib/contestLive";
 import { type Kicau, kicau, useKicau } from "@/lib/useKicau";
 
@@ -77,7 +78,7 @@ export default function Lomba() {
             <span className="line-clamp-3 text-clay">{k.error}</span>
           ) : (
             <>
-              <span className="font-semibold">✓ Confirmed{k.lastMs !== undefined && ` in ${k.lastMs} ms`}</span>
+              <span className="font-semibold">✓ Confirmed{k.lastMs !== undefined && <span className="tabular-nums"> in {k.lastMs} ms</span>}</span>
               <TxLink hash={k.lastTx} />
             </>
           )}
@@ -117,6 +118,8 @@ export default function Lomba() {
                 {ids.map((id, i) => {
                   const c = contests?.[i]?.result;
                   if (!c) return <li key={String(id)} className="h-28 animate-pulse rounded-3xl border border-line bg-paper" />;
+                  // curation: hide QA/test contests from the public list, except the connected wallet's own
+                  if (isTestEntity(c.name) && c.host.toLowerCase() !== k.address?.toLowerCase()) return null;
                   const closed = Number(c.entryDeadline) * 1000 < Date.now();
                   return (
                     <li key={String(id)}>
@@ -127,16 +130,16 @@ export default function Lomba() {
                         <div className="mb-2 flex flex-wrap items-center gap-2">
                           <StatusChip status={STATUS[c.status]} />
                           <span className="border-[3px] border-ink bg-cream px-2 py-0.5 text-xs font-bold">{c.class_}</span>
-                          <span className="ml-auto text-xs text-muted">#{String(id)}</span>
+                          <span className="ml-auto text-xs tabular-nums text-muted">#{String(id)}</span>
                         </div>
                         <div className="mb-2 break-words font-display text-sm">{c.name}</div>
                         <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted">
                           <span>
-                            Pool <b className="text-ink">{formatEther(c.status >= 2 ? c.entryFee * c.entryCount : c.pool)} MON</b>
+                            Pool <b className="tabular-nums text-ink">{formatEther(c.status >= 2 ? c.entryFee * c.entryCount : c.pool)} MON</b>
                           </span>
-                          <span>{String(c.entryCount)} entries</span>
+                          <span className="tabular-nums">{String(c.entryCount)} entries</span>
                           <span>Host {short(c.host)}</span>
-                          <span>
+                          <span className="tabular-nums">
                             {c.status === 0 ? (closed ? "Entries closed" : "Closes ") : "Closed "}
                             {(c.status !== 0 || !closed) &&
                               new Date(Number(c.entryDeadline) * 1000).toLocaleString([], { dateStyle: "short", timeStyle: "short" })}
@@ -164,7 +167,7 @@ function OwedBanner({ k }: { k: Kicau }) {
   return (
     <div className="mb-4 flex flex-wrap items-center gap-2 border-[3px] border-ink bg-sun/30 px-3 py-2 text-sm" role="status">
       <span>
-        <b>{formatEther(owed)} MON</b> in prizes/refunds is waiting for you (the automatic transfer to your address failed).
+        <b className="tabular-nums">{formatEther(owed)} MON</b> in prizes/refunds is waiting for you (the automatic transfer to your address failed).
       </span>
       <button className="btn-primary ml-auto !py-1" disabled={k.txBusy || !k.ready} onClick={() => k.send({ functionName: "withdrawOwed", args: [] })}>
         Claim

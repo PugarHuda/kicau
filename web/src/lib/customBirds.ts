@@ -38,6 +38,7 @@ export async function fetchCustomBird(client: PublicClient, address: `0x${string
     name,
     owner,
     profile,
+    colors: decoded.colors,
     image: birdDataUri(0, false, decoded.colors),
     imageUp: birdDataUri(0, true, decoded.colors),
   };
@@ -62,7 +63,8 @@ export async function fetchRegisteredBirds(client: PublicClient, address: `0x${s
 export function hasProfile(b: CustomBird, attestations = 0) {
   const p = b.profile;
   const str = (v: unknown) => typeof v === "string" && v.trim().length > 0;
-  return attestations > 0 || str(p.story) || (Array.isArray(p.titles) && p.titles.length > 0) || str(p.species) || str(p.latin) || str(p.certificate) || str(p.lineage);
+  const arr = (v: unknown) => Array.isArray(v) && v.length > 0;
+  return attestations > 0 || str(p.story) || arr(p.titles) || arr(p.certificates) || arr(p.wins) || str(p.species) || str(p.latin) || str(p.certificate) || !!p.lineage;
 }
 
 /** Display curation for the home page: no empty profiles, no same-owner duplicate names (newest kept), sorted by Kicau Value. */
@@ -82,7 +84,7 @@ export async function fetchCommunityBirds(client: PublicClient, address: `0x${st
       const att = (res[i * 2 + 1].result as readonly { revoked: boolean }[] | undefined)?.filter((a) => !a.revoked).length ?? 0;
       return { bird: b, value, att };
     })
-    .filter(({ bird, att }) => hasProfile(bird, att))
+    .filter(({ bird, att }) => hasProfile(bird, att) && !isTestEntity(bird.name))
     .filter(({ bird }) => {
       const k = `${bird.owner.toLowerCase()}:${bird.name.trim().toLowerCase()}`;
       if (seen.has(k)) return false; // newest of each owner+name already kept
@@ -92,3 +94,6 @@ export async function fetchCommunityBirds(client: PublicClient, address: `0x${st
     .sort((a, b) => (b.value > a.value ? 1 : b.value < a.value ? -1 : 0))
     .map(({ bird }) => bird);
 }
+
+/** Display curation: QA/test contests and demo/QA birds stay on-chain but are hidden from public lists (owners still see their own). */
+export const isTestEntity = (name: string | undefined) => /^\s*(qa\b|proof cup|test|demo bird)/i.test(name ?? "");

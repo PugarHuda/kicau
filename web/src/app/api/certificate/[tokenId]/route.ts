@@ -6,6 +6,7 @@ import { createPublicClient } from "viem";
 import { monadTestnet } from "viem/chains";
 import { kicauAbi } from "@/lib/abi";
 import { fetchCustomBird, type CustomBird } from "@/lib/customBirds";
+import { lineageText } from "@/lib/pixelate";
 import { rpcTransport } from "@/lib/rpc";
 import { qrSvgPath } from "@/app/pitch/qr";
 import { CERTIFICATE_PRICE_USD, MONAD_TESTNET_USDC, X402_FACILITATOR, X402_NETWORK } from "@/lib/x402";
@@ -110,7 +111,9 @@ function certificateSvg(bird: CustomBird, block: bigint, tx: string, payer: stri
   const rows: [string, string[]][] = [
     ["Keeper", [`${p.owner ? p.owner + " · " : ""}${bird.owner}`]],
     ...(p.titles?.length ? ([["Titles", p.titles.slice(0, 4).flatMap((t) => wrap(`• ${t}`, 62, 1))]] as [string, string[]][]) : []),
-    ...(p.lineage ? ([["Lineage", wrap(p.lineage, 62, 2)]] as [string, string[]][]) : []),
+    ...(lineageText(p.lineage) ? ([["Lineage (self-declared)", wrap(lineageText(p.lineage), 62, 2)]] as [string, string[]][]) : []),
+    ...(Array.isArray(p.wins) && p.wins.length ? ([["Wins (self-declared)", p.wins.slice(0, 3).flatMap((w) => wrap(`• ${[w.rank && `#${w.rank}`, w.event, w.organizer].filter(Boolean).join(" ")}`, 62, 1))]] as [string, string[]][]) : []),
+    ...(Array.isArray(p.certificates) && p.certificates.length ? ([["Certificates (self-declared)", p.certificates.slice(0, 3).flatMap((c) => wrap(`• ${[c.issuer, c.number].filter(Boolean).join(" ")}`, 62, 1))]] as [string, string[]][]) : []),
     ...(p.certificate ? ([["Certificate", wrap(p.certificate, 62, 2)]] as [string, string[]][]) : []),
   ];
   let y = 330;

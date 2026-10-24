@@ -3,6 +3,7 @@ import { monadTestnet } from "viem/chains";
 import { kicauAbi } from "@/lib/abi";
 import { BIRDS, birdDataUri } from "@/lib/birds";
 import { fetchCustomBird } from "@/lib/customBirds";
+import { CERT_LABELS, lineageText } from "@/lib/pixelate";
 import { rpcTransport } from "@/lib/rpc";
 
 const KICAU_ADDRESS = (process.env.NEXT_PUBLIC_KICAU_ADDRESS ?? "") as `0x${string}`;
@@ -31,7 +32,13 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
           { trait_type: "Type", value: "Registered" },
           ...(bird.profile.owner ? [{ trait_type: "Owner", value: bird.profile.owner }] : []),
           ...(bird.profile.certificate ? [{ trait_type: "Certificate", value: bird.profile.certificate }] : []),
-          ...(bird.profile.lineage ? [{ trait_type: "Lineage", value: bird.profile.lineage }] : []),
+          ...(lineageText(bird.profile.lineage) ? [{ trait_type: "Lineage (self-declared)", value: lineageText(bird.profile.lineage) }] : []),
+          ...(bird.profile.species ? [{ trait_type: "Species", value: bird.profile.species }] : []),
+          ...(Array.isArray(bird.profile.certificates) ? bird.profile.certificates : []).map((c) => ({
+            trait_type: `${CERT_LABELS[c.type] ?? "Certificate"} (self-declared)`,
+            value: [c.issuer, c.number].filter(Boolean).join(" "),
+          })),
+          ...(Array.isArray(bird.profile.wins) ? bird.profile.wins : []).map((w) => ({ trait_type: "Win (self-declared)", value: [w.rank && `#${w.rank}`, w.event].filter(Boolean).join(" ") })),
           ...(bird.profile.titles ?? []).map((t) => ({ trait_type: "Title (self-declared)", value: t })),
           ...verified.filter((a) => !a.revoked).map((a) => ({ trait_type: "Verified title", value: a.title })),
         ],
