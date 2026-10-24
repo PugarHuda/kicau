@@ -31,7 +31,7 @@ export function ContestDetail({ id, k }: { id: number; k: Kicau }) {
   const meRef = useRef(me);
   meRef.current = me;
   useEffect(() => {
-    let refresh: ReturnType<typeof setTimeout> | undefined;
+    let refresh: ReturnType<typeof setTimeout>[] = [];
     const stop = watchContest(
       KICAU_ADDRESS,
       cid,
@@ -45,14 +45,16 @@ export function ContestDetail({ id, k }: { id: number; k: Kicau }) {
         const mine = sentAt.current !== null && String(e.args.judge ?? "").toLowerCase() === meRef.current;
         setFresh({ ms: mine ? Math.round(e.at - sentAt.current!) : undefined, state: e.commitState, label });
         if (mine) sentAt.current = null;
-        // ponytail: one delayed full refresh; the Proposed log can arrive before `latest` state reflects it
-        clearTimeout(refresh);
-        refresh = setTimeout(() => qc.invalidateQueries(), 2500);
+        // ponytail: delayed full refreshes; the Proposed log can arrive before `latest` state reflects it.
+        // Status changes (entry, judging, podium) also get an early ~1 s one so the crowd sees them fast; Scored is
+        // already shown via the overlay, so it skips it (fewer RPC bursts).
+        refresh.forEach(clearTimeout);
+        refresh = (e.eventName === "Scored" ? [2500] : [1000, 2500]).map((ms) => setTimeout(() => qc.invalidateQueries(), ms));
       },
       setMode,
     );
     return () => {
-      clearTimeout(refresh);
+      refresh.forEach(clearTimeout);
       stop();
     };
   }, [cid, qc]);
@@ -167,6 +169,7 @@ export function ContestDetail({ id, k }: { id: number; k: Kicau }) {
           <StatusChip status={status!} />
           <span className="border-[3px] border-ink bg-cream px-2 py-0.5 text-xs font-bold">{c.class_}</span>
           <span className="text-xs text-muted">Contest #{id}</span>
+          <ShareLinks id={id} name={c.name} />
         </div>
         <h1 className="mb-3 break-words font-display text-3xl">{c.name}</h1>
         <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm sm:grid-cols-4">
@@ -201,7 +204,9 @@ export function ContestDetail({ id, k }: { id: number; k: Kicau }) {
           <div className="grid gap-3 sm:grid-cols-3">
             {top.map((r, place) => {
               const title = `Juara ${place + 1} · ${c.name}`;
-              const att = (topAttest?.[place]?.result ?? []).find((a) => !a.revoked && a.title === title && a.organizer.toLowerCase() === c.host.toLowerCase());
+              const list = topAttest?.[place]?.result ?? [];
+              const attIdx = list.findIndex((a) => !a.revoked && a.title === title && a.organizer.toLowerCase() === c.host.toLowerCase());
+              const att = attIdx >= 0;
               return (
                 <div key={String(r.tokenId)} className="rounded-2xl border border-line bg-paper p-3 text-center">
                   <div className="text-3xl">{MEDAL[place]}</div>
@@ -215,6 +220,15 @@ export function ContestDetail({ id, k }: { id: number; k: Kicau }) {
                     </a>
                   )}
                   {att && <div className="mt-1 text-xs font-semibold text-leaf">✓ “{title}” attested by {org?.[0] ?? short(c.host)}</div>}
+                  {att && isHost && (
+                    <button
+                      className="mt-1 text-xs text-clay underline"
+                      disabled={busy}
+                      onClick={() => confirm(`Revoke the on-chain title “${title}”?`) && k.send({ functionName: "revokeAttestation", args: [r.tokenId, BigInt(attIdx)] })}
+                    >
+                      Revoke title
+                    </button>
+                  )}
                 </div>
               );
             })}
@@ -256,7 +270,7 @@ export function ContestDetail({ id, k }: { id: number; k: Kicau }) {
                       <span className="block truncate text-xs text-muted">
                         {r.bird?.profile.owner ? `${r.bird.profile.owner} · ` : ""}
                         {r.keeper ? short(r.keeper) : "…"}
-                        {r.keeper?.toLowerCase() === me && " (you)"}
+                        {!!me && r.keeper?.toLowerCase() === me && " (you)"}
                       </span>
                       <KicauValue tokenId={r.tokenId} className="text-muted" />
                       <span className="mt-1 block h-2 bg-line">
@@ -425,4 +439,23 @@ function BirdImg({ bird, className }: { bird?: CustomBird | null; className: str
   if (!bird) return <span className={`${className} block bg-cream`} />;
   // eslint-disable-next-line @next/next/no-img-element
   return <img src={bird.image} alt={bird.name} className={`${className} object-contain [image-rendering:pixelated]`} />;
+}
+
+/** Links to the server-rendered result page (/lomba/<id>), which carries a live OG image for X / WhatsApp previews. */
+function ShareLinks({ id, name }: { id: number; name: string }) {
+  const url = `${typeof location === "undefined" ? "https://kicau-theta.vercel.app" : location.origin}/lomba/${id}`;
+  const text = `${name}: every judge score on-chain on Monad`;
+  return (
+    <span className="ml-auto flex gap-2 text-xs">
+      <a className="underline" href={`https://x.com/intent/post?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`} target="_blank" rel="noreferrer">
+        Share on X
+      </a>
+      <a className="underline" href={`https://wa.me/?text=${encodeURIComponent(`${text} ${url}`)}`} target="_blank" rel="noreferrer">
+        WhatsApp
+      </a>
+      <a className="underline" href={url}>
+        Result page
+      </a>
+    </span>
+  );
 }

@@ -1,5 +1,6 @@
 import { createPublicClient } from "viem";
 import { monadTestnet } from "viem/chains";
+import { kicauAbi } from "@/lib/abi";
 import { BIRDS, birdDataUri } from "@/lib/birds";
 import { fetchCustomBird } from "@/lib/customBirds";
 import { rpcTransport } from "@/lib/rpc";
@@ -16,6 +17,9 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     const tokenId = /^c\d+$/.test(raw) ? BigInt(raw.slice(1)) : null;
     const bird = tokenId !== null && KICAU_ADDRESS ? await fetchCustomBird(client, KICAU_ADDRESS, tokenId).catch(() => null) : null;
     if (!bird) return Response.json({ error: "unknown bird" }, { status: 404 });
+    const verified = await client
+      .readContract({ address: KICAU_ADDRESS, abi: kicauAbi, functionName: "attestationsOf", args: [tokenId!] })
+      .catch(() => []);
     return Response.json(
       {
         name: `Kicau · ${bird.name}`,
@@ -28,10 +32,12 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
           ...(bird.profile.owner ? [{ trait_type: "Owner", value: bird.profile.owner }] : []),
           ...(bird.profile.certificate ? [{ trait_type: "Certificate", value: bird.profile.certificate }] : []),
           ...(bird.profile.lineage ? [{ trait_type: "Lineage", value: bird.profile.lineage }] : []),
-          ...(bird.profile.titles ?? []).map((t) => ({ trait_type: "Title", value: t })),
+          ...(bird.profile.titles ?? []).map((t) => ({ trait_type: "Title (self-declared)", value: t })),
+          ...verified.filter((a) => !a.revoked).map((a) => ({ trait_type: "Verified title", value: a.title })),
         ],
       },
-      { headers: { "Cache-Control": "public, max-age=31536000, s-maxage=31536000, immutable" } },
+      // Not immutable: updateBird publishes new versions and organizers attest/revoke titles.
+      { headers: { "Cache-Control": "public, max-age=60, s-maxage=60, stale-while-revalidate=600" } },
     );
   }
 

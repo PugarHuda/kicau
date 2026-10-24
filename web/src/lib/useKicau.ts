@@ -16,7 +16,7 @@ export type KicauWrite =
   | { functionName: "buy"; args: readonly [bigint]; value: bigint }
   | { functionName: "submitScore"; args: readonly [bigint, bigint, number] }
   | { functionName: "registerBird"; args: readonly [string, `0x${string}`]; value: bigint }
-  | { functionName: "support"; args: readonly [bigint]; value: bigint }
+  | { functionName: "support" | "supportBird"; args: readonly [bigint]; value: bigint }
   | { functionName: "startRun"; args: readonly [bigint] }
   | { functionName: "submitRun"; args: readonly [bigint, bigint] }
   | { functionName: "attest"; args: readonly [bigint, string] }
@@ -24,6 +24,9 @@ export type KicauWrite =
   | { functionName: "enter"; args: readonly [bigint, bigint]; value: bigint }
   | { functionName: "startJudging" | "finalize" | "cancelContest"; args: readonly [bigint] }
   | { functionName: "updateBird"; args: readonly [bigint, `0x${string}`] }
+  | { functionName: "withdrawOwed"; args: readonly [] }
+  | { functionName: "revokeAttestation"; args: readonly [bigint, bigint] }
+  | { functionName: "withdrawOwed"; args: readonly [] }
   | { functionName: "score"; args: readonly [bigint, bigint, number, number, number, number] };
 
 /** Human messages for the contract's custom errors. */
@@ -46,6 +49,7 @@ const FRIENDLY: Record<string, string> = {
   InvalidContest: "Invalid contest settings (name 1–64, class 1–32, 1–5 unique judges, future deadline).",
   InvalidScore: "Each aspect must be 0–10.",
   BelowMinSupport: "Minimum support is 10% of this bird's Kicau Value.",
+  InvalidAttestation: "This attestation is already revoked or isn't yours.",
 };
 
 function errorText(e: unknown) {

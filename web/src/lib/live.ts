@@ -12,7 +12,12 @@ import { kicauAbi } from "./abi";
 import { BIRDS } from "./birds";
 
 export const WS_URL = "wss://testnet-rpc.monad.xyz";
-const EVENTS = ["BirdBought", "Supported", "ScoreSubmitted", "BirdRegistered", "Attested", "BirdSupported"] as const;
+// RunSubmitted is left out on purpose: submitRun also emits ScoreSubmitted (gameVersion 3), shown as "verified score".
+const EVENTS = [
+  "BirdBought", "Supported", "ScoreSubmitted", "BirdRegistered", "Attested", "BirdSupported",
+  "BirdUpdated", "AttestationRevoked", "ContestCreated", "ContestEntered", "JudgingStarted", "Scored",
+  "ContestFinalized", "ContestCancelled", "PayoutOwed",
+] as const;
 type Kind = (typeof EVENTS)[number];
 const TOPICS = kicauAbi
   .filter((x) => x.type === "event" && (EVENTS as readonly string[]).includes(x.name))
@@ -46,6 +51,7 @@ type RawLog = {
   commitState?: Status;
 };
 
+const ZERO = "0x0000000000000000000000000000000000000000" as Hex; // events without an actor arg
 const RANK: Record<Status, number> = { Abandoned: -1, Proposed: 0, Voted: 1, Finalized: 2, Verified: 3 };
 const speciesName = (id: bigint) => (id === 999n ? "custom bird" : (BIRDS[Number(id)]?.name ?? `species #${id}`));
 
@@ -75,6 +81,24 @@ export function describe(topics: Hex[], data: Hex): { kind: Kind; label: string;
         return { kind: ev.eventName, actor: ev.args.supporter, label: `supported #${ev.args.tokenId} ${formatEther(ev.args.amount)} MON` };
       case "Attested":
         return { kind: ev.eventName, actor: ev.args.organizer, label: `verified title '${ev.args.title}' for #${ev.args.tokenId}` };
+      case "AttestationRevoked":
+        return { kind: ev.eventName, actor: ev.args.organizer, label: `revoked title #${ev.args.index} of bird #${ev.args.tokenId}` };
+      case "BirdUpdated":
+        return { kind: ev.eventName, actor: ev.args.owner, label: `updated bird #${ev.args.tokenId} (v${ev.args.version})` };
+      case "ContestCreated":
+        return { kind: ev.eventName, actor: ev.args.host, label: `hosted contest #${ev.args.contestId} '${ev.args.name}'` };
+      case "ContestEntered":
+        return { kind: ev.eventName, actor: ev.args.entrant, label: `entered #${ev.args.tokenId} in contest #${ev.args.contestId}` };
+      case "JudgingStarted":
+        return { kind: ev.eventName, actor: ZERO, label: `judging started · contest #${ev.args.contestId}` };
+      case "Scored":
+        return { kind: ev.eventName, actor: ev.args.judge, label: `judge scored #${ev.args.tokenId} → ${ev.args.total} · contest #${ev.args.contestId}` };
+      case "ContestFinalized":
+        return { kind: ev.eventName, actor: ZERO, label: `contest #${ev.args.contestId} final · 🥇 #${ev.args.first} · pool ${formatEther(ev.args.pool)} MON` };
+      case "ContestCancelled":
+        return { kind: ev.eventName, actor: ZERO, label: `contest #${ev.args.contestId} cancelled · refunded` };
+      case "PayoutOwed":
+        return { kind: ev.eventName, actor: ev.args.to, label: `payout ${formatEther(ev.args.amount)} MON held to claim` };
     }
   } catch {}
   return null;

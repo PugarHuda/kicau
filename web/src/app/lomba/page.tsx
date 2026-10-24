@@ -10,7 +10,7 @@ import { MyBirds } from "@/components/lomba/MyBirds";
 import { TxLink, short } from "@/components/ui";
 import { KICAU_ADDRESS } from "@/lib/config";
 import { STATUS } from "@/lib/contestLive";
-import { kicau, useKicau } from "@/lib/useKicau";
+import { type Kicau, kicau, useKicau } from "@/lib/useKicau";
 
 const enabled = Boolean(KICAU_ADDRESS);
 
@@ -88,6 +88,7 @@ export default function Lomba() {
           )}
         </div>
       )}
+      <OwedBanner k={k} />
       {k.wrongChain && !k.burner && (
         <button className="btn-ghost mb-4" onClick={k.switchToMonad}>
           Switch to Monad testnet
@@ -153,5 +154,21 @@ export default function Lomba() {
         </div>
       )}
     </main>
+  );
+}
+
+/** Prizes/refunds whose direct push failed sit in `owed`; this is the claim path (withdrawOwed). */
+function OwedBanner({ k }: { k: Kicau }) {
+  const { data: owed } = useReadContract({ ...kicau, functionName: "owed", args: k.address ? [k.address] : undefined, query: { enabled: !!k.address, refetchInterval: 15_000 } });
+  if (!owed) return null;
+  return (
+    <div className="mb-4 flex flex-wrap items-center gap-2 border-[3px] border-ink bg-sun/30 px-3 py-2 text-sm" role="status">
+      <span>
+        <b>{formatEther(owed)} MON</b> in prizes/refunds is waiting for you (the automatic transfer to your address failed).
+      </span>
+      <button className="btn-primary ml-auto !py-1" disabled={k.txBusy || !k.ready} onClick={() => k.send({ functionName: "withdrawOwed", args: [] })}>
+        Claim
+      </button>
+    </div>
   );
 }

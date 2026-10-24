@@ -5,6 +5,8 @@ import { useEffect, useState } from "react";
 import { bytesToHex } from "viem";
 import { usePublicClient, useReadContract, useReadContracts } from "wagmi";
 import { KicauValue } from "@/components/lomba/KicauValue";
+import { BirdProfileCard } from "@/components/RegisteredBirds";
+import { Modal } from "@/components/ui";
 import { birdDataUri } from "@/lib/birds";
 import { KICAU_ADDRESS } from "@/lib/config";
 import { CUSTOM_SPECIES, fetchCustomBird } from "@/lib/customBirds";
@@ -36,6 +38,13 @@ export function MyBirds({ k }: { k: Kicau }) {
   const [owner, setOwner] = useState("");
   const [story, setStory] = useState("");
   const [titles, setTitles] = useState("");
+  const [proof, setProof] = useState<string | null>(null);
+  const proofBird = birds?.find((b) => String(b.tokenId) === proof);
+
+  // /lomba#my-birds deep link (from the owner dashboard): the list renders after the chain read, so scroll then
+  useEffect(() => {
+    if (birds?.length && location.hash === "#my-birds") document.getElementById("my-birds")?.scrollIntoView();
+  }, [birds?.length]);
 
   // start the form from the bird's current on-chain profile so an update never wipes its pedigree
   useEffect(() => {
@@ -72,7 +81,7 @@ export function MyBirds({ k }: { k: Kicau }) {
   }
 
   return (
-    <section className="rounded-3xl border border-line bg-paper p-4 sm:p-6">
+    <section id="my-birds" className="rounded-3xl border border-line bg-paper p-4 sm:p-6">
       <h2 className="mb-1 font-display text-2xl">My birds</h2>
       <p className="mb-3 text-sm text-muted">Kicau Value rises with wins, titles and support, and slowly drops if you don&apos;t update your bird for over 7 days.</p>
       <ul className="space-y-2">
@@ -88,6 +97,9 @@ export function MyBirds({ k }: { k: Kicau }) {
             </div>
             <button className="btn-ghost !py-2 max-sm:w-full" onClick={() => setSel(sel === String(b.tokenId) ? null : String(b.tokenId))}>
               {sel === String(b.tokenId) ? "Close" : "Update my bird"}
+            </button>
+            <button className="btn-ghost !py-2 max-sm:w-full" onClick={() => setProof(String(b.tokenId))}>
+              Proof &amp; dashboard
             </button>
           </li>
         ))}
@@ -123,6 +135,16 @@ export function MyBirds({ k }: { k: Kicau }) {
             {k.txBusy ? "Sending…" : "Publish new version on-chain"}
           </button>
         </div>
+      )}
+      {proofBird && (
+        <Modal onClose={() => setProof(null)}>
+          <BirdProfileCard
+            bird={proofBird}
+            me={k.address}
+            busy={k.txBusy}
+            onSupport={k.ready ? (tokenId, amount) => k.send({ functionName: "supportBird", args: [tokenId], value: amount }) : undefined}
+          />
+        </Modal>
       )}
     </section>
   );

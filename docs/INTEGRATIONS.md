@@ -16,6 +16,7 @@ What we checked on 24 Oct 2026, the status of each, and proof for what shipped. 
 | e1 | ERC-8004 agent identity | ⏭ Not now | The registries exist on Monad (same addresses on mainnet and testnet, see the monskills `addresses` skill), but Kicau has no autonomous agent to register. Value: low |
 | e2 | EIP-7702 "adopt + support in one tx" | ⏭ Not now | Supported on Monad, but it needs a delegate/batcher contract plus wallet support for type-4 txs. The burner flow already makes each action 1 call (~0.8 s). Medium effort, low marginal value before the freeze |
 | e3 | Para embedded wallet | ⏭ Not now | Needs a Para developer account and API key (signup). The Quick Play burner already gives popup-free onboarding |
+| f | **Public read API + shareable result pages** | ✅ **Implemented** | `GET /api/contest/<id>`, `GET /api/bird/<id>` (CORS `*`, read live from the contract over the Monad testnet RPC fallback set) and `/lomba/<id>` with a per-contest `opengraph-image.tsx` rendered from `getContest` + `entriesOf` + `BirdRegistered` logs. The x402 certificate embeds a QR to `/api/bird/<id>` |
 
 ## (a) x402 paid certificate: how it works
 

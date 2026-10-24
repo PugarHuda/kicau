@@ -6,7 +6,7 @@ Built at **Monad Blitz Jogja 2026**. Brief and mechanics: [docs/BRIEF.md](docs/B
 
 | | |
 |---|---|
-| **Live app** | **https://kicau-theta.vercel.app** · custom domain **https://kicau.xyz** · also https://kicau-monad.vercel.app |
+| **Live app** | **https://kicau-theta.vercel.app** · also https://kicau-monad.vercel.app |
 | Pages | [Home](https://kicau-theta.vercel.app) · [Contests](https://kicau-theta.vercel.app/lomba) · [Kicau Garden](https://kicau-theta.vercel.app/taman) · [Pitch deck](https://kicau-theta.vercel.app/pitch) |
 | **Testnet** (chain 10143, used by the app) | [`0xD15bF5b95dC29083eBA236057e2DC9dE90092725`](https://testnet.monadvision.com/address/0xD15bF5b95dC29083eBA236057e2DC9dE90092725) — verified on MonadVision + Monadscan · deploy tx [`0xc1abd22c…0b96b9b`](https://testnet.monadvision.com/tx/0xc1abd22cc0977c01a9809b9647cd4806a7642ab5531327435f9b62a6f0b96b9b) |
 | **Mainnet** (chain 143) | [`0xdada618e564edaf7ec0af0a12575bf3c0dc8523b`](https://monadvision.com/address/0xdada618e564edaf7ec0af0a12575bf3c0dc8523b) — verified on MonadVision + Monadscan · deploy tx [`0x2a2118c7…cb8c76`](https://monadvision.com/tx/0x2a2118c7b699d747c9263a94b2c3e86671b6e62d2af284750ccd6196d6cb8c76) |
@@ -18,15 +18,16 @@ Built at **Monad Blitz Jogja 2026**. Brief and mechanics: [docs/BRIEF.md](docs/B
 
 ## What Kicau does
 
-1. **🏆 On-chain contests (`/lomba`).** Anyone can host a contest (class, entry fee, 1–5 judges, deadline). Owners enter their registered birds; the fee goes into the prize pool. Judges score each bird on four aspects — melody, volume, duration, style (0–10) — **one tx per score**, and a **live scoreboard updates in ~0.6 s** via Monad's `monadLogs` subscription. `finalize` ranks on-chain and pays 🥇50% · 🥈25% · 🥉15% to the winners' keepers and 10% to conservation in the same tx; if the host is a verified organizer, "Juara 1/2/3" titles are **attested on-chain** to the winning birds. Cancel refunds everyone; failed payouts never block (claim via `withdrawOwed`).
-2. **🪪 Register your real bird (tokenized provenance).** Upload a photo → **AI species identification** (Claude Haiku, escalating to Sonnet when unsure; flags species protected in Indonesia) → colours extracted and redrawn in Kicau's pixel style → `registerBird` mints an ERC-721 record with owner, titles, certificate/ring number, lineage and story. The sprite palette + profile live in the event log (~20 bytes palette + JSON), not storage.
+1. **🏆 On-chain contests (`/lomba`).** Anyone can host a contest (class, entry fee, 1–5 judges, deadline). Owners enter their registered birds; the fee goes into the prize pool. Judges score each bird on four aspects — melody, volume, duration, style (0–10) — **one tx per score**, and a **live scoreboard updates in ~0.6 s** via Monad's `monadLogs` subscription. `finalize` ranks on-chain and pays 🥇50% · 🥈25% · 🥉15% to the winners' keepers and 10% to conservation in the same tx; if the host is a verified organizer, "Juara 1/2/3" titles are **attested on-chain** to the winning birds. Cancel refunds everyone; failed payouts never block (a "Claim" banner on `/lomba` calls `withdrawOwed`). The host can revoke an attested title from the results podium (`revokeAttestation`). Every contest has a **shareable result page** `/lomba/<id>` with a live OG image (X / WhatsApp preview) rendered from chain data.
+2. **🪪 Register your real bird (tokenized provenance).** Upload a photo → **AI species identification** (Claude Haiku, escalating to Sonnet when unsure; flags species protected in Indonesia) → colours extracted and redrawn in Kicau's pixel style → `registerBird` mints an ERC-721 record with owner, titles, certificate/ring number, lineage and story. The sprite palette + profile live in the event log (21-byte palette + JSON), not storage.
 3. **🏅 Verified titles.** Registered contest organizers `attest` championship titles; the UI separates "verified by <organizer>" from self-declared claims.
 4. **💚 Sponsor a bird + dynamic Kicau Value.** `supportBird(tokenId)` sends 70% to the bird's current keeper (NFT holder) and 30% to conservation, same tx. Each registered bird has an on-chain **Kicau Value** (`valueOf`/`valueBreakdown`): points rise with contest podiums, organizer-attested titles, supporters and verified runs, and **decay if the owner stops updating the bird** (`updateBird` publishes a new photo/profile version). Minimum sponsorship = 10% of the value.
 5. **🐦 Adopt species NFTs.** Five Indonesian songbirds (Kenari → Jalak Bali) with real singing videos, IUCN status and game stats. `buy()` splits 30% to conservation in the same tx; `support()` sends 100%.
 6. **🎮 Verified Flappy runs.** `startRun` derives a seed from `prevrandao` → pipes are generated deterministically from it → `submitRun` is rejected on-chain if the score is physically impossible for the elapsed time (anti-cheat v1). Leaderboard v2 marks verified runs.
 7. **🌳 Kicau Garden (`/taman`).** A top-down pixel open world (Kenney CC0 tiles): walk your bird NFT, meet shelter birds, community birds and other players' NFTs; adopt/support straight from the card.
 8. **💳 x402 pedigree certificate.** `/api/certificate/<id>` returns HTTP 402; paying $0.01 USDC (settled by Monad's x402 facilitator, gasless for the payer) returns a printable certificate.
-9. **📈 Chainlink MON/USD**, **🎵 8-bit gamelan chiptune** (WebAudio, no assets), English pixel-art UI, mobile-friendly.
+9. **🔌 Public read-only API.** `GET /api/contest/<id>` (contest + ranked scoreboard + prizes) and `GET /api/bird/<id>` (current keeper, contest wins, organizer-attested titles, Kicau Value, self-declared profile kept separate) — CORS open, read live from the contract, for organizers and other apps. The x402 certificate carries a QR code to the bird's live record.
+10. **📈 Chainlink MON/USD**, **🎵 8-bit gamelan chiptune** (WebAudio, no assets), English pixel-art UI, mobile-friendly.
 
 ## Why Monad
 
@@ -41,7 +42,7 @@ Built at **Monad Blitz Jogja 2026**. Brief and mechanics: [docs/BRIEF.md](docs/B
 ```
 contracts/  Foundry — src/Kicau.sol (ERC-721 Enumerable + species, register, attest, runs, contests, support), test/Kicau.t.sol, script/Deploy.s.sol
 web/        Next.js 15 · wagmi v3 · viem · Tailwind v4
-  src/app/            /  /lomba  /taman  /pitch  · api/faucet · api/identify · api/certificate/[tokenId] · metadata/[id]
+  src/app/            /  /lomba  /lomba/[id] (share page + OG image)  /taman  /pitch  · api/faucet · api/identify · api/certificate/[tokenId] · api/contest/[id] · api/bird/[id] · metadata/[id]
   src/components/     game (Flappy), lomba (contests), taman (open world), RegisterBird, RegisteredBirds, LiveFeed …
   src/lib/            useKicau (burner/wallet/send), live + contestLive (monadLogs), pixelate (palette encoding), music, chirp …
 docs/       BRIEF.md · JUDGING.md · INTEGRATIONS.md

@@ -12,6 +12,15 @@ const ICON: Record<LiveItem["kind"], string> = {
   BirdRegistered: "📝",
   Attested: "🏅",
   BirdSupported: "💚",
+  BirdUpdated: "🖼️",
+  AttestationRevoked: "🚫",
+  ContestCreated: "🎪",
+  ContestEntered: "🐦",
+  JudgingStarted: "⚖️",
+  Scored: "📋",
+  ContestFinalized: "🥇",
+  ContestCancelled: "↩️",
+  PayoutOwed: "⏳",
 };
 
 const BADGE: Record<Status, string> = {
@@ -56,7 +65,7 @@ export function LiveFeed() {
       </div>
 
       {items.length === 0 ? (
-        <p className="text-sm text-muted">Waiting for on-chain chirps… adopt, support, or play a game to show up here.</p>
+        <p className="text-sm text-muted">Waiting for on-chain chirps… adopt, support, play, register or run a contest to show up here.</p>
       ) : (
         <ul className="grid gap-2">
           {items.map((it) => (
@@ -70,7 +79,7 @@ export function LiveFeed() {
               <div className="min-w-0">
                 <div className="truncate font-semibold">{it.label}</div>
                 <div className="flex flex-wrap gap-x-2 text-xs text-muted">
-                  <span className="font-mono">{short(it.actor)}</span>
+                  {!/^0x0+$/.test(it.actor) && <span className="font-mono">{short(it.actor)}</span>}
                   <span>#{it.blockNumber.toString()}</span>
                   <a href={`${EXPLORER}/tx/${it.txHash}`} target="_blank" rel="noreferrer" className="text-leaf underline">
                     tx ↗

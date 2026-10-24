@@ -13,10 +13,10 @@ export const metadata: Metadata = {
 // Re-read chain numbers at most once a minute.
 export const revalidate = 60;
 
-const ADDRESS = (process.env.NEXT_PUBLIC_KICAU_ADDRESS ||
-  "0x7b0A5E9D4A8b1bf2829478e72f62283C6939C816") as `0x${string}`;
+const ADDRESS = (process.env.NEXT_PUBLIC_KICAU_ADDRESS ?? "") as `0x${string}`; // same env as the app (no hardcoded fallback: redeploys)
 
 async function readStats(): Promise<LiveStats | null> {
+  if (!ADDRESS) return null;
   const client = createPublicClient({ chain: monadTestnet, transport: rpcTransport });
   const base = { address: ADDRESS, abi: kicauAbi } as const;
   const read = Promise.all([

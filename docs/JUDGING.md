@@ -30,7 +30,7 @@ Peta setiap butir rubrik dari hackathon brief ke bukti nyata di project ini. Sta
 | Semua fungsi yang diumumkan jalan | 25 | Tidak ada fitur "coming soon" yang diklaim | QA Playwright 10/10 skenario lolos dengan tx asli: Shelter → card → video, Quick Play + faucet, Adopsi, Support, Flappy + submit skor, Register burung sendiri, metadata NFT, mobile 375 px | ✅ |
 | Live transaction on chain saat demo | 25 | Tx sungguhan terjadi di panggung | Alur demo: ⚡ Quick Play → Adopsi (banner "terkonfirmasi dalam ~800 ms") → item muncul di LIVE KICAU dan berubah Proposed → Finalized → main → **Kirim skor on-chain** | ✅ (siapkan burner terisi) |
 | Kontrak verified di explorer | 25 | Source terpublikasi | Verified "perfect match" di MonadVision + "Pass - Verified" di Monadscan via API devnads | ✅ |
-| Bisa di-run orang lain dari README | 25 | Tanpa bantuan tim | Tanpa backend/DB; hanya `npm install`, `.env.local` 1 baris, `npm run dev`. Kontrak: `forge test` (30 test) + script deploy dengan keystore | ✅ |
+| Bisa di-run orang lain dari README | 25 | Tanpa bantuan tim | Tanpa database/indexer (API route hanya faucet, AI species ID opsional, sertifikat x402, API publik read-only); hanya `npm install`, `.env.local` 1 baris, `npm run dev`. Kontrak: `forge test` (46 test, termasuk fuzz + reentrancy) + script deploy dengan keystore | ✅ |
 
 ## 3. Advance — Did anyone see it / Build in public (100)
 
@@ -50,15 +50,15 @@ Peta setiap butir rubrik dari hackathon brief ke bukti nyata di project ini. Sta
 | Kontrak di Monad Mainnet | 25 | Panitia | `0xdada618e564edaf7ec0af0a12575bf3c0dc8523b` di chain 143, dideploy 24 Okt (tx `0x2a2118c7…cb8c76`), verified MonadVision + Monadscan · [explorer](https://monadvision.com/address/0xdada618e564edaf7ec0af0a12575bf3c0dc8523b) | ✅ |
 | Public page di custom domain | 15 | Panitia | Vercel mendukung custom domain; perlu domain | ❌ belum |
 | Product-market fit | ≤20 | Juri | Kicau mania = hobi nasional di Indonesia dengan lomba gantangan mingguan. Kicau memberi versi digital (koleksi, game, lomba skor) + **daftarkan burung asli** dengan silsilah, prestasi, sertifikat yang tersimpan on-chain — menjawab kebutuhan pamer & bukti prestasi | argumen pitch |
-| Revenue potential & strategy | ≤20 | Juri | 70% hasil adopsi ke treasury, biaya register burung, ke depan: entry fee turnamen, sponsor lomba, verifikasi sertifikat oleh panitia lomba (attestation berbayar) | argumen pitch |
+| Revenue potential & strategy | ≤20 | Juri | 70% hasil adopsi ke treasury, biaya register burung, sertifikat x402 $0.01 USDC per dokumen (live). Entry fee lomba sudah live tapi 90% ke pemenang + 10% konservasi (bukan pendapatan treasury). Ke depan: sponsor lomba, attestation berbayar | argumen pitch |
 | Innovation & originality | ≤20 | Juri | Lihat bagian 5 | argumen pitch |
 
 ## 5. Yang membuat Kicau "Monad-native" (untuk poin inovasi)
 
 1. **LIVE KICAU via `monadLogs`.** Subscription WebSocket khusus Monad di state *Proposed* (spekulatif). Setiap adopsi/support/skor muncul seketika dan berubah Proposed → Voted → Finalized dalam **~540 ms**, sekitar 2× lebih cepat dari `eth_subscribe logs` (~1.050 ms). Item yang bloknya di-reorg ditandai.
 2. **⚡ Quick Play + `eth_sendRawTransactionSync`.** Burner wallet di browser, diisi otomatis dari faucet devnads, tanda tangan lokal, receipt kembali dalam satu panggilan RPC (~0,8 detik round trip). Tanpa popup — UX game terasa seperti Web2.
-3. **Desain storage ramah parallel execution.** Semua state per pemain/per token (`bestByPlayer`, `bestByToken`, `supportOf[species]`), tanpa counter global yang diperebutkan.
-4. **Gambar & silsilah murah di event log.** Burung yang didaftarkan disimpan sebagai palet 18 byte + profil JSON di event `BirdRegistered` (bukan storage). Frontend membaca log dari satu blok saja (`registeredAt`), jadi tidak butuh indexer maupun `getLogs` rentang lebar.
+3. **Desain storage ramah parallel execution.** Jalur panas (skor, support, skor juri) menulis slot per pemain / per token / per (lomba, burung, juri) (`bestByPlayer`, `bestByToken`, `supportOf[species]`, `_scores`). Hanya mint dan ID run yang menaikkan counter (`nextTokenId`, `runNonce`).
+4. **Gambar & silsilah murah di event log.** Burung yang didaftarkan disimpan sebagai palet 21 byte + profil JSON di event `BirdRegistered` (bukan storage). Frontend membaca log dari satu blok saja (`registeredAt`), jadi tidak butuh indexer maupun `getLogs` rentang lebar.
 5. **Konservasi transparan.** Split 30% (adopsi) / 100% (support) terjadi di tx yang sama; kontrak tidak pernah menahan saldo. `totalConservation()` tampil langsung di hero.
 6. **Tooling Monad yang dipakai:** MONSKILLS (scaffold, gas, concepts), faucet API devnads, verification API devnads (multi-explorer), viem `monadTestnet`, wagmi `useWriteContractSync`.
 

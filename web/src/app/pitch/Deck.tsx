@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { birdDataUri } from "@/lib/birds";
+import { KICAU_ADDRESS } from "@/lib/config";
 import { qrSvgPath } from "./qr";
 
 export type LiveStats = { birds: number; conservation: string; players: number };
@@ -9,7 +10,8 @@ export type LiveStats = { birds: number; conservation: string; players: number }
 const LIVE = "https://kicau-theta.vercel.app";
 const LIVE_SHORT = "kicau-theta.vercel.app";
 const REPO = "github.com/PugarHuda/kicau";
-const CONTRACT = "0x7b0A5E9D4A8b1bf2829478e72f62283C6939C816";
+const CONTRACT = KICAU_ADDRESS; // testnet (used by the app); follows NEXT_PUBLIC_KICAU_ADDRESS on redeploy
+const MAINNET = "0xdada618e564edaf7ec0af0a12575bf3c0dc8523b"; // chain 143
 const QR = qrSvgPath(LIVE);
 
 function Bird({ id, wing, size = "pd-bird" }: { id: number; wing: boolean; size?: string }) {
@@ -107,13 +109,13 @@ function slides(wing: boolean, stats: LiveStats | null): { dark?: boolean; body:
       body: (
         <>
           <Kicker>03 · Product tour → live demo</Kicker>
-          <h2 className="font-display pd-h1">From shelter to leaderboard.</h2>
+          <h2 className="font-display pd-h1">From shelter to podium.</h2>
           <div className="pd-grid pd-g3">
             <Card title="1 · Shelter">Kicau Garden: birds waiting for adoption.</Card>
             <Card title="2 · Bird card">Real singing video, IUCN status, game stats.</Card>
             <Card title="3 · Adopt / Support">One tap, confirmed in ~0.8 s, no popup.</Card>
             <Card title="4 · Flappy">Species stats change how your bird flies.</Card>
-            <Card title="5 · Leaderboard">Best scores per player, on-chain.</Card>
+            <Card title="5 · Contests">Host a gantangan, judges score on-chain, live board, auto payout.</Card>
             <Card title="6 · Register">Photo → pixel bird + titles, certificate, lineage.</Card>
           </div>
         </>
@@ -145,14 +147,14 @@ function slides(wing: boolean, stats: LiveStats | null): { dark?: boolean; body:
               </p>
             </div>
             <div className="pd-card pd-ink">
-              <p className="font-display pd-big pd-sun">0 hot slots</p>
+              <p className="font-display pd-big pd-sun">Per-slot</p>
               <p className="pd-p">
-                Parallel-execution-friendly: per-player / per-token storage (<code>bestByPlayer</code>,{" "}
-                <code>supportOf</code>), no shared counters.
+                Parallel-execution-friendly hot paths: scores, supports and judge scores write per-player / per-token /
+                per-(contest, bird, judge) slots. Only mints and run IDs bump a counter.
               </p>
             </div>
             <div className="pd-card pd-ink">
-              <p className="font-display pd-big pd-sun">18 bytes</p>
+              <p className="font-display pd-big pd-sun">21 bytes</p>
               <p className="pd-p">
                 Pedigree = palette + JSON in <b>event logs</b>, read from one block. <b>No indexer.</b>
               </p>
@@ -165,7 +167,7 @@ function slides(wing: boolean, stats: LiveStats | null): { dark?: boolean; body:
       body: (
         <>
           <Kicker>05 · Architecture</Kicker>
-          <h2 className="font-display pd-h1">No backend. No database.</h2>
+          <h2 className="font-display pd-h1">No database. No indexer.</h2>
           <div className="pd-arch">
             <div className="pd-card pd-paper">
               <h3 className="font-display pd-h3">Browser</h3>
@@ -187,15 +189,17 @@ function slides(wing: boolean, stats: LiveStats | null): { dark?: boolean; body:
                 <li>Kicau.sol · ERC-721 Enumerable</li>
                 <li>buy → 30% split</li>
                 <li>support → 100%</li>
-                <li>submitScore · leaderboard</li>
+                <li>startRun / submitRun · verified runs</li>
                 <li>registerBird → event log</li>
+                <li>contests: enter · score · finalize</li>
               </ul>
             </div>
           </div>
           <p className="pd-sm pd-mt">
-            + devnads faucet API · devnads verify API · Vercel auto-deploy
+            + 3 API routes (faucet, AI species ID, x402 certificate) · public JSON API · devnads faucet + verify API
             <br />
-            <span className="pd-mono">{CONTRACT}</span> · verified on MonadVision + Monadscan
+            testnet <span className="pd-mono">{CONTRACT}</span> · mainnet <span className="pd-mono">{MAINNET}</span> · both
+            verified on MonadVision + Monadscan
           </p>
         </>
       ),
@@ -220,8 +224,8 @@ function slides(wing: boolean, stats: LiveStats | null): { dark?: boolean; body:
           )}
           <ul className="pd-p pd-checks">
             {stats && <li>Numbers above read live from Monad testnet when this page rendered</li>}
-            <li>Contract verified on MonadVision + Monadscan</li>
-            <li>30 Foundry tests · QA 10/10 Playwright E2E with real transactions</li>
+            <li>Contract verified on MonadVision + Monadscan, testnet and mainnet</li>
+            <li>46 Foundry tests (incl. fuzz + reentrancy) · Playwright E2E with real testnet transactions</li>
             <li>Build in public on X: @BangDropID</li>
           </ul>
         </>
@@ -236,13 +240,14 @@ function slides(wing: boolean, stats: LiveStats | null): { dark?: boolean; body:
             <div className="pd-stack">
               <Card title="70% of adoptions → treasury">30% to conservation, split by the contract in the same tx.</Card>
               <Card title="Registration fee">Mint your real bird&apos;s on-chain profile.</Card>
-              <Card title="Tournament entry fees">Weekly on-chain contests with prize pools.</Card>
+              <Card title="x402 certificate · live">$0.01 USDC per printable pedigree, settled gasless to the treasury.</Card>
+              <Card title="Contest entry fees · live">On-chain gantangan: 90% prizes, 10% conservation.</Card>
             </div>
             <div className="pd-stack">
-              <Card title="Paid attestations" tone="sun">
+              <Card title="Paid attestations · planned" tone="sun">
                 Contest organizers sign champion titles → verified pedigree.
               </Card>
-              <Card title="Sponsored contests">Sponsor-branded contests &amp; prize pools for bird brands.</Card>
+              <Card title="Sponsored contests · planned">Sponsor-branded contests &amp; prize pools for bird brands.</Card>
               <Card title="Market" tone="leafbg">
                 The kicau mania community: a nationwide Indonesian hobby with weekly gantangan contests.
               </Card>
@@ -254,13 +259,16 @@ function slides(wing: boolean, stats: LiveStats | null): { dark?: boolean; body:
     {
       body: (
         <>
-          <Kicker>08 · Roadmap</Kicker>
+          <Kicker>08 · Shipped today → next</Kicker>
           <h2 className="font-display pd-h1">Next flights.</h2>
           <div className="pd-grid pd-g4">
-            <Card title="Today" tone="leafbg">Live on Monad testnet. Adopt, support, play, register. Contract also on mainnet.</Card>
-            <Card title="Next">Organizer attestations for titles → verified pedigree.</Card>
-            <Card title="Then">Weekly on-chain tournaments with entry fees.</Card>
-            <Card title="Later">Unity version (web ↔ game JSON interface defined). Mainnet app + conservation partner wallet.</Card>
+            <Card title="Shipped" tone="leafbg">
+              Contests with on-chain judging + payouts, organizer-attested titles, x402 certificates, Kicau Value. Testnet
+              app; contract also on mainnet.
+            </Card>
+            <Card title="Next">Pilot with a real gantangan organizer: verified-organizer onboarding, printed QR results.</Card>
+            <Card title="Then">Full replay verification of seeded Flappy runs (today: on-chain time bound).</Card>
+            <Card title="Later">Mainnet app + conservation partner wallet. Unity client.</Card>
           </div>
         </>
       ),

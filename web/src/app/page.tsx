@@ -25,9 +25,13 @@ import {
 } from "wagmi";
 import { monadTestnet } from "wagmi/chains";
 import { FlappyGame } from "@/components/FlappyGame";
+import { ChainStats } from "@/components/home/ChainStats";
+import { FeaturedContest, WatchLiveLink } from "@/components/home/FeaturedContest";
+import { HeroScene } from "@/components/home/HeroScene";
+import { HowItWorks } from "@/components/home/HowItWorks";
 import { LiveFeed } from "@/components/LiveFeed";
 import { RegisterBird } from "@/components/RegisterBird";
-import { Badges, NftChip, RegisteredBirds } from "@/components/RegisteredBirds";
+import { Badges, BirdProfileCard, NftChip, RegisteredBirds } from "@/components/RegisteredBirds";
 import { ShelterScene } from "@/components/ShelterScene";
 import { BirdArt, BirdCard, Modal, TxLink, short, type Species } from "@/components/ui";
 import { kicauAbi } from "@/lib/abi";
@@ -37,7 +41,6 @@ import { KICAU_ADDRESS } from "@/lib/config";
 import { CUSTOM_SPECIES, fetchCustomBird } from "@/lib/customBirds";
 import { GAME_VERSION_CANVAS, GAME_VERSION_RUN, type GameOver, type GameStart } from "@/lib/game";
 import { useMusic } from "@/lib/music";
-import { fmtUsd, useMonUsd } from "@/lib/price";
 
 const kicau = { address: KICAU_ADDRESS, abi: kicauAbi } as const;
 const GUEST_TOKEN = -1;
@@ -98,6 +101,7 @@ export default function Home() {
 
   const [openSpecies, setOpenSpecies] = useState<number | null>(null);
   const [registering, setRegistering] = useState(false);
+  const [managing, setManaging] = useState<number | null>(null); // tokenId of the owner-view profile modal
   const publicClient = usePublicClient();
   const [game, setGame] = useState<GameStart | null>(null);
   const [result, setResult] = useState<GameOver | null>(null);
@@ -107,8 +111,6 @@ export default function Home() {
   const enabled = Boolean(KICAU_ADDRESS);
   const { data: speciesRaw } = useReadContract({ ...kicau, functionName: "getAllSpecies", query: { enabled } });
   const species = (speciesRaw ?? []) as readonly Species[];
-  const { data: totalConservation } = useReadContract({ ...kicau, functionName: "totalConservation", query: { enabled } });
-  const monUsd = useMonUsd();
   const { data: board } = useReadContract({ ...kicau, functionName: "getLeaderboardV2", query: { enabled } });
   const { data: registerFee } = useReadContract({ ...kicau, functionName: "registerFee", query: { enabled } });
   const { data: supportedRaw } = useReadContract({
@@ -342,38 +344,39 @@ export default function Home() {
       </header>
 
       {/* hero */}
-      <section className="mb-10 grid gap-6 rounded-[2rem] bg-leaf px-6 py-10 text-paper sm:grid-cols-[1.4fr_1fr] sm:px-10">
-        <div>
-          <h1 className="mb-3 font-display text-4xl font-extrabold leading-[1.05] sm:text-6xl">
-            Keep the song,
-            <br />
-            not the cage.
-          </h1>
-          <p className="max-w-md text-paper/85">
-            Adopt Indonesian songbirds as NFTs, fly them in a pixel game, and every adoption funds bird conservation —
-            all on-chain on Monad.
+      <section className="hero-stage bleed">
+        <HeroScene />
+        <div className="relative mx-auto max-w-6xl px-4 pb-[330px] pt-10 sm:px-6 sm:pb-[380px] lg:min-h-[600px] lg:pb-24 lg:pt-16">
+          <p className="eyebrow mb-5">Keep the song, not the cage.</p>
+          <h1 className="hero-title mb-5 max-w-[15ch] font-display">The on-chain record for real-life songbird contests.</h1>
+          <p className="mb-7 max-w-md text-lg leading-snug">
+            Kicau mania contests happen at the gantangan. Kicau puts every judge&apos;s score on Monad as it&apos;s given, pays prizes
+            straight to keepers, and turns champion titles into pedigree anyone can verify.
           </p>
-          <div className="mt-5 flex flex-wrap gap-3">
-            <button className="btn bg-sun text-ink" onClick={playNow}>
-              ▶ Play Flappy
+          <div className="flex max-w-md flex-col gap-3 sm:max-w-none sm:flex-row sm:flex-wrap">
+            <WatchLiveLink className="btn-primary">Watch a live contest</WatchLiveLink>
+            <button className="btn bg-sun text-ink" onClick={() => setRegistering(true)}>
+              Register your bird
             </button>
           </div>
-        </div>
-        <div className="self-end rounded-3xl bg-paper/10 p-5">
-          <div className="text-sm uppercase tracking-wider text-paper/70">Conservation funds raised</div>
-          <div className="font-display text-4xl font-extrabold tabular-nums">
-            {totalConservation !== undefined ? Number(formatEther(totalConservation)).toFixed(3) : "—"} MON
+          <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 font-display text-[0.6rem] uppercase">
+            <button className="underline decoration-2 underline-offset-4 hover:text-leaf" onClick={playNow}>
+              ▶ Play Flappy
+            </button>
+            <Link href="/taman" className="underline decoration-2 underline-offset-4 hover:text-leaf">
+              Kicau Garden →
+            </Link>
           </div>
-          {totalConservation !== undefined && monUsd && (
-            <div className="text-sm tabular-nums text-paper/80" title={`Chainlink MON/USD on Monad mainnet, updated ${new Date(monUsd.updatedAt * 1000).toLocaleTimeString()}`}>
-              {fmtUsd(Number(formatEther(totalConservation)), monUsd)} at MON ${monUsd.usd.toFixed(4)} · Chainlink feed
-            </div>
-          )}
-          <div className="text-sm text-paper/70">Forwarded automatically with every transaction — the contract holds no balance.</div>
         </div>
       </section>
 
-      <LiveFeed />
+      <ChainStats />
+      <HowItWorks />
+      <FeaturedContest />
+
+      <div className="pt-14">
+        <LiveFeed />
+      </div>
 
       {!enabled && (
         <p className="mb-6 rounded-2xl border border-clay/40 bg-clay/10 p-4 text-sm">
@@ -400,9 +403,10 @@ export default function Home() {
       )}
 
       {/* shelter */}
-      <section className="mb-12">
+      <section className="band mb-14 mt-14 py-14">
         <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
           <div>
+            <p className="eyebrow mb-3">Adopt &amp; play</p>
             <h2 className="mb-1 font-display text-3xl font-bold">Shelter</h2>
             <p className="text-muted">Tap a bird to hear its song and see its stats.</p>
           </div>
@@ -432,7 +436,7 @@ export default function Home() {
         />
       </section>
 
-      <div className="grid gap-8 lg:grid-cols-[1.4fr_1fr]">
+      <div className="grid gap-8 pb-6 lg:grid-cols-[1.4fr_1fr]">
         {/* my birds */}
         <section>
           <h2 className="mb-4 font-display text-3xl font-bold">My Birds</h2>
@@ -461,6 +465,11 @@ export default function Home() {
                   <button className="btn-primary w-full !py-2" disabled={!ready} onClick={() => play(b)}>
                     Fly
                   </button>
+                  {b.custom && (
+                    <button className="btn-ghost mt-2 w-full !py-2" onClick={() => setManaging(b.tokenId)}>
+                      Manage
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
@@ -492,12 +501,27 @@ export default function Home() {
         </section>
       </div>
 
-      <RegisteredBirds
-        me={address}
-        busy={txBusy}
-        onAttest={ready ? attest : undefined}
-        onSupport={ready ? supportBird : undefined}
-      />
+      <div className="band mt-8 pb-14 pt-2">
+        <RegisteredBirds
+          me={address}
+          busy={txBusy}
+          onAttest={ready ? attest : undefined}
+          onSupport={ready ? supportBird : undefined}
+        />
+      </div>
+
+      {/* owner view of one of my registered birds: proof + dashboard */}
+      {managing !== null && customBirds?.[managing] && (
+        <Modal onClose={() => setManaging(null)}>
+          <BirdProfileCard
+            bird={customBirds[managing]!}
+            me={address}
+            busy={txBusy}
+            onAttest={ready ? attest : undefined}
+            onSupport={ready ? supportBird : undefined}
+          />
+        </Modal>
+      )}
 
       {/* register own bird */}
       {registering && (

@@ -5,7 +5,9 @@ import { useState } from "react";
 import { formatEther, parseEther } from "viem";
 import { usePublicClient, useReadContract, useReadContracts } from "wagmi";
 import { kicauAbi } from "@/lib/abi";
+import { BirdProof } from "@/components/BirdProof";
 import { CertificateButton } from "@/components/CertificateButton";
+import { OwnerDashboard } from "@/components/OwnerDashboard";
 import { KicauValue } from "@/components/lomba/KicauValue";
 import { Modal, short } from "@/components/ui";
 import { EXPLORER, KICAU_ADDRESS } from "@/lib/config";
@@ -159,6 +161,7 @@ export function BirdProfileCard({ bird, me, busy = false, onAttest, onSupport }:
       </p>
       <Badges bird={bird} />
       <KicauValue tokenId={bird.tokenId} className="mt-2" />
+      <OwnerDashboard tokenId={bird.tokenId} />
       <dl className="mt-4 space-y-3 text-sm">
         {attestations.length > 0 && (
           <div>
@@ -205,6 +208,7 @@ export function BirdProfileCard({ bird, me, busy = false, onAttest, onSupport }:
           </div>
         )}
       </dl>
+      <BirdProof tokenId={bird.tokenId} />
       <div className="mt-4 border-[3px] border-ink bg-cream p-3 text-sm">
         <div className="mb-1 font-display text-xs">Tokenized record</div>
         <p>

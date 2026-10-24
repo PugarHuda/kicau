@@ -7,6 +7,7 @@ import { monadTestnet } from "viem/chains";
 import { kicauAbi } from "@/lib/abi";
 import { fetchCustomBird, type CustomBird } from "@/lib/customBirds";
 import { rpcTransport } from "@/lib/rpc";
+import { qrSvgPath } from "@/app/pitch/qr";
 import { CERTIFICATE_PRICE_USD, MONAD_TESTNET_USDC, X402_FACILITATOR, X402_NETWORK } from "@/lib/x402";
 
 const KICAU_ADDRESS = (process.env.NEXT_PUBLIC_KICAU_ADDRESS ?? "") as `0x${string}`;
@@ -25,10 +26,11 @@ export async function GET(req: Request, { params }: { params: Promise<{ tokenId:
   const tokenId = BigInt(raw);
 
   // Look the bird up before asking for money: never charge for a certificate we can't issue.
-  const [bird, block, treasury] = await Promise.all([
+  const [bird, block, treasury, keeper] = await Promise.all([
     fetchCustomBird(client, KICAU_ADDRESS, tokenId).catch(() => null),
     client.readContract({ address: KICAU_ADDRESS, abi: kicauAbi, functionName: "registeredAt", args: [tokenId] }).catch(() => 0n),
     client.readContract({ address: KICAU_ADDRESS, abi: kicauAbi, functionName: "treasury" }),
+    client.readContract({ address: KICAU_ADDRESS, abi: kicauAbi, functionName: "ownerOf", args: [tokenId] }).catch(() => null),
   ]);
   if (!bird || !block) return Response.json({ error: "Not a registered bird" }, { status: 404 });
 
@@ -64,7 +66,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ tokenId:
     const settled = await server.settlePayment(payload, match);
     if (!settled.success) return paymentRequired(requirements, resource, settled.errorMessage ?? settled.errorReason ?? "settle_failed", payload);
 
-    return new Response(certificateSvg(bird, block, settled.transaction, settled.payer ?? verified.payer ?? ""), {
+    return new Response(certificateSvg({ ...bird, owner: keeper ?? bird.owner }, block, settled.transaction, settled.payer ?? verified.payer ?? "", new URL(`/api/bird/${raw}`, req.url).href), {
       headers: {
         "Content-Type": "image/svg+xml; charset=utf-8",
         "Cache-Control": "private, no-store",
@@ -102,7 +104,8 @@ function wrap(s: string, width: number, maxLines: number) {
   return lines;
 }
 
-function certificateSvg(bird: CustomBird, block: bigint, tx: string, payer: string) {
+function certificateSvg(bird: CustomBird, block: bigint, tx: string, payer: string, recordUrl: string) {
+  const qr = qrSvgPath(recordUrl);
   const p = bird.profile;
   const rows: [string, string[]][] = [
     ["Keeper", [`${p.owner ? p.owner + " · " : ""}${bird.owner}`]],
@@ -137,5 +140,7 @@ ${body}
 <text x="90" y="660" class="m">Issued ${issued} · paid ${CERTIFICATE_PRICE_USD} USDC via x402 (Monad facilitator) by ${esc(payer)}</text>
 <text x="90" y="682" class="m">Settlement tx ${esc(tx)}</text>
 <text x="90" y="704" class="m">Verify: https://testnet.monadvision.com/tx/${esc(tx)}</text>
+<svg x="944" y="52" width="104" height="104" viewBox="0 0 ${qr.size} ${qr.size}" shape-rendering="crispEdges"><rect width="${qr.size}" height="${qr.size}" fill="#fffaf0"/><path d="${qr.d}" fill="#2b2118"/></svg>
+<text x="996" y="172" text-anchor="middle" class="m">scan: live record</text>
 </svg>`;
 }
